@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_prayer_location_user,prayer.location user,model_prayer_location,base.group_user,1,0,0,0
+access_prayer_location_manager,prayer.location manager,model_prayer_location,group_prayer_manager,1,1,1,1
+access_prayer_azan_sound_user,prayer.azan.sound user,model_prayer_azan_sound,base.group_user,1,0,0,0
+access_prayer_azan_sound_manager,prayer.azan.sound manager,model_prayer_azan_sound,group_prayer_manager,1,1,1,1
+access_prayer_timetable_user,prayer.timetable user,model_prayer_timetable,base.group_user,1,0,0,0
+access_prayer_timetable_manager,prayer.timetable manager,model_prayer_timetable,group_prayer_manager,1,1,1,1

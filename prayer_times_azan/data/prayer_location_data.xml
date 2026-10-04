@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Default location: the module works right after installation.
+         Edit it (or add others) from Prayer Times > Configuration > Locations. -->
+    <record id="prayer_location_riyadh" model="prayer.location">
+        <field name="name">Riyadh</field>
+        <field name="company_id" eval="False"/>
+        <field name="latitude">24.713600</field>
+        <field name="longitude">46.675300</field>
+        <field name="tz">Asia/Riyadh</field>
+        <field name="method">umm_al_qura</field>
+    </record>
+</odoo>

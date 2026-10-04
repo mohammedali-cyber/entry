@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="prayer_azan_sound_view_list" model="ir.ui.view">
+        <field name="name">prayer.azan.sound.list</field>
+        <field name="model">prayer.azan.sound</field>
+        <field name="arch" type="xml">
+            <list string="Azan Sounds">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="audio_filename"/>
+                <field name="location_count" string="Locations"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="prayer_azan_sound_view_form" model="ir.ui.view">
+        <field name="name">prayer.azan.sound.form</field>
+        <field name="model">prayer.azan.sound</field>
+        <field name="arch" type="xml">
+            <form string="Azan Sound">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_locations" type="object" class="oe_stat_button"
+                                icon="fa-map-marker" invisible="not location_count">
+                            <field name="location_count" widget="statinfo" string="Locations"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <field name="active" invisible="1"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Makkah Azan"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="audio_file" filename="audio_filename"/>
+                            <field name="audio_filename" invisible="1"/>
+                        </group>
+                        <group>
+                            <label for="audio_url" string="Listen"/>
+                            <div>
+                                <widget name="prayer_azan_player"/>
+                                <field name="audio_url" invisible="1"/>
+                            </div>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Notes (reciter, source...)"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="prayer_azan_sound_view_search" model="ir.ui.view">
+        <field name="name">prayer.azan.sound.search</field>
+        <field name="model">prayer.azan.sound</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="prayer_azan_sound_action" model="ir.actions.act_window">
+        <field name="name">Azan Sounds</field>
+        <field name="res_model">prayer.azan.sound</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Upload your first azan recording</p>
+            <p>Upload an MP3 file, then assign it to a location in Configuration &gt; Locations.</p>
+        </field>
+    </record>
+</odoo>

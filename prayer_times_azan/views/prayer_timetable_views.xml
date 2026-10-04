@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="prayer_timetable_view_list" model="ir.ui.view">
+        <field name="name">prayer.timetable.list</field>
+        <field name="model">prayer.timetable</field>
+        <field name="arch" type="xml">
+            <list string="Prayer Timetable" create="0" edit="0" delete="0">
+                <field name="date"/>
+                <field name="location_id"/>
+                <field name="fajr" widget="float_time"/>
+                <field name="sunrise" widget="float_time"/>
+                <field name="dhuhr" widget="float_time"/>
+                <field name="asr" widget="float_time"/>
+                <field name="maghrib" widget="float_time"/>
+                <field name="isha" widget="float_time"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="prayer_timetable_view_search" model="ir.ui.view">
+        <field name="name">prayer.timetable.search</field>
+        <field name="model">prayer.timetable</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="location_id"/>
+                <field name="date"/>
+                <filter name="today" string="Today"
+                        domain="[('date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="upcoming" string="Upcoming"
+                        domain="[('date', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_date" string="Date" date="date"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_location" string="Location" context="{'group_by': 'location_id'}"/>
+                    <filter name="group_month" string="Month" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="prayer_timetable_action" model="ir.actions.act_window">
+        <field name="name">Prayer Timetable</field>
+        <field name="res_model">prayer.timetable</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'search_default_upcoming': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No prayer times yet</p>
+            <p>Timetables are generated automatically every day for the next 30 days of each location.</p>
+        </field>
+    </record>
+</odoo>

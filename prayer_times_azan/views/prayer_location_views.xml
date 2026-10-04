@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="prayer_location_view_list" model="ir.ui.view">
+        <field name="name">prayer.location.list</field>
+        <field name="model">prayer.location</field>
+        <field name="arch" type="xml">
+            <list string="Locations">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
+                <field name="method" optional="show"/>
+                <field name="tz" optional="hide"/>
+                <field name="today_fajr" widget="float_time"/>
+                <field name="today_dhuhr" widget="float_time"/>
+                <field name="today_asr" widget="float_time"/>
+                <field name="today_maghrib" widget="float_time"/>
+                <field name="today_isha" widget="float_time"/>
+                <field name="azan_sound_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="prayer_location_view_form" model="ir.ui.view">
+        <field name="name">prayer.location.form</field>
+        <field name="model">prayer.location</field>
+        <field name="arch" type="xml">
+            <form string="Location">
+                <header>
+                    <button name="action_generate_timetable" type="object" string="Timetable"
+                            class="btn-primary" icon="fa-calendar"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <field name="active" invisible="1"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Riyadh - Head Office"/></h1>
+                    </div>
+                    <group>
+                        <group string="Location">
+                            <field name="latitude"/>
+                            <field name="longitude"/>
+                            <field name="tz"/>
+                            <field name="company_id" groups="base.group_multi_company"
+                                   options="{'no_create': True}" placeholder="All companies"/>
+                        </group>
+                        <group string="Calculation">
+                            <field name="method"/>
+                            <field name="fajr_angle" invisible="method != 'custom'" required="method == 'custom'"/>
+                            <field name="isha_minutes" invisible="method != 'custom'"/>
+                            <field name="isha_angle" invisible="method != 'custom' or isha_minutes"/>
+                            <field name="asr_method"/>
+                            <field name="high_lat_rule"/>
+                            <field name="ramadan_mode" invisible="method != 'umm_al_qura'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Today" name="today">
+                            <group>
+                                <group>
+                                    <field name="today_date" string="Date"/>
+                                    <field name="today_fajr" widget="float_time"/>
+                                    <field name="today_sunrise" widget="float_time"/>
+                                    <field name="today_dhuhr" widget="float_time"/>
+                                </group>
+                                <group>
+                                    <field name="today_asr" widget="float_time"/>
+                                    <field name="today_maghrib" widget="float_time"/>
+                                    <field name="today_isha" widget="float_time"/>
+                                </group>
+                            </group>
+                            <div class="text-muted">
+                                Save the location to refresh these times after changing the settings.
+                            </div>
+                        </page>
+                        <page string="Azan" name="azan">
+                            <group>
+                                <group string="Sounds">
+                                    <field name="azan_sound_id"/>
+                                    <field name="fajr_azan_sound_id" placeholder="Same as azan sound"/>
+                                </group>
+                                <group string="Play the azan at">
+                                    <field name="azan_fajr" string="Fajr"/>
+                                    <field name="azan_dhuhr" string="Dhuhr"/>
+                                    <field name="azan_asr" string="Asr"/>
+                                    <field name="azan_maghrib" string="Maghrib"/>
+                                    <field name="azan_isha" string="Isha"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Adjustments" name="adjustments">
+                            <p class="text-muted">Minutes added to (or removed from, with a negative number) each computed time, e.g. to match the local mosque or an official calendar.</p>
+                            <group>
+                                <group>
+                                    <field name="fajr_offset"/>
+                                    <field name="sunrise_offset"/>
+                                    <field name="dhuhr_offset"/>
+                                </group>
+                                <group>
+                                    <field name="asr_offset"/>
+                                    <field name="maghrib_offset"/>
+                                    <field name="isha_offset"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="prayer_location_view_search" model="ir.ui.view">
+        <field name="name">prayer.location.search</field>
+        <field name="model">prayer.location</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="prayer_location_action" model="ir.actions.act_window">
+        <field name="name">Locations</field>
+        <field name="res_model">prayer.location</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Add a location</p>
+            <p>A location (city or branch) defines the coordinates and the calculation method of the prayer times.</p>
+        </field>
+    </record>
+</odoo>

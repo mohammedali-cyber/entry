@@ -1,0 +1,36 @@
+.o_prayer_systray_toggle {
+    height: 100%;
+    padding: 0 0.5rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+
+    &.o_prayer_playing .o_prayer_systray_icon {
+        animation: o_prayer_pulse 1s ease-in-out infinite;
+    }
+}
+
+.o_prayer_systray_icon {
+    width: 18px;
+    height: 18px;
+}
+
+.o_prayer_systray_dropdown .o_prayer_panel {
+    min-width: 260px;
+}
+
+.o_prayer_table {
+    tr.o_prayer_past td {
+        color: $text-muted;
+    }
+
+    tr.o_prayer_next td {
+        font-weight: bold;
+        background-color: rgba($success, 0.12);
+    }
+}
+
+@keyframes o_prayer_pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}

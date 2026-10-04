@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_prayer_root" name="Prayer Times" sequence="95"
+              web_icon="prayer_times_azan,static/description/icon.png"/>
+
+    <menuitem id="menu_prayer_timetable" name="Timetable" parent="menu_prayer_root"
+              action="prayer_timetable_action" sequence="10"/>
+
+    <menuitem id="menu_prayer_config" name="Configuration" parent="menu_prayer_root"
+              sequence="100" groups="group_prayer_manager"/>
+    <menuitem id="menu_prayer_location" name="Locations" parent="menu_prayer_config"
+              action="prayer_location_action" sequence="10"/>
+    <menuitem id="menu_prayer_azan_sound" name="Azan Sounds" parent="menu_prayer_config"
+              action="prayer_azan_sound_action" sequence="20"/>
+</odoo>

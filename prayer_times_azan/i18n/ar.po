@@ -1,0 +1,858 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* prayer_times_azan
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-04 19:29+0000\n"
+"PO-Revision-Date: 2026-10-04 19:29+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
+msgid "%(prayer)s azan in %(minutes)s minutes."
+msgstr "أذان %(prayer)s بعد %(minutes)s دقيقة."
+
+#. module: prayer_times_azan
+#: model_terms:ir.actions.act_window,help:prayer_times_azan.prayer_location_action
+msgid ""
+"A location (city or branch) defines the coordinates and the calculation "
+"method of the prayer times."
+msgstr "الموقع (مدينة أو فرع) يحدد الإحداثيات وطريقة حساب أوقات الصلاة."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__active
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__active
+msgid "Active"
+msgstr "نشط"
+
+#. module: prayer_times_azan
+#: model_terms:ir.actions.act_window,help:prayer_times_azan.prayer_location_action
+msgid "Add a location"
+msgstr "أضف موقعًا"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Adjustments"
+msgstr "تعديلات الوقت"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "All companies"
+msgstr "كل الشركات"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__high_lat_rule__angle_based
+msgid "Angle Based"
+msgstr "حسب الزاوية"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_azan_sound_view_form
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_azan_sound_view_search
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_search
+msgid "Archived"
+msgstr "مؤرشف"
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__today_asr
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__asr
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Asr"
+msgstr "العصر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__asr_offset
+msgid "Asr Adjustment"
+msgstr "تعديل العصر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__asr_method
+msgid "Asr Calculation"
+msgstr "حساب العصر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__audio_file
+msgid "Audio File"
+msgstr "الملف الصوتي"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__audio_url
+msgid "Audio Url"
+msgstr "رابط الصوت"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/xml/prayer_templates.xml:0
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Azan"
+msgstr "الأذان"
+
+#. module: prayer_times_azan
+#: model:ir.model,name:prayer_times_azan.model_prayer_azan_sound
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__azan_sound_id
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_azan_sound_view_form
+msgid "Azan Sound"
+msgstr "صوت الأذان"
+
+#. module: prayer_times_azan
+#: model:ir.actions.act_window,name:prayer_times_azan.prayer_azan_sound_action
+#: model:ir.ui.menu,name:prayer_times_azan.menu_prayer_azan_sound
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_azan_sound_view_list
+msgid "Azan Sounds"
+msgstr "أصوات الأذان"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_res_users__prayer_azan_volume
+msgid "Azan Volume (%)"
+msgstr "مستوى صوت الأذان (%)"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__azan_asr
+msgid "Azan at Asr"
+msgstr "أذان العصر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__azan_dhuhr
+msgid "Azan at Dhuhr"
+msgstr "أذان الظهر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__azan_fajr
+msgid "Azan at Fajr"
+msgstr "أذان الفجر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__azan_isha
+msgid "Azan at Isha"
+msgstr "أذان العشاء"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__azan_maghrib
+msgid "Azan at Maghrib"
+msgstr "أذان المغرب"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_azan_sound__audio_file
+msgid "Azan recording (MP3, OGG, WAV, M4A or AAC), max 15 MB."
+msgstr "تسجيل الأذان (MP3 أو OGG أو WAV أو M4A أو AAC)، بحد أقصى 15 ميجابايت."
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
+msgid "Azan time"
+msgstr "حان وقت الأذان"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Calculation"
+msgstr "الحساب"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__method
+msgid "Calculation Method"
+msgstr "طريقة الحساب"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__company_id
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__company_id
+msgid "Company"
+msgstr "الشركة"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.res_users_view_form_prayer
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.res_users_view_form_preferences_prayer
+msgid "Company default"
+msgstr "الافتراضي للشركة"
+
+#. module: prayer_times_azan
+#: model:ir.ui.menu,name:prayer_times_azan.menu_prayer_config
+msgid "Configuration"
+msgstr "الإعدادات"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__create_uid
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__create_uid
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__create_uid
+msgid "Created by"
+msgstr "أنشئ بواسطة"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__create_date
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__create_date
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__create_date
+msgid "Created on"
+msgstr "أنشئ في"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__method__custom
+msgid "Custom"
+msgstr "مخصص"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__isha_minutes
+msgid ""
+"Custom method: fixed delay of Isha after Maghrib. Leave 0 to use the Isha "
+"angle."
+msgstr ""
+"الطريقة المخصصة: عدد دقائق ثابت بين المغرب والعشاء. اتركه 0 لاستخدام زاوية "
+"العشاء."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__date
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_timetable_view_search
+msgid "Date"
+msgstr "التاريخ"
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__today_dhuhr
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__dhuhr
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Dhuhr"
+msgstr "الظهر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__dhuhr_offset
+msgid "Dhuhr Adjustment"
+msgstr "تعديل الظهر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__display_name
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__display_name
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__display_name
+msgid "Display Name"
+msgstr "الاسم المعروض"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__longitude
+msgid "East is positive."
+msgstr "الشرق موجب."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__method__egypt
+msgid "Egyptian General Authority of Survey"
+msgstr "الهيئة المصرية العامة للمساحة"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/xml/prayer_templates.xml:0
+msgid "Enable desktop notifications"
+msgstr "تفعيل إشعارات سطح المكتب"
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__today_fajr
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__fajr
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Fajr"
+msgstr "الفجر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__fajr_offset
+msgid "Fajr Adjustment"
+msgstr "تعديل الفجر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__fajr_angle
+msgid "Fajr Angle"
+msgstr "زاوية الفجر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__fajr_azan_sound_id
+msgid "Fajr Azan Sound"
+msgstr "صوت أذان الفجر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__high_lat_rule
+msgid ""
+"Fallback for Fajr/Isha in places where the sun does not go deep enough below"
+" the horizon (latitudes above ~48°)."
+msgstr ""
+"بديل لحساب الفجر والعشاء في الأماكن التي لا تنخفض فيها الشمس بما يكفي تحت "
+"الأفق (خطوط العرض فوق 48° تقريبًا)."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__audio_filename
+msgid "File Name"
+msgstr "اسم الملف"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_timetable_view_search
+msgid "Group By"
+msgstr "تجميع حسب"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__method__gulf
+msgid "Gulf Region"
+msgstr "منطقة الخليج"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__asr_method__hanafi
+msgid "Hanafi"
+msgstr "الحنفي"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__high_lat_rule
+msgid "High Latitude Rule"
+msgstr "قاعدة خطوط العرض العليا"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__id
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__id
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__id
+msgid "ID"
+msgstr "المعرف"
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__today_isha
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__isha
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Isha"
+msgstr "العشاء"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__isha_offset
+msgid "Isha Adjustment"
+msgstr "تعديل العشاء"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__isha_angle
+msgid "Isha Angle"
+msgstr "زاوية العشاء"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__isha_minutes
+msgid "Isha Minutes After Maghrib"
+msgstr "دقائق العشاء بعد المغرب"
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Isha minutes after Maghrib cannot be negative."
+msgstr "لا يمكن أن تكون دقائق العشاء بعد المغرب سالبة."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__method__isna
+msgid "Islamic Society of North America"
+msgstr "الجمعية الإسلامية لأمريكا الشمالية"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
+msgid "It is now time for %s prayer."
+msgstr "حان الآن موعد أذان %s."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__method__kuwait
+msgid "Kuwait"
+msgstr "الكويت"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__write_uid
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__write_uid
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__write_uid
+msgid "Last Updated by"
+msgstr "آخر تحديث بواسطة"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__write_date
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__write_date
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__write_date
+msgid "Last Updated on"
+msgstr "آخر تحديث في"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__latitude
+msgid "Latitude"
+msgstr "خط العرض"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__company_id
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_timetable__company_id
+msgid "Leave empty to share this location between all companies."
+msgstr "اتركه فارغًا لمشاركة هذا الموقع بين كل الشركات."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__fajr_azan_sound_id
+msgid "Leave empty to use the main azan sound."
+msgstr "اتركه فارغًا لاستخدام صوت الأذان الرئيسي."
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_azan_sound_view_form
+msgid "Listen"
+msgstr "استماع"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__location_id
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_timetable_view_search
+msgid "Location"
+msgstr "الموقع"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__location_count
+msgid "Location Count"
+msgstr "عدد المواقع"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_res_users__prayer_location_id
+msgid ""
+"Location used for your prayer times. Empty: the first location of your "
+"company."
+msgstr "الموقع المستخدم لأوقات صلاتك. إذا كان فارغًا: أول موقع لشركتك."
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_azan_sound.py:0
+#: model:ir.actions.act_window,name:prayer_times_azan.prayer_location_action
+#: model:ir.ui.menu,name:prayer_times_azan.menu_prayer_location
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_azan_sound_view_form
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_azan_sound_view_list
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_list
+msgid "Locations"
+msgstr "المواقع"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__longitude
+msgid "Longitude"
+msgstr "خط الطول"
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__today_maghrib
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__maghrib
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Maghrib"
+msgstr "المغرب"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__maghrib_offset
+msgid "Maghrib Adjustment"
+msgstr "تعديل المغرب"
+
+#. module: prayer_times_azan
+#: model:res.groups,comment:prayer_times_azan.group_prayer_manager
+msgid "Manage prayer locations, calculation settings and azan sounds."
+msgstr "إدارة مواقع الصلاة وإعدادات الحساب وأصوات الأذان."
+
+#. module: prayer_times_azan
+#: model:res.groups,name:prayer_times_azan.group_prayer_manager
+msgid "Manager"
+msgstr "مدير"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__high_lat_rule__middle_night
+msgid "Middle of the Night"
+msgstr "منتصف الليل"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid ""
+"Minutes added to (or removed from, with a negative number) each computed "
+"time, e.g. to match the local mosque or an official calendar."
+msgstr ""
+"دقائق تضاف إلى كل وقت محسوب (أو تطرح منه برقم سالب)، مثلًا لمطابقة المسجد "
+"المحلي أو تقويم رسمي."
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_timetable_view_search
+msgid "Month"
+msgstr "الشهر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__method__mwl
+msgid "Muslim World League"
+msgstr "رابطة العالم الإسلامي"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__name
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__name
+msgid "Name"
+msgstr "الاسم"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
+msgid "No azan sound is assigned to your location."
+msgstr "لم يتم تعيين صوت أذان لموقعك."
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/xml/prayer_templates.xml:0
+msgid "No prayer location is configured."
+msgstr "لم يتم إعداد موقع لأوقات الصلاة."
+
+#. module: prayer_times_azan
+#: model_terms:ir.actions.act_window,help:prayer_times_azan.prayer_timetable_action
+msgid "No prayer times yet"
+msgstr "لا توجد أوقات صلاة بعد"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__high_lat_rule__none
+msgid "None"
+msgstr "بدون"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__latitude
+msgid "North is positive."
+msgstr "الشمال موجب."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__note
+msgid "Note"
+msgstr "ملاحظات"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_azan_sound_view_form
+msgid "Notes (reciter, source...)"
+msgstr "ملاحظات (المؤذن، المصدر...)"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__high_lat_rule__one_seventh
+msgid "One Seventh of the Night"
+msgstr "سُبع الليل"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_res_users__prayer_play_azan
+msgid "Play Azan Sound"
+msgstr "تشغيل صوت الأذان"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
+msgid "Play azan"
+msgstr "تشغيل الأذان"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Play the azan at"
+msgstr "رفع الأذان في"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_res_users__prayer_location_id
+msgid "Prayer Location"
+msgstr "موقع الصلاة"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_res_users__prayer_notify
+msgid "Prayer Notifications"
+msgstr "إشعارات الصلاة"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/xml/prayer_templates.xml:0
+#: model:ir.module.category,name:prayer_times_azan.module_category_prayer_times
+#: model:ir.ui.menu,name:prayer_times_azan.menu_prayer_root
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.res_users_view_form_prayer
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.res_users_view_form_preferences_prayer
+msgid "Prayer Times"
+msgstr "أوقات الصلاة"
+
+#. module: prayer_times_azan
+#: model:ir.model,name:prayer_times_azan.model_prayer_location
+msgid "Prayer Times Location"
+msgstr "موقع أوقات الصلاة"
+
+#. module: prayer_times_azan
+#: model:ir.actions.server,name:prayer_times_azan.ir_cron_prayer_timetable_ir_actions_server
+msgid "Prayer Times: Generate Timetables"
+msgstr "أوقات الصلاة: إنشاء الجداول"
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+#: model:ir.actions.act_window,name:prayer_times_azan.prayer_timetable_action
+#: model:ir.model,name:prayer_times_azan.model_prayer_timetable
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_timetable_view_list
+msgid "Prayer Timetable"
+msgstr "جدول أوقات الصلاة"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
+msgid "Prayer reminder"
+msgstr "تذكير بالصلاة"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__method__qatar
+msgid "Qatar"
+msgstr "قطر"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__ramadan_mode
+msgid "Ramadan (Isha +30 min)"
+msgstr "رمضان (العشاء +30 دقيقة)"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_res_users__prayer_reminder_minutes
+msgid "Reminder Before Azan (minutes)"
+msgstr "التذكير قبل الأذان (دقائق)"
+
+#. module: prayer_times_azan
+#: model:prayer.location,name:prayer_times_azan.prayer_location_riyadh
+msgid "Riyadh"
+msgstr "الرياض"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Same as azan sound"
+msgstr "نفس صوت الأذان"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Save the location to refresh these times after changing the settings."
+msgstr "احفظ الموقع لتحديث هذه الأوقات بعد تغيير الإعدادات."
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/xml/prayer_templates.xml:0
+msgid "Save the record to listen to the file."
+msgstr "احفظ السجل للاستماع إلى الملف."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__sequence
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__sequence
+msgid "Sequence"
+msgstr "التسلسل"
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid ""
+"Set either an Isha angle between 0 and 30 degrees or Isha minutes after "
+"Maghrib."
+msgstr "حدد زاوية للعشاء بين 0 و30 درجة أو عدد دقائق العشاء بعد المغرب."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_res_users__prayer_reminder_minutes
+msgid ""
+"Show a reminder this many minutes before each azan. 0 disables the reminder."
+msgstr "إظهار تذكير قبل كل أذان بهذا العدد من الدقائق. 0 يعطل التذكير."
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/xml/prayer_templates.xml:0
+msgid "Sound off"
+msgstr "الصوت مغلق"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/xml/prayer_templates.xml:0
+msgid "Sound on"
+msgstr "الصوت مفعّل"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Sounds"
+msgstr "الأصوات"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__asr_method__standard
+msgid "Standard (Shafi, Maliki, Hanbali)"
+msgstr "الجمهور (الشافعي، المالكي، الحنبلي)"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
+#: code:addons/prayer_times_azan/static/src/xml/prayer_templates.xml:0
+msgid "Stop azan"
+msgstr "إيقاف الأذان"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__fajr_angle
+msgid "Sun angle below the horizon for Fajr (Custom method)."
+msgstr "زاوية الشمس تحت الأفق لصلاة الفجر (الطريقة المخصصة)."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__isha_angle
+msgid ""
+"Sun angle below the horizon for Isha (Custom method). Ignored when 'Isha "
+"Minutes After Maghrib' is set."
+msgstr ""
+"زاوية الشمس تحت الأفق لصلاة العشاء (الطريقة المخصصة). تُتجاهل عند تحديد "
+"'دقائق العشاء بعد المغرب'."
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__today_sunrise
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__sunrise
+msgid "Sunrise"
+msgstr "الشروق"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__sunrise_offset
+msgid "Sunrise Adjustment"
+msgstr "تعديل الشروق"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
+msgid "Test"
+msgstr "تجربة"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/xml/prayer_templates.xml:0
+msgid "Test azan"
+msgstr "تجربة الأذان"
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "The Fajr angle must be between 0 and 30 degrees."
+msgstr "يجب أن تكون زاوية الفجر بين 0 و30 درجة."
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_azan_sound.py:0
+msgid "The azan file is too large (maximum %(size)s MB)."
+msgstr "ملف الأذان كبير جدًا (الحد الأقصى %(size)s ميجابايت)."
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_azan_sound.py:0
+msgid "The azan file must be an audio file (%(extensions)s)."
+msgstr "يجب أن يكون ملف الأذان ملفًا صوتيًا (%(extensions)s)."
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
+msgid "The azan sound could not be played."
+msgstr "تعذر تشغيل صوت الأذان."
+
+#. module: prayer_times_azan
+#: model:ir.model.constraint,message:prayer_times_azan.constraint_res_users_prayer_azan_volume_range
+msgid "The azan volume must be between 0 and 100."
+msgstr "يجب أن يكون مستوى صوت الأذان بين 0 و100."
+
+#. module: prayer_times_azan
+#: model:ir.model.constraint,message:prayer_times_azan.constraint_prayer_location_latitude_range
+msgid "The latitude must be between -90 and 90."
+msgstr "يجب أن يكون خط العرض بين -90 و90."
+
+#. module: prayer_times_azan
+#: model:ir.model.constraint,message:prayer_times_azan.constraint_prayer_location_longitude_range
+msgid "The longitude must be between -180 and 180."
+msgstr "يجب أن يكون خط الطول بين -180 و180."
+
+#. module: prayer_times_azan
+#: model:ir.model.constraint,message:prayer_times_azan.constraint_res_users_prayer_reminder_minutes_range
+msgid "The prayer reminder must be between 0 and 120 minutes."
+msgstr "يجب أن يكون التذكير بالصلاة بين 0 و120 دقيقة."
+
+#. module: prayer_times_azan
+#: model:ir.model.constraint,message:prayer_times_azan.constraint_prayer_timetable_location_date_uniq
+msgid "There is already a timetable line for this location and date."
+msgstr "يوجد بالفعل سطر في الجدول لهذا الموقع وهذا التاريخ."
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Time adjustments must be between -120 and 120 minutes."
+msgstr "يجب أن تكون تعديلات الوقت بين -120 و120 دقيقة."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__timetable_ids
+#: model:ir.ui.menu,name:prayer_times_azan.menu_prayer_timetable
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Timetable"
+msgstr "جدول الأوقات"
+
+#. module: prayer_times_azan
+#: model_terms:ir.actions.act_window,help:prayer_times_azan.prayer_timetable_action
+msgid ""
+"Timetables are generated automatically every day for the next 30 days of "
+"each location."
+msgstr "يتم إنشاء الجداول تلقائيًا كل يوم لمدة 30 يومًا قادمة لكل موقع."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__tz
+msgid "Timezone"
+msgstr "المنطقة الزمنية"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_timetable_view_search
+msgid "Today"
+msgstr "اليوم"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__today_date
+msgid "Today Date"
+msgstr "تاريخ اليوم"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__method__umm_al_qura
+msgid "Umm Al-Qura University, Makkah"
+msgstr "جامعة أم القرى، مكة المكرمة"
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__ramadan_mode
+msgid ""
+"Umm Al-Qura only: Isha is 120 minutes after Maghrib instead of 90. Enable it"
+" at the start of Ramadan and disable it after."
+msgstr ""
+"لأم القرى فقط: العشاء بعد المغرب بـ 120 دقيقة بدلًا من 90. فعّله في بداية "
+"رمضان وأوقفه بعد انتهائه."
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__method__karachi
+msgid "University of Islamic Sciences, Karachi"
+msgstr "جامعة العلوم الإسلامية، كراتشي"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_timetable_view_search
+msgid "Upcoming"
+msgstr "القادمة"
+
+#. module: prayer_times_azan
+#: model_terms:ir.actions.act_window,help:prayer_times_azan.prayer_azan_sound_action
+msgid ""
+"Upload an MP3 file, then assign it to a location in Configuration &gt; "
+"Locations."
+msgstr "ارفع ملف MP3 ثم عيّنه لموقع من الإعدادات &gt; المواقع."
+
+#. module: prayer_times_azan
+#: model_terms:ir.actions.act_window,help:prayer_times_azan.prayer_azan_sound_action
+msgid "Upload your first azan recording"
+msgstr "ارفع أول تسجيل للأذان"
+
+#. module: prayer_times_azan
+#: model:ir.model,name:prayer_times_azan.model_res_users
+msgid "User"
+msgstr "المستخدم"
+
+#. module: prayer_times_azan
+#. odoo-javascript
+#: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
+msgid "Your browser blocked the azan sound. Click the button to play it."
+msgstr "منع المتصفح تشغيل صوت الأذان تلقائيًا. اضغط الزر لتشغيله."
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_azan_sound_view_form
+msgid "e.g. Makkah Azan"
+msgstr "مثال: أذان الحرم المكي"
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "e.g. Riyadh - Head Office"
+msgstr "مثال: الرياض - المكتب الرئيسي"
