@@ -8,6 +8,7 @@ from odoo import api, fields, models
 from odoo.addons.base.models.res_partner import _tz_get
 from odoo.exceptions import ValidationError
 
+from . import aladhan_client
 from .prayer_calc import PRAYER_KEYS, PrayerTimesCalculator, round_to_minute
 
 _logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ AZAN_PRAYERS = ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha')
 
 # Fields that change the computed times: editing one regenerates the timetable.
 CALC_FIELDS = {
-    'latitude', 'longitude', 'tz', 'method', 'fajr_angle', 'isha_angle', 'isha_minutes',
+    'time_source', 'latitude', 'longitude', 'tz', 'method', 'fajr_angle', 'isha_angle', 'isha_minutes',
     'asr_method', 'high_lat_rule', 'ramadan_mode',
     'fajr_offset', 'sunrise_offset', 'dhuhr_offset', 'asr_offset', 'maghrib_offset', 'isha_offset',
 }
@@ -41,6 +42,16 @@ class PrayerLocation(models.Model):
                           default=lambda self: self.env.user.tz or 'Asia/Riyadh')
 
     # -- Calculation -----------------------------------------------------------
+    time_source = fields.Selection([
+        ('aladhan', 'Aladhan API (internet)'),
+        ('calculation', 'Built-in calculation (offline)'),
+    ], string='Times Source', required=True, default='aladhan',
+        help="Aladhan API: the times are downloaded every day from api.aladhan.com "
+             "(the Odoo server needs internet access). If the API cannot be reached, "
+             "the built-in calculation is used automatically.\n"
+             "Built-in calculation: computed inside Odoo, no internet needed.")
+    api_last_sync = fields.Datetime(string='Last API Sync', readonly=True, copy=False)
+    api_last_error = fields.Char(string='Last API Error', readonly=True, copy=False)
     method = fields.Selection([
         ('umm_al_qura', 'Umm Al-Qura University, Makkah'),
         ('mwl', 'Muslim World League'),
@@ -74,8 +85,9 @@ class PrayerLocation(models.Model):
              "below the horizon (latitudes above ~48°).")
     ramadan_mode = fields.Boolean(
         string='Ramadan (Isha +30 min)',
-        help="Umm Al-Qura only: Isha is 120 minutes after Maghrib instead of 90. "
-             "Enable it at the start of Ramadan and disable it after.")
+        help="Built-in calculation with Umm Al-Qura only: Isha is 120 minutes after Maghrib "
+             "instead of 90. Enable it at the start of Ramadan and disable it after. "
+             "With the Aladhan API, Ramadan is detected automatically.")
 
     fajr_offset = fields.Integer(string='Fajr Adjustment')
     sunrise_offset = fields.Integer(string='Sunrise Adjustment')
@@ -123,6 +135,13 @@ class PrayerLocation(models.Model):
             if not location.isha_minutes and not 0 < location.isha_angle <= 30:
                 raise ValidationError(self.env._(
                     "Set either an Isha angle between 0 and 30 degrees or Isha minutes after Maghrib."))
+
+    @api.constrains('time_source', 'method')
+    def _check_api_method(self):
+        for location in self:
+            if location.time_source == 'aladhan' and location.method == 'custom':
+                raise ValidationError(self.env._(
+                    "The Custom method is only available with the built-in calculation."))
 
     @api.constrains(*['%s_offset' % key for key in PRAYER_KEYS])
     def _check_offsets(self):
@@ -172,8 +191,18 @@ class PrayerLocation(models.Model):
         return offset.total_seconds() / 3600.0
 
     def _compute_local_times(self, day):
-        """Return {prayer key: local decimal hours rounded to the minute} for `day`."""
+        """Return {prayer key: local decimal hours rounded to the minute} for `day`.
+
+        API locations use the downloaded timetable line of the day, and fall
+        back to the built-in calculation when there is none.
+        """
         self.ensure_one()
+        if self.time_source == 'aladhan' and isinstance(self.id, int):
+            line = self.env['prayer.timetable'].search([
+                ('location_id', '=', self.id), ('date', '=', day), ('source', '=', 'aladhan'),
+            ], limit=1)
+            if line:
+                return {key: line[key] for key in PRAYER_KEYS}
         times = self._get_calculator().compute(day, self._utc_offset_hours(day))
         return {key: round_to_minute(value) for key, value in times.items()}
 
@@ -213,29 +242,84 @@ class PrayerLocation(models.Model):
     def _generate_timetable(self, days=30, regenerate=False):
         """Make sure each location has timetable lines from today for `days` days.
 
+        API locations download the times (overwriting older lines); days the
+        API could not provide are filled with the built-in calculation.
+
         :param regenerate: recompute existing lines from today (after a config change)
         """
         Timetable = self.env['prayer.timetable']
         for location in self:
             today = location._local_today()
+            days_range = [today + timedelta(days=offset) for offset in range(days)]
+            api_times = {}
+            if location.time_source == 'aladhan' and location._api_allowed():
+                api_times = location._fetch_api_times(days_range)
+            domain = [('location_id', '=', location.id), ('date', '>=', today)]
             if regenerate:
-                Timetable.search([('location_id', '=', location.id), ('date', '>=', today)]).unlink()
-            existing = set(Timetable.search([
-                ('location_id', '=', location.id), ('date', '>=', today),
-            ]).mapped('date'))
+                Timetable.search(domain).unlink()
+            elif api_times:
+                Timetable.search(domain + [('date', 'in', list(api_times))]).unlink()
+            existing = set(Timetable.search(domain).mapped('date'))
             vals_list = []
-            for offset in range(days):
-                day = today + timedelta(days=offset)
+            for day in days_range:
                 if day in existing:
                     continue
-                times = location._compute_local_times(day)
-                vals = {'location_id': location.id, 'date': day}
+                if day in api_times:
+                    times, source = api_times[day], 'aladhan'
+                else:
+                    times = location._get_calculator().compute(day, location._utc_offset_hours(day))
+                    times = {key: round_to_minute(value) for key, value in times.items()}
+                    source = 'calculation'
+                vals = {'location_id': location.id, 'date': day, 'source': source}
                 for key in PRAYER_KEYS:
                     value = times.get(key)
                     vals[key] = 0.0 if value is None or math.isnan(value) else value
                 vals_list.append(vals)
             if vals_list:
                 Timetable.create(vals_list)
+
+    def _api_allowed(self):
+        # No network call while the module data is loaded (install / update).
+        return not self.env.context.get('install_mode') and not self.env.context.get('prayer_no_api')
+
+    def _fetch_api_times(self, days):
+        """Download the times of `days` from Aladhan, offsets applied.
+
+        :return: {date: {prayer key: local decimal hours}}, empty on error
+        """
+        self.ensure_one()
+        params = {
+            'latitude': self.latitude,
+            'longitude': self.longitude,
+            'method': aladhan_client.ALADHAN_METHODS[self.method],
+            'timezone': self.tz,
+            'school': 1 if self.asr_method == 'hanafi' else 0,
+            'lat_adjustment': aladhan_client.ALADHAN_LAT_ADJUSTMENT.get(self.high_lat_rule),
+        }
+        result = {}
+        try:
+            for year, month in sorted({(day.year, day.month) for day in days}):
+                month_data = aladhan_client.fetch_month(year=year, month=month, **params)
+                for day in days:
+                    if day not in month_data:
+                        continue
+                    times = dict(month_data[day]['times'])
+                    # Umm Al-Qura: Isha 120 minutes after Maghrib in Ramadan
+                    # (applied here only if the API did not already do it).
+                    if (self.method == 'umm_al_qura'
+                            and month_data[day]['hijri_month'] == aladhan_client.RAMADAN_MONTH
+                            and times['isha'] - times['maghrib'] < 2.0):
+                        times['isha'] = times['maghrib'] + 2.0
+                    for key in PRAYER_KEYS:
+                        times[key] = round_to_minute(times[key] + self['%s_offset' % key] / 60.0)
+                    result[day] = times
+        except aladhan_client.AladhanError as error:
+            _logger.warning("Prayer location %s (%s): Aladhan API error, built-in calculation "
+                            "used instead: %s", self.id, self.name, error)
+            self.write({'api_last_error': str(error)[:250]})
+            return {}
+        self.write({'api_last_sync': fields.Datetime.now(), 'api_last_error': False})
+        return result
 
     def action_generate_timetable(self):
         self._generate_timetable(days=30, regenerate=True)

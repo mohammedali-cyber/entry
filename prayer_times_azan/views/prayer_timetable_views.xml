@@ -13,6 +13,7 @@
                 <field name="asr" widget="float_time"/>
                 <field name="maghrib" widget="float_time"/>
                 <field name="isha" widget="float_time"/>
+                <field name="source" optional="show"/>
             </list>
         </field>
     </record>

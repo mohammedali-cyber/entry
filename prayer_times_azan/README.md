@@ -5,6 +5,14 @@ Shows the daily prayer times inside the Odoo backend and plays an azan
 
 ## Features
 
+- **Times source per location**:
+  - **Aladhan API** (default): the times are downloaded every day from the free
+    public API `https://api.aladhan.com/v1/calendar` (no key needed, Umm Al-Qura =
+    method 4). The Odoo **server** needs outbound HTTPS access to `api.aladhan.com`.
+    If the API cannot be reached, the built-in calculation is used automatically
+    and the error is shown on the location form; the next daily run retries.
+    Ramadan (Umm Al-Qura Isha +30 min) is detected from the Hijri date returned by the API.
+  - **Built-in calculation** (offline).
 - **Offline calculation**: the module computes the times itself (astronomical
   formulas) with no external API. Umm Al-Qura is the default method; MWL, Egypt,
   Karachi, ISNA, Gulf, Kuwait, Qatar and Custom are also available.
@@ -66,7 +74,10 @@ The calculation engine is `models/prayer_calc.py` (pure Python, unit tested).
   about one minute. Events missed by more than 3 minutes (e.g. a sleeping PC) are skipped.
 - Calculated times can differ by 1–2 minutes from an official calendar (for example
   the Umm Al-Qura calendar or the local mosque). Use the minute adjustments to match it.
-- Ramadan mode is a manual switch (no automatic Hijri date detection).
+- With the built-in calculation, Ramadan mode is a manual switch (no automatic Hijri
+  date detection). With the Aladhan API it is automatic.
+- The Custom calculation method is only available with the built-in calculation.
+- timesprayer.com was considered as a source but offers no public API; Aladhan is used instead.
 
 ## Tests
 

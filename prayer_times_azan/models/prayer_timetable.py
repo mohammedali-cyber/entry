@@ -16,6 +16,10 @@ class PrayerTimetable(models.Model):
     asr = fields.Float(aggregator=None)
     maghrib = fields.Float(aggregator=None)
     isha = fields.Float(aggregator=None)
+    source = fields.Selection([
+        ('aladhan', 'Aladhan API'),
+        ('calculation', 'Built-in calculation'),
+    ], required=True, default='calculation', readonly=True)
 
     _sql_constraints = [
         ('location_date_uniq', 'UNIQUE(location_id, date)',

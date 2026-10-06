@@ -1,12 +1,13 @@
 {
     'name': 'Prayer Times & Azan',
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.1.0',
     'category': 'Productivity',
     'summary': 'Daily prayer times with azan sound and notifications in the Odoo backend',
     'description': """
 Prayer Times & Azan
 ===================
-* Offline astronomical calculation of prayer times (Umm Al-Qura by default).
+* Prayer times from the free Aladhan API (api.aladhan.com), with automatic
+  fallback to an offline astronomical calculation (Umm Al-Qura by default).
 * Several locations (branches / cities), multi-company aware.
 * Upload your own azan audio files (MP3...) and assign them per location,
   with a dedicated Fajr azan.

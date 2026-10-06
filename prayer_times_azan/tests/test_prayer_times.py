@@ -1,8 +1,14 @@
 import base64
+import calendar
 from datetime import timedelta
+from unittest.mock import patch
+
+import requests
 
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import TransactionCase, new_test_user, tagged
+
+from ..models import aladhan_client
 
 # Minimal MPEG audio frame header, enough for the constraint (extension based).
 FAKE_MP3 = base64.b64encode(b'ID3\x03\x00\x00\x00\x00\x00\x00' + b'\xff\xfb\x90\x00' * 64)
@@ -22,6 +28,7 @@ class TestPrayerTimes(TransactionCase):
         })
         cls.location = cls.env['prayer.location'].create({
             'name': 'Jeddah Test',
+            'time_source': 'calculation',
             'latitude': 21.5433,
             'longitude': 39.1728,
             'tz': 'Asia/Riyadh',
@@ -52,7 +59,8 @@ class TestPrayerTimes(TransactionCase):
 
     def test_cron(self):
         self.location.timetable_ids.unlink()
-        self.env['prayer.location']._cron_generate_timetables()
+        with patch.object(requests, 'get', side_effect=requests.ConnectionError('offline')):
+            self.env['prayer.location']._cron_generate_timetables()
         self.assertEqual(len(self.location.timetable_ids), 30)
 
     def test_user_schedule(self):
@@ -94,6 +102,7 @@ class TestPrayerTimes(TransactionCase):
         other_company = self.env['res.company'].create({'name': 'Other Co'})
         other_location = self.env['prayer.location'].create({
             'name': 'Other', 'latitude': 26.42, 'longitude': 50.08, 'tz': 'Asia/Riyadh',
+            'time_source': 'calculation',
             'company_id': other_company.id,
         })
         visible = self.env['prayer.location'].with_user(self.user).search([])
@@ -121,3 +130,110 @@ class TestPrayerTimes(TransactionCase):
     def test_custom_method_constraint(self):
         with self.assertRaises(ValidationError):
             self.location.write({'method': 'custom', 'fajr_angle': 0})
+
+
+class FakeResponse:
+    def __init__(self, status_code, payload):
+        self.status_code = status_code
+        self._payload = payload
+
+    def json(self):
+        return self._payload
+
+
+def fake_aladhan(hijri_month=4, isha='19:40 (+03)'):
+    """Fake GET /v1/calendar: same times every day of the requested month."""
+    calls = []
+
+    def get(url, params=None, timeout=None, headers=None):
+        calls.append(params)
+        year, month = params['year'], params['month']
+        days = []
+        for day in range(1, calendar.monthrange(year, month)[1] + 1):
+            days.append({
+                'timings': {
+                    'Fajr': '04:30 (+03)', 'Sunrise': '05:50 (+03)', 'Dhuhr': '11:45 (+03)',
+                    'Asr': '15:10 (+03)', 'Sunset': '17:40 (+03)', 'Maghrib': '17:40 (+03)',
+                    'Isha': isha, 'Imsak': '04:20 (+03)', 'Midnight': '23:45 (+03)',
+                },
+                'date': {
+                    'gregorian': {'date': '%02d-%02d-%04d' % (day, month, year)},
+                    'hijri': {'month': {'number': hijri_month}},
+                },
+            })
+        return FakeResponse(200, {'code': 200, 'status': 'OK', 'data': days})
+    return get, calls
+
+
+@tagged('post_install', '-at_install')
+class TestAladhanApi(TransactionCase):
+
+    def _create_location(self, **vals):
+        values = {
+            'name': 'Riyadh API', 'latitude': 24.7136, 'longitude': 46.6753,
+            'tz': 'Asia/Riyadh', 'time_source': 'aladhan', 'company_id': self.env.company.id,
+        }
+        values.update(vals)
+        return self.env['prayer.location'].create(values)
+
+    def test_api_times_used(self):
+        get, calls = fake_aladhan()
+        with patch.object(requests, 'get', side_effect=get):
+            location = self._create_location(dhuhr_offset=2, asr_method='hanafi')
+        self.assertTrue(calls)
+        self.assertEqual(calls[0]['method'], 4)
+        self.assertEqual(calls[0]['school'], 1)
+        self.assertEqual(calls[0]['timezonestring'], 'Asia/Riyadh')
+        lines = location.timetable_ids
+        self.assertEqual(len(lines), 30)
+        self.assertEqual(set(lines.mapped('source')), {'aladhan'})
+        line = lines[0]
+        self.assertAlmostEqual(line.fajr, 4.5)
+        self.assertAlmostEqual(line.dhuhr, 11 + 47 / 60, places=4)  # +2 min offset
+        self.assertAlmostEqual(line.isha, 19 + 40 / 60, places=4)
+        self.assertTrue(location.api_last_sync)
+        self.assertFalse(location.api_last_error)
+        # The web client schedule uses the downloaded times.
+        today = location._local_today()
+        self.assertAlmostEqual(location._compute_local_times(today)['fajr'], 4.5)
+
+    def test_api_error_fallback(self):
+        with patch.object(requests, 'get', side_effect=requests.ConnectionError('offline')):
+            location = self._create_location()
+        self.assertEqual(len(location.timetable_ids), 30)
+        self.assertEqual(set(location.timetable_ids.mapped('source')), {'calculation'})
+        self.assertIn('ConnectionError', location.api_last_error)
+        self.assertTrue(location.today_fajr)
+
+    def test_api_http_error_and_recovery(self):
+        with patch.object(requests, 'get', return_value=FakeResponse(500, {})):
+            location = self._create_location()
+        self.assertIn('500', location.api_last_error)
+        # Next daily run: the API answers again, calculated lines are replaced.
+        get, _calls = fake_aladhan()
+        with patch.object(requests, 'get', side_effect=get):
+            self.env['prayer.location']._cron_generate_timetables()
+        self.assertEqual(set(location.timetable_ids.mapped('source')), {'aladhan'})
+        self.assertFalse(location.api_last_error)
+
+    def test_api_ramadan_isha(self):
+        get, _calls = fake_aladhan(hijri_month=9, isha='19:10 (+03)')
+        with patch.object(requests, 'get', side_effect=get):
+            location = self._create_location()
+        line = location.timetable_ids[0]
+        self.assertAlmostEqual(line.isha - line.maghrib, 2.0, places=4)
+
+    def test_api_ramadan_already_applied(self):
+        get, _calls = fake_aladhan(hijri_month=9, isha='19:40 (+03)')
+        with patch.object(requests, 'get', side_effect=get):
+            location = self._create_location()
+        line = location.timetable_ids[0]
+        self.assertAlmostEqual(line.isha - line.maghrib, 2.0, places=4)
+
+    def test_api_custom_method_refused(self):
+        with patch.object(requests, 'get', side_effect=requests.ConnectionError('offline')):
+            with self.assertRaises(ValidationError):
+                self._create_location(method='custom', fajr_angle=18, isha_angle=17)
+
+    def test_parse_time(self):
+        self.assertAlmostEqual(aladhan_client._parse_time('04:29 (+03)'), 4 + 29 / 60)

@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-04 19:29+0000\n"
-"PO-Revision-Date: 2026-10-04 19:29+0000\n"
+"POT-Creation-Date: 2026-10-06 13:04+0000\n"
+"PO-Revision-Date: 2026-10-06 13:04+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -19,6 +19,13 @@ msgstr ""
 #. odoo-javascript
 #: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
 msgid "%(prayer)s azan in %(minutes)s minutes."
+msgstr ""
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid ""
+"<strong>The Aladhan API could not be reached: the built-in calculation is "
+"used.</strong>"
 msgstr ""
 
 #. module: prayer_times_azan
@@ -42,6 +49,23 @@ msgstr ""
 #. module: prayer_times_azan
 #: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
 msgid "Adjustments"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_timetable__source__aladhan
+msgid "Aladhan API"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__time_source__aladhan
+msgid "Aladhan API (internet)"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__time_source
+msgid ""
+"Aladhan API: the times are downloaded every day from api.aladhan.com (the Odoo server needs internet access). If the API cannot be reached, the built-in calculation is used automatically.\n"
+"Built-in calculation: computed inside Odoo, no internet needed."
 msgstr ""
 
 #. module: prayer_times_azan
@@ -151,6 +175,24 @@ msgstr ""
 #. odoo-javascript
 #: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
 msgid "Azan time"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_timetable__source__calculation
+msgid "Built-in calculation"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__time_source__calculation
+msgid "Built-in calculation (offline)"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__ramadan_mode
+msgid ""
+"Built-in calculation with Umm Al-Qura only: Isha is 120 minutes after "
+"Maghrib instead of 90. Enable it at the start of Ramadan and disable it "
+"after. With the Aladhan API, Ramadan is detected automatically."
 msgstr ""
 
 #. module: prayer_times_azan
@@ -357,6 +399,21 @@ msgstr ""
 #. module: prayer_times_azan
 #: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__method__kuwait
 msgid "Kuwait"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__api_last_error
+msgid "Last API Error"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__api_last_sync
+msgid "Last API Sync"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Last API sync:"
 msgstr ""
 
 #. module: prayer_times_azan
@@ -658,6 +715,11 @@ msgid "Sounds"
 msgstr ""
 
 #. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__source
+msgid "Source"
+msgstr ""
+
+#. module: prayer_times_azan
 #: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__asr_method__standard
 msgid "Standard (Shafi, Maliki, Hanbali)"
 msgstr ""
@@ -704,6 +766,12 @@ msgstr ""
 #. odoo-javascript
 #: code:addons/prayer_times_azan/static/src/xml/prayer_templates.xml:0
 msgid "Test azan"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "The Custom method is only available with the built-in calculation."
 msgstr ""
 
 #. module: prayer_times_azan
@@ -762,9 +830,13 @@ msgid "Time adjustments must be between -120 and 120 minutes."
 msgstr ""
 
 #. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__time_source
+msgid "Times Source"
+msgstr ""
+
+#. module: prayer_times_azan
 #: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__timetable_ids
 #: model:ir.ui.menu,name:prayer_times_azan.menu_prayer_timetable
-#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
 msgid "Timetable"
 msgstr ""
 
@@ -797,13 +869,6 @@ msgid "Umm Al-Qura University, Makkah"
 msgstr ""
 
 #. module: prayer_times_azan
-#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__ramadan_mode
-msgid ""
-"Umm Al-Qura only: Isha is 120 minutes after Maghrib instead of 90. Enable it"
-" at the start of Ramadan and disable it after."
-msgstr ""
-
-#. module: prayer_times_azan
 #: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__method__karachi
 msgid "University of Islamic Sciences, Karachi"
 msgstr ""
@@ -811,6 +876,11 @@ msgstr ""
 #. module: prayer_times_azan
 #: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_timetable_view_search
 msgid "Upcoming"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Update Timetable"
 msgstr ""
 
 #. module: prayer_times_azan

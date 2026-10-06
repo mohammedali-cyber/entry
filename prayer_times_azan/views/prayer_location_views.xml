@@ -8,6 +8,7 @@
                 <field name="sequence" widget="handle"/>
                 <field name="name"/>
                 <field name="company_id" groups="base.group_multi_company" optional="show"/>
+                <field name="time_source" optional="show"/>
                 <field name="method" optional="show"/>
                 <field name="tz" optional="hide"/>
                 <field name="today_fajr" widget="float_time"/>
@@ -26,7 +27,7 @@
         <field name="arch" type="xml">
             <form string="Location">
                 <header>
-                    <button name="action_generate_timetable" type="object" string="Timetable"
+                    <button name="action_generate_timetable" type="object" string="Update Timetable"
                             class="btn-primary" icon="fa-calendar"/>
                 </header>
                 <sheet>
@@ -45,15 +46,25 @@
                                    options="{'no_create': True}" placeholder="All companies"/>
                         </group>
                         <group string="Calculation">
+                            <field name="time_source" widget="radio"/>
                             <field name="method"/>
                             <field name="fajr_angle" invisible="method != 'custom'" required="method == 'custom'"/>
                             <field name="isha_minutes" invisible="method != 'custom'"/>
                             <field name="isha_angle" invisible="method != 'custom' or isha_minutes"/>
                             <field name="asr_method"/>
                             <field name="high_lat_rule"/>
-                            <field name="ramadan_mode" invisible="method != 'umm_al_qura'"/>
+                            <field name="ramadan_mode"
+                                   invisible="method != 'umm_al_qura' or time_source != 'calculation'"/>
                         </group>
                     </group>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="time_source != 'aladhan' or not api_last_error">
+                        <strong>The Aladhan API could not be reached: the built-in calculation is used.</strong>
+                        <div><field name="api_last_error" class="d-inline"/></div>
+                    </div>
+                    <div class="text-muted mb-2" invisible="time_source != 'aladhan' or not api_last_sync">
+                        Last API sync: <field name="api_last_sync" class="d-inline"/>
+                    </div>
                     <notebook>
                         <page string="Today" name="today">
                             <group>
