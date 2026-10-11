@@ -90,3 +90,29 @@ class TestProductLostFinder(TransactionCase):
         self.assertTrue(other_wh)
         with self.assertRaises(UserError):
             self.finder.search_products('PLF', other_wh.id)
+
+    def test_available_products_listed_first(self):
+        result = self.finder.search_products('PLF', self.wh_main.id)
+        flags = [p['is_lost'] for p in result['products']]
+        self.assertEqual(flags, sorted(flags), "Available products must come before lost ones")
+        self.assertEqual(result['products'][0]['id'], self.p_available.id)
+
+    def test_available_first_beyond_result_limit(self):
+        self.patch(type(self.env['product.lost.finder']), '_RESULT_LIMIT', 2)
+        result = self.finder.search_products('PLF', self.wh_branch.id)
+        self.assertEqual(result['products'][0]['id'], self.p_branch_only.id)
+        self.assertEqual(len(result['products']), 2)
+        self.assertEqual(result['total'], 4)
+
+    def test_stock_in_other_warehouses(self):
+        products, _result = self._search('Stapler', self.wh_main)
+        self.assertEqual(
+            products[self.p_branch_only.id]['other_warehouses'],
+            [{'name': self.wh_branch.name, 'qty_available': 3}],
+        )
+        products, _result = self._search('Eraser', self.wh_main)
+        self.assertEqual(products[self.p_zero.id]['other_warehouses'], [])
+
+    def test_search_by_partial_barcode(self):
+        products, _result = self._search('99900', self.wh_main)
+        self.assertEqual(list(products), [self.p_available.id])

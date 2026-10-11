@@ -48,23 +48,40 @@ class ProductLostFinder(models.AbstractModel):
         if not term:
             return {'products': [], 'total': 0}
 
-        warehouse = self._allowed_warehouses().filtered(lambda w: w.id == warehouse_id)
+        warehouses = self._allowed_warehouses()
+        warehouse = warehouses.filtered(lambda w: w.id == warehouse_id)
         if not warehouse:
             raise UserError(_("Please select a warehouse."))
 
+        # display_name uses Odoo's standard product search (name, internal reference,
+        # exact barcode); the extra clause also matches part of a barcode.
         domain = [
             ('is_storable', '=', True),
-            '|', '|',
-            ('name', 'ilike', term),
-            ('default_code', 'ilike', term),
-            ('barcode', '=', term),
+            '|',
+            ('display_name', 'ilike', term),
+            ('barcode', 'ilike', term),
         ]
         Product = self.env['product.product'].with_context(warehouse_id=warehouse.id)
         total = Product.search_count(domain)
-        products = Product.search(domain, limit=self._RESULT_LIMIT)
+
+        # Available products first, over all matches and not only the first page.
+        available_domain = domain + [('qty_available', '>', 0)]
+        products = Product.search(available_domain, limit=self._RESULT_LIMIT)
+        if len(products) < self._RESULT_LIMIT:
+            products |= Product.search(
+                domain + [('id', 'not in', Product._search(available_domain))],
+                limit=self._RESULT_LIMIT - len(products),
+            )
+
+        # Stock of the same products in the user's other warehouses (branches).
+        other_qties = {
+            other: dict(zip(products.ids, products.with_context(warehouse_id=other.id).mapped('qty_available')))
+            for other in warehouses - warehouse
+        }
 
         results = []
         for product in products:
+            rounding = product.uom_id.rounding
             qty = product.qty_available
             results.append({
                 'id': product.id,
@@ -73,6 +90,12 @@ class ProductLostFinder(models.AbstractModel):
                 'barcode': product.barcode or '',
                 'qty_available': qty,
                 'uom_name': product.uom_id.name,
-                'is_lost': float_compare(qty, 0.0, precision_rounding=product.uom_id.rounding) <= 0,
+                'is_lost': float_compare(qty, 0.0, precision_rounding=rounding) <= 0,
+                'other_warehouses': [
+                    {'name': other.name, 'qty_available': qties[product.id]}
+                    for other, qties in other_qties.items()
+                    if float_compare(qties[product.id], 0.0, precision_rounding=rounding) > 0
+                ],
             })
+        results.sort(key=lambda r: r['is_lost'])
         return {'products': results, 'total': total}

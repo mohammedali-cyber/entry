@@ -22,6 +22,7 @@ export class ProductLostFinder extends Component {
             warehouseId: false,
             term: "",
             searchedTerm: "",
+            searchedWarehouseId: false,
             products: [],
             total: 0,
             searched: false,
@@ -37,6 +38,11 @@ export class ProductLostFinder extends Component {
             const isAllowed = (id) => data.warehouses.some((w) => w.id === id);
             this.state.warehouseId = isAllowed(savedId) ? savedId : data.default_warehouse_id;
         });
+    }
+
+    get searchedWarehouseName() {
+        const warehouse = this.state.warehouses.find((w) => w.id === this.state.searchedWarehouseId);
+        return warehouse ? warehouse.name : "";
     }
 
     get showResultsHint() {
@@ -78,9 +84,10 @@ export class ProductLostFinder extends Component {
         const sequence = ++this.searchSequence;
         this.state.loading = true;
         try {
+            const warehouseId = this.state.warehouseId;
             const result = await this.orm.call("product.lost.finder", "search_products", [
                 term,
-                this.state.warehouseId,
+                warehouseId,
             ]);
             // Ignore answers of older searches that arrive after a newer one.
             if (sequence !== this.searchSequence) {
@@ -90,6 +97,7 @@ export class ProductLostFinder extends Component {
                 products: result.products,
                 total: result.total,
                 searchedTerm: term,
+                searchedWarehouseId: warehouseId,
                 searched: true,
             });
         } finally {

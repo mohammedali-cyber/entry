@@ -45,6 +45,10 @@
                     <div t-if="!state.products.length" class="alert alert-secondary text-center">
                         No product found with this name.
                     </div>
+                    <div t-if="state.products.length" class="text-muted small mb-2">
+                        <i class="fa fa-building-o me-1" aria-hidden="true"/>
+                        Quantities in warehouse: <strong t-esc="searchedWarehouseName"/>
+                    </div>
                     <div t-if="showResultsHint" class="text-muted small mb-2" t-esc="resultsHint"/>
                     <t t-foreach="state.products" t-as="product" t-key="product.id">
                         <div class="o_plf_result" role="button"
@@ -60,6 +64,14 @@
                                     <span class="text-nowrap">
                                         On hand: <bdi dir="ltr" t-esc="formatQty(product)"/> <t t-esc="product.uom_name"/>
                                     </span>
+                                </div>
+                                <div t-if="product.other_warehouses.length" class="o_plf_other_warehouses small">
+                                    <i class="fa fa-map-marker me-1" aria-hidden="true"/>
+                                    Available in other warehouses:
+                                    <t t-foreach="product.other_warehouses" t-as="other" t-key="other_index">
+                                        <span class="text-nowrap">
+                                            <t t-esc="other.name"/> (<bdi dir="ltr" t-esc="formatQty(other)"/>)</span><t t-if="!other_last">, </t>
+                                    </t>
                                 </div>
                             </div>
                             <span t-if="product.is_lost" class="badge rounded-pill text-bg-danger o_plf_badge">

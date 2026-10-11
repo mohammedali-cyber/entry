@@ -20,6 +20,14 @@ If nothing matches: "لا يوجد منتج بهذا الاسم".
   selected in the company switcher. Default: the user's *Default Warehouse*
   (`property_warehouse_id`, from `sale_stock`, when installed), else the first
   warehouse of the current company. The last choice is remembered in the browser.
+- **Other branches**: under each product, the warehouses (among the user's active
+  companies) where it still has stock are listed, e.g. "Available in other
+  warehouses: Jeddah (6.00)". Note that the product form's *On Hand* button sums
+  all these warehouses, while this page judges "lost" on the selected one only.
+- **Order**: available products first (over all matches, not only the first page),
+  then lost products.
+- **Search**: Odoo's standard product search (name, internal reference, exact
+  barcode) plus partial barcode match.
 - **Excluded**: services, combos and consumables without inventory tracking
   (`is_storable = False`), and archived products.
 - At most 50 results are shown; the page asks to refine the search beyond that.
