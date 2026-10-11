@@ -1,101 +1,225 @@
-from odoo import _, api, models
+import io
+
+from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError
 from odoo.tools import float_compare
+from odoo.tools.misc import xlsxwriter
 
 
 class ProductLostFinder(models.AbstractModel):
     """Backend of the "Lost Products" search page.
 
-    Read-only service: it searches storable products and reports their On Hand
-    quantity in one warehouse (branch). A product whose quantity is zero or
-    negative is reported as lost.
+    Read-only service: it finds products and reports, for every variant, the
+    On Hand quantity in each warehouse (branch) of the user's companies. A
+    variant whose quantity is zero or negative in the user's branch is lost.
     """
     _name = 'product.lost.finder'
     _description = 'Lost Products Finder'
 
-    _RESULT_LIMIT = 50
+    _CHOICE_LIMIT = 20
+
+    # ------------------------------------------------------------------
+    # Access and branches
+    # ------------------------------------------------------------------
 
     def _check_user_access(self):
         if not self.env.user.has_group('stock.group_stock_user'):
             raise AccessError(_("Only inventory users can search for lost products."))
+
+    def _is_manager(self):
+        return self.env.user.has_group('product_lost_finder.group_lost_finder_manager')
 
     def _allowed_warehouses(self):
         # Record rules already limit warehouses to the user's companies; the explicit
         # domain also keeps the list to the companies currently selected in the switcher.
         return self.env['stock.warehouse'].search([('company_id', 'in', self.env.companies.ids)])
 
-    def _default_warehouse(self, warehouses):
-        user = self.env.user
-        # Default warehouse of the user (field added by sale_stock, company dependent).
-        if 'property_warehouse_id' in user._fields and user.property_warehouse_id in warehouses:
-            return user.property_warehouse_id
-        return warehouses.filtered(lambda w: w.company_id == self.env.company)[:1] or warehouses[:1]
+    def _user_branch(self, warehouses):
+        branch = self.env.user.lost_finder_warehouse_id
+        return branch if branch in warehouses else self.env['stock.warehouse']
+
+    def _get_branch(self, warehouse_id):
+        """Warehouse the user works for: their own branch, or any allowed one for managers."""
+        warehouses = self._allowed_warehouses()
+        if self._is_manager():
+            branch = warehouses.filtered(lambda w: w.id == warehouse_id)
+        else:
+            branch = self._user_branch(warehouses)
+        if not branch:
+            raise UserError(_("Your branch is not set. Ask your manager to set it on your user."))
+        return branch
 
     @api.model
-    def get_warehouses(self):
+    def get_context(self):
         self._check_user_access()
         warehouses = self._allowed_warehouses()
-        default = self._default_warehouse(warehouses)
+        branch = self._user_branch(warehouses)
+        is_manager = self._is_manager()
+        if is_manager and not branch:
+            branch = warehouses.filtered(lambda w: w.company_id == self.env.company)[:1] or warehouses[:1]
         return {
-            'warehouses': [{'id': w.id, 'name': w.display_name} for w in warehouses],
-            'default_warehouse_id': default.id or False,
+            'is_manager': is_manager,
+            'warehouses': [{'id': w.id, 'name': w.name} for w in warehouses],
+            'branch_id': branch.id or False,
         }
 
-    @api.model
-    def search_products(self, term, warehouse_id):
-        self._check_user_access()
-        term = (term or '').strip()
-        if not term:
-            return {'products': [], 'total': 0}
+    # ------------------------------------------------------------------
+    # Search
+    # ------------------------------------------------------------------
 
-        warehouses = self._allowed_warehouses()
-        warehouse = warehouses.filtered(lambda w: w.id == warehouse_id)
-        if not warehouse:
-            raise UserError(_("Please select a warehouse."))
-
+    def _product_domain(self, term):
         # display_name uses Odoo's standard product search (name, internal reference,
         # exact barcode); the extra clause also matches part of a barcode.
-        domain = [
+        return [
             ('is_storable', '=', True),
             '|',
             ('display_name', 'ilike', term),
             ('barcode', 'ilike', term),
         ]
-        Product = self.env['product.product'].with_context(warehouse_id=warehouse.id)
-        total = Product.search_count(domain)
 
-        # Available products first, over all matches and not only the first page.
-        available_domain = domain + [('qty_available', '>', 0)]
-        products = Product.search(available_domain, limit=self._RESULT_LIMIT)
-        if len(products) < self._RESULT_LIMIT:
-            products |= Product.search(
-                domain + [('id', 'not in', Product._search(available_domain))],
-                limit=self._RESULT_LIMIT - len(products),
-            )
-
-        # Stock of the same products in the user's other warehouses (branches).
-        other_qties = {
-            other: dict(zip(products.ids, products.with_context(warehouse_id=other.id).mapped('qty_available')))
-            for other in warehouses - warehouse
+    @api.model
+    def search_templates(self, term):
+        """Products (templates) matching a name, internal reference or barcode."""
+        self._check_user_access()
+        term = (term or '').strip()
+        if not term:
+            return {'templates': [], 'total': 0}
+        Template = self.env['product.template']
+        domain = [('product_variant_ids', 'any', self._product_domain(term))]
+        templates = Template.search(domain, limit=self._CHOICE_LIMIT)
+        return {
+            'templates': [{
+                'id': t.id,
+                'name': t.name,
+                'default_code': t.default_code or '',
+                'variant_count': t.product_variant_count,
+            } for t in templates],
+            'total': Template.search_count(domain),
         }
 
-        results = []
-        for product in products:
-            rounding = product.uom_id.rounding
-            qty = product.qty_available
-            results.append({
-                'id': product.id,
-                'name': product.display_name,
-                'default_code': product.default_code or '',
-                'barcode': product.barcode or '',
-                'qty_available': qty,
-                'uom_name': product.uom_id.name,
-                'is_lost': float_compare(qty, 0.0, precision_rounding=rounding) <= 0,
-                'other_warehouses': [
-                    {'name': other.name, 'qty_available': qties[product.id]}
-                    for other, qties in other_qties.items()
-                    if float_compare(qties[product.id], 0.0, precision_rounding=rounding) > 0
-                ],
+    def _variant_name(self, product):
+        return product.product_template_attribute_value_ids._get_combination_name() or product.display_name
+
+    def _quantities(self, products, warehouses):
+        """{warehouse: {product_id: On Hand quantity}} for every warehouse."""
+        return {
+            warehouse: dict(zip(products.ids, products.with_context(warehouse_id=warehouse.id).mapped('qty_available')))
+            for warehouse in warehouses
+        }
+
+    @api.model
+    def get_product_tables(self, template_ids, warehouse_id):
+        """Variants of each product with their quantity in every branch."""
+        self._check_user_access()
+        branch = self._get_branch(warehouse_id)
+        warehouses = branch | self._allowed_warehouses()
+        templates = self.env['product.template'].browse(template_ids).exists().filtered('is_storable')
+        variants = templates.product_variant_ids
+        qties = self._quantities(variants, warehouses)
+
+        tables = []
+        for template in templates:
+            rows = []
+            for product in template.product_variant_ids:
+                rounding = product.uom_id.rounding
+                by_warehouse = {str(w.id): qties[w][product.id] for w in warehouses}
+                rows.append({
+                    'id': product.id,
+                    'name': self._variant_name(product),
+                    'default_code': product.default_code or '',
+                    'barcode': product.barcode or '',
+                    'qty_by_warehouse': by_warehouse,
+                    'total': sum(by_warehouse.values()),
+                    'is_lost': float_compare(qties[branch][product.id], 0.0, precision_rounding=rounding) <= 0,
+                })
+            # Available variants first; the stable sort keeps Odoo's order inside each group.
+            rows.sort(key=lambda r: r['is_lost'])
+            tables.append({
+                'id': template.id,
+                'name': template.name,
+                'default_code': template.default_code or '',
+                'uom_name': template.uom_id.name,
+                'variants': rows,
             })
-        results.sort(key=lambda r: r['is_lost'])
-        return {'products': results, 'total': total}
+        return {
+            'branch_id': branch.id,
+            'warehouses': [{'id': w.id, 'name': w.name} for w in warehouses],
+            'tables': tables,
+        }
+
+    # ------------------------------------------------------------------
+    # Excel export
+    # ------------------------------------------------------------------
+
+    @api.model
+    def export_xlsx(self, product_ids, warehouse_id):
+        """Excel file of the selected variants: returns (file name, content)."""
+        self._check_user_access()
+        branch = self._get_branch(warehouse_id)
+        warehouses = branch | self._allowed_warehouses()
+        products = self.env['product.product'].browse(product_ids).exists().filtered('is_storable')
+        if not products:
+            raise UserError(_("Select at least one product to export."))
+        qties = self._quantities(products, warehouses)
+
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+        sheet = workbook.add_worksheet(_("Selected Products"))
+        lang = self.env['res.lang']._lang_get(self.env.user.lang)
+        if lang.direction == 'rtl':
+            sheet.right_to_left()
+
+        title = workbook.add_format({'bold': True, 'font_size': 14})
+        info = workbook.add_format({'font_color': '#555555'})
+        head = workbook.add_format({'bold': True, 'bg_color': '#1F6E43', 'font_color': 'white',
+                                    'border': 1, 'align': 'center', 'valign': 'vcenter', 'text_wrap': True})
+        cell = workbook.add_format({'border': 1, 'align': 'center'})
+        text = workbook.add_format({'border': 1, 'align': 'center', 'num_format': '@'})
+        price = workbook.add_format({'border': 1, 'align': 'center', 'num_format': '#,##0.00'})
+        qty = workbook.add_format({'border': 1, 'align': 'center', 'num_format': '#,##0.##'})
+        branch_qty = workbook.add_format({'border': 1, 'align': 'center', 'num_format': '#,##0.##', 'bg_color': '#FFF8E1'})
+        lost = workbook.add_format({'border': 1, 'align': 'center', 'bold': True, 'font_color': '#DC3545'})
+        available = workbook.add_format({'border': 1, 'align': 'center', 'bold': True, 'font_color': '#198754'})
+
+        now = fields.Datetime.context_timestamp(self, fields.Datetime.now())
+        sheet.write(0, 0, _("Selected Products"), title)
+        sheet.write(1, 0, _("Branch: %(branch)s    Date: %(date)s    Employee: %(user)s",
+                            branch=branch.name, date=now.strftime('%Y-%m-%d %H:%M'), user=self.env.user.name), info)
+
+        headers = [_("Product Number"), _("Product Name"), _("Variant"), _("Barcode"), _("Sales Price")]
+        headers += [_("%s (your branch)", w.name) if w == branch else w.name for w in warehouses]
+        headers += [_("Total"), _("Status in your branch")]
+        header_row = 3
+        sheet.write_row(header_row, 0, headers, head)
+        sheet.set_row(header_row, 30)
+
+        first_qty_col = 5
+        row = header_row
+        for product in products:
+            row += 1
+            sheet.write_string(row, 0, product.default_code or '', text)
+            sheet.write(row, 1, product.name, cell)
+            sheet.write(row, 2, self._variant_name(product), cell)
+            sheet.write_string(row, 3, product.barcode or '', text)
+            sheet.write_number(row, 4, product.lst_price, price)
+            for col, warehouse in enumerate(warehouses, start=first_qty_col):
+                sheet.write_number(row, col, qties[warehouse][product.id], branch_qty if warehouse == branch else qty)
+            sheet.write_number(row, first_qty_col + len(warehouses),
+                               sum(qties[w][product.id] for w in warehouses), qty)
+            is_lost = float_compare(qties[branch][product.id], 0.0, precision_rounding=product.uom_id.rounding) <= 0
+            sheet.write(row, first_qty_col + len(warehouses) + 1,
+                        _("Lost") if is_lost else _("Available"), lost if is_lost else available)
+
+        sheet.set_column(0, 0, 22)
+        sheet.set_column(1, 1, 26)
+        sheet.set_column(2, 2, 18)
+        sheet.set_column(3, 4, 13)
+        sheet.set_column(first_qty_col, first_qty_col + len(warehouses), 14)
+        sheet.set_column(first_qty_col + len(warehouses) + 1, first_qty_col + len(warehouses) + 1, 18)
+        sheet.freeze_panes(header_row + 1, 0)
+        sheet.autofilter(header_row, 0, row, len(headers) - 1)
+        workbook.close()
+
+        # ASCII file name on purpose: browsers may drop non-Latin names of blob downloads.
+        filename = 'Lost_Products_%s.xlsx' % now.strftime('%Y-%m-%d_%H%M')
+        return filename, output.getvalue()

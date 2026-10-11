@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_users_view_form_lost_finder" model="ir.ui.view">
+        <field name="name">res.users.form.lost.finder</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <group name="messaging" position="after">
+                <group name="lost_finder" string="Lost Products" groups="stock.group_stock_manager">
+                    <field name="lost_finder_warehouse_id" options="{'no_create': True}"/>
+                </group>
+            </group>
+        </field>
+    </record>
+</odoo>

@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-11 12:01+0000\n"
-"PO-Revision-Date: 2026-10-11 12:01+0000\n"
+"POT-Creation-Date: 2026-10-11 13:20+0000\n"
+"PO-Revision-Date: 2026-10-11 13:20+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ar\n"
@@ -17,22 +17,190 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
 
 #. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_sale.py:0
+msgid ""
+"%(product)s is available in %(branch)s: a lost sale can only be recorded "
+"when the product is out of stock in your branch."
+msgstr ""
+"%(product)s متوفر في %(branch)s: لا يمكن تسجيل بيعة ضائعة إلا إذا كان المنتج"
+" غير متوفر في فرعك."
+
+#. module: product_lost_finder
 #. odoo-javascript
-#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
-msgid "Available in other warehouses:"
-msgstr "متوفر في مستودعات أخرى:"
+#: code:addons/product_lost_finder/static/src/product_lost_finder.js:0
+msgid ""
+"%(total)s products match, showing the first %(count)s: pick one to add it."
+msgstr ""
+"يوجد %(total)s منتج مطابق، يتم عرض أول %(count)s: اختر منتجًا لإضافته."
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.js:0
+msgid "%(variants)s variant(s) selected from %(products)s product(s)"
+msgstr "المحدد: %(variants)s صنف من %(products)s منتج"
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+msgid "%s (your branch)"
+msgstr "%s (فرعك)"
 
 #. module: product_lost_finder
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
-msgid "Clear"
-msgstr "مسح"
+msgid "(my branch)"
+msgstr "(فرعي)"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Add product"
+msgstr "إضافة منتج"
+
+#. module: product_lost_finder
+#: model:res.groups,name:product_lost_finder.group_lost_finder_manager
+msgid "All Branches Manager"
+msgstr "مدير جميع الفروع"
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+msgid "Available"
+msgstr "متوفر"
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+msgid "Barcode"
+msgstr "الباركود"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__warehouse_id
+#: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
+msgid "Branch"
+msgstr "الفرع"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_res_users__lost_finder_warehouse_id
+msgid "Branch (Lost Products)"
+msgstr "الفرع (المنتجات الضائعة)"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,help:product_lost_finder.field_res_users__lost_finder_warehouse_id
+msgid ""
+"Branch of the employee in the Lost Products app: lost sales are recorded for"
+" this warehouse and the employee only sees the lost sales of this branch."
+msgstr ""
+"فرع الموظف في تطبيق المنتجات الضائعة: تُسجَّل البيعات الضائعة على هذا "
+"المستودع، ولا يرى الموظف إلا البيعات الضائعة لهذا الفرع."
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+msgid "Branch: %(branch)s    Date: %(date)s    Employee: %(user)s"
+msgstr "الفرع: %(branch)s    التاريخ: %(date)s    الموظف: %(user)s"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Cancel"
+msgstr "إلغاء"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Clear all"
+msgstr "مسح الكل"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__company_id
+msgid "Company"
+msgstr "الشركة"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__create_uid
+msgid "Created by"
+msgstr "أنشئ بواسطة"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__create_date
+msgid "Created on"
+msgstr "أنشئ في"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__currency_id
+msgid "Currency"
+msgstr "العملة"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__date
+#: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
+msgid "Date"
+msgstr "التاريخ"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,help:product_lost_finder.field_product_lost_sale__uom_id
+msgid "Default unit of measure used for all stock operations."
+msgstr "وحدة القياس الافتراضية المستخدمة لكافة عمليات المخزون."
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__display_name
+msgid "Display Name"
+msgstr "اسم العرض"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__user_id
+#: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
+msgid "Employee"
+msgstr "الموظف"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Export selection to Excel"
+msgstr "تصدير المحدد إلى Excel"
+
+#. module: product_lost_finder
+#: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
+msgid "Group By"
+msgstr "تجميع حسب"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__id
+msgid "ID"
+msgstr "المُعرف"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__write_uid
+msgid "Last Updated by"
+msgstr "آخر تحديث بواسطة"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__write_date
+msgid "Last Updated on"
+msgstr "آخر تحديث في"
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+msgid "Lost"
+msgstr "ضائع"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__amount
+msgid "Lost Amount"
+msgstr "قيمة البيع الضائع"
 
 #. module: product_lost_finder
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
 #: model:ir.actions.client,name:product_lost_finder.action_product_lost_finder
+#: model:ir.module.category,name:product_lost_finder.module_category_lost_finder
 #: model:ir.ui.menu,name:product_lost_finder.menu_product_lost_finder_root
+#: model_terms:ir.ui.view,arch_db:product_lost_finder.res_users_view_form_lost_finder
 msgid "Lost Products"
 msgstr "المنتجات الضائعة"
 
@@ -42,22 +210,57 @@ msgid "Lost Products Finder"
 msgstr "البحث عن المنتجات الضائعة"
 
 #. module: product_lost_finder
-#. odoo-javascript
-#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
-msgid "No product found with this name."
-msgstr "لا يوجد منتج بهذا الاسم"
+#: model:ir.model,name:product_lost_finder.model_product_lost_sale
+msgid "Lost Sale"
+msgstr "بيعة ضائعة"
 
 #. module: product_lost_finder
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
-msgid "No warehouse is available for your company."
-msgstr "لا يوجد مستودع متاح لشركتك."
+#: model:ir.actions.act_window,name:product_lost_finder.action_product_lost_sale
+#: model:ir.ui.menu,name:product_lost_finder.menu_product_lost_sale_report
+msgid "Lost Sales Report"
+msgstr "تقرير المبيعات الضائعة"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.js:0
+msgid "Lost sale recorded."
+msgstr "تم تسجيل البيعة الضائعة."
+
+#. module: product_lost_finder
+#: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
+msgid "My Lost Sales"
+msgstr "مبيعاتي الضائعة"
 
 #. module: product_lost_finder
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
-msgid "On hand:"
-msgstr "الكمية الحالية:"
+msgid "My branch:"
+msgstr "فرعي:"
+
+#. module: product_lost_finder
+#: model_terms:ir.actions.act_window,help:product_lost_finder.action_product_lost_sale
+msgid "No lost sale recorded yet"
+msgstr "لم تُسجَّل أي بيعة ضائعة بعد"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.js:0
+msgid "No product found with this name or number."
+msgstr "لا يوجد منتج بهذا الاسم أو الرقم"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__note
+#: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_form
+msgid "Note"
+msgstr "ملاحظة"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Note (optional)"
+msgstr "ملاحظة (اختياري)"
 
 #. module: product_lost_finder
 #. odoo-python
@@ -66,40 +269,89 @@ msgid "Only inventory users can search for lost products."
 msgstr "البحث عن المنتجات الضائعة متاح لمستخدمي المخزون فقط."
 
 #. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__product_id
+#: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
+msgid "Product"
+msgstr "المنتج"
+
+#. module: product_lost_finder
 #. odoo-python
 #: code:addons/product_lost_finder/models/product_lost_finder.py:0
-msgid "Please select a warehouse."
-msgstr "يرجى اختيار المستودع."
+msgid "Product Name"
+msgstr "اسم المنتج"
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+msgid "Product Number"
+msgstr "رقم المنتج"
+
+#. module: product_lost_finder
+#: model:ir.ui.menu,name:product_lost_finder.menu_product_lost_finder_search
+msgid "Product Search"
+msgstr "البحث عن منتج"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__product_tmpl_id
+msgid "Product Template"
+msgstr "قالب المنتج"
 
 #. module: product_lost_finder
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
-msgid "Product is available"
-msgstr "المنتج متوفر"
+msgid "Product number, name or barcode"
+msgstr "رقم المنتج أو اسمه أو الباركود"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__quantity
+msgid "Quantity"
+msgstr "الكمية"
+
+#. module: product_lost_finder
+#: model_terms:ir.actions.act_window,help:product_lost_finder.action_product_lost_sale
+msgid ""
+"Record a lost sale from the product search when a customer asks for a product\n"
+"                that is out of stock in your branch."
+msgstr ""
+"سجّل بيعة ضائعة من صفحة البحث عندما يطلب العميل منتجًا غير متوفر في فرعك."
 
 #. module: product_lost_finder
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
-msgid "Product is lost"
-msgstr "المنتج ضائع"
+msgid "Record lost sale"
+msgstr "تسجيل بيعة ضائعة"
 
 #. module: product_lost_finder
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
-msgid "Product name, internal reference or barcode"
-msgstr "اسم المنتج أو المرجع الداخلي أو الباركود"
+msgid "Remove"
+msgstr "إزالة"
 
 #. module: product_lost_finder
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
-msgid "Quantities in warehouse:"
-msgstr "الكميات في مستودع:"
+msgid "Requested quantity"
+msgstr "الكمية المطلوبة"
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__price_unit
+msgid "Sales Price"
+msgstr "سعر البيع"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,help:product_lost_finder.field_product_lost_sale__price_unit
+msgid "Sales price of the product when the lost sale was recorded."
+msgstr "سعر بيع المنتج وقت تسجيل البيعة الضائعة."
 
 #. module: product_lost_finder
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
-msgid "Search"
-msgstr "بحث"
+msgid "Save"
+msgstr "حفظ"
 
 #. module: product_lost_finder
 #. odoo-javascript
@@ -109,12 +361,95 @@ msgstr "البحث عن المنتجات"
 
 #. module: product_lost_finder
 #. odoo-javascript
-#: code:addons/product_lost_finder/static/src/product_lost_finder.js:0
-msgid "Showing the first %(count)s of %(total)s products, refine your search."
-msgstr "يتم عرض أول %(count)s من أصل %(total)s منتج، حدّد البحث أكثر."
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Select"
+msgstr "تحديد"
 
 #. module: product_lost_finder
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
-msgid "Warehouse"
-msgstr "المستودع"
+msgid "Select all variants"
+msgstr "تحديد كل الأصناف"
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+msgid "Select at least one product to export."
+msgstr "حدد منتجًا واحدًا على الأقل للتصدير."
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+msgid "Selected Products"
+msgstr "المنتجات المختارة"
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+msgid "Status in your branch"
+msgstr "الحالة في فرعك"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,help:product_lost_finder.field_product_lost_sale__company_id
+msgid "The company is automatically set from your user preferences."
+msgstr "يتم تعيين الشركة تلقائيًا من تفضيلات المستخدم."
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_sale.py:0
+msgid "The requested quantity must be greater than zero."
+msgstr "يجب أن تكون الكمية المطلوبة أكبر من صفر."
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_sale.py:0
+msgid "This product does not exist or does not track inventory."
+msgstr "هذا المنتج غير موجود أو لا يتم تتبع مخزونه."
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.js:0
+msgid "This product is already in the list."
+msgstr "هذا المنتج موجود في القائمة بالفعل."
+
+#. module: product_lost_finder
+#. odoo-javascript
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+#: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_list
+msgid "Total"
+msgstr "الإجمالي"
+
+#. module: product_lost_finder
+#: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__uom_id
+msgid "Unit"
+msgstr "الوحدة"
+
+#. module: product_lost_finder
+#: model:ir.model,name:product_lost_finder.model_res_users
+msgid "User"
+msgstr "المستخدم"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+#: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
+msgid "Variant"
+msgstr "الصنف"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Your branch is not set. Ask your manager to set it on your user."
+msgstr "لم يتم تحديد فرعك. اطلب من المدير تحديده في بيانات المستخدم."
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "variants"
+msgstr "أصناف"

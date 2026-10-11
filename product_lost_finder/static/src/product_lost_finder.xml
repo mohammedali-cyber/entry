@@ -2,90 +2,170 @@
 <templates xml:space="preserve">
     <t t-name="product_lost_finder.SearchPage">
         <div class="o_action o_product_lost_finder h-100 overflow-auto">
-            <div class="o_plf_container" t-att-class="{'o_plf_has_results': state.searched}">
+            <div class="o_plf_container" t-att-class="{'o_plf_has_results': state.tables.length or state.choices.length or state.message}">
                 <div class="o_plf_brand">
                     <img src="/product_lost_finder/static/description/icon.png" alt="" class="o_plf_logo"/>
                     <h1 class="o_plf_title">Lost Products</h1>
                 </div>
 
-                <div t-if="!state.warehouses.length" class="alert alert-warning text-center">
-                    No warehouse is available for your company.
+                <div t-if="!state.branchId" class="alert alert-warning text-center">
+                    Your branch is not set. Ask your manager to set it on your user.
                 </div>
                 <form t-else="" role="search" t-on-submit.prevent="onSearch">
                     <div class="o_plf_search_box">
                         <i class="fa fa-search o_plf_search_icon" aria-hidden="true"/>
                         <input t-ref="searchInput" type="text" class="o_plf_search_input"
                             t-model="state.term"
-                            placeholder="Product name, internal reference or barcode"
+                            placeholder="Product number, name or barcode"
                             aria-label="Search products"
                             autocomplete="off"/>
-                        <button t-if="state.term" type="button" class="btn btn-link o_plf_clear"
-                            title="Clear" aria-label="Clear" t-on-click="onClear">
-                            <i class="fa fa-times"/>
-                        </button>
                     </div>
                     <div class="o_plf_actions">
                         <button type="submit" class="btn btn-secondary o_plf_search_button" t-att-disabled="state.loading">
                             <i t-if="state.loading" class="fa fa-circle-o-notch fa-spin me-1"/>
-                            Search
+                            Add product
                         </button>
                         <div class="o_plf_warehouse">
                             <i class="fa fa-building-o text-muted" aria-hidden="true"/>
-                            <select class="form-select form-select-sm" aria-label="Warehouse"
-                                t-model.number="state.warehouseId" t-on-change="onWarehouseChange">
+                            <span class="text-muted">My branch:</span>
+                            <select t-if="state.isManager" class="form-select form-select-sm" aria-label="Branch"
+                                t-model.number="state.branchId" t-on-change="onBranchChange">
                                 <t t-foreach="state.warehouses" t-as="warehouse" t-key="warehouse.id">
                                     <option t-att-value="warehouse.id" t-esc="warehouse.name"/>
                                 </t>
                             </select>
+                            <strong t-else="" t-esc="branchName"/>
                         </div>
+                        <button type="button" class="btn btn-link o_plf_report_link" t-on-click="openLostSalesReport">
+                            <i class="fa fa-bar-chart me-1" aria-hidden="true"/>Lost Sales Report
+                        </button>
                     </div>
                 </form>
 
-                <div t-if="state.searched" class="o_plf_results">
-                    <div t-if="!state.products.length" class="alert alert-secondary text-center">
-                        No product found with this name.
+                <div t-if="state.message" class="alert alert-secondary text-center mt-4" t-esc="state.message"/>
+
+                <div t-if="state.choices.length" class="o_plf_choices">
+                    <div class="text-muted small mb-2" t-esc="choicesHint"/>
+                    <div class="list-group">
+                        <t t-foreach="state.choices" t-as="choice" t-key="choice.id">
+                            <button type="button" class="list-group-item list-group-item-action d-flex align-items-center gap-2"
+                                t-on-click="() => this.onPickChoice(choice)">
+                                <i class="fa fa-plus-circle text-success" aria-hidden="true"/>
+                                <span class="flex-grow-1">
+                                    <span t-if="choice.default_code" class="text-muted me-1">[<t t-esc="choice.default_code"/>]</span>
+                                    <t t-esc="choice.name"/>
+                                </span>
+                                <span class="badge text-bg-light"><t t-esc="choice.variant_count"/> variants</span>
+                            </button>
+                        </t>
                     </div>
-                    <div t-if="state.products.length" class="text-muted small mb-2">
-                        <i class="fa fa-building-o me-1" aria-hidden="true"/>
-                        Quantities in warehouse: <strong t-esc="searchedWarehouseName"/>
-                    </div>
-                    <div t-if="showResultsHint" class="text-muted small mb-2" t-esc="resultsHint"/>
-                    <t t-foreach="state.products" t-as="product" t-key="product.id">
-                        <div class="o_plf_result" role="button"
-                            t-att-class="product.is_lost ? 'o_plf_lost' : 'o_plf_available'"
-                            t-on-click="() => this.openProduct(product)">
-                            <div class="flex-grow-1 min-w-0">
-                                <div class="o_plf_product_name text-truncate" t-esc="product.name"/>
-                                <div class="o_plf_details text-muted small">
-                                    <span t-if="product.barcode" class="text-nowrap">
-                                        <i class="fa fa-barcode me-1" aria-hidden="true"/>
-                                        <t t-esc="product.barcode"/>
-                                    </span>
-                                    <span class="text-nowrap">
-                                        On hand: <bdi dir="ltr" t-esc="formatQty(product)"/> <t t-esc="product.uom_name"/>
-                                    </span>
-                                </div>
-                                <div t-if="product.other_warehouses.length" class="o_plf_other_warehouses small">
-                                    <i class="fa fa-map-marker me-1" aria-hidden="true"/>
-                                    Available in other warehouses:
-                                    <t t-foreach="product.other_warehouses" t-as="other" t-key="other_index">
-                                        <span class="text-nowrap">
-                                            <t t-esc="other.name"/> (<bdi dir="ltr" t-esc="formatQty(other)"/>)</span><t t-if="!other_last">, </t>
-                                    </t>
-                                </div>
-                            </div>
-                            <span t-if="product.is_lost" class="badge rounded-pill text-bg-danger o_plf_badge">
-                                <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"/>
-                                Product is lost
-                            </span>
-                            <span t-else="" class="badge rounded-pill text-bg-success o_plf_badge">
-                                <i class="fa fa-check me-1" aria-hidden="true"/>
-                                Product is available
-                            </span>
-                        </div>
-                    </t>
                 </div>
+
+                <div t-if="state.tables.length" class="o_plf_selection_bar">
+                    <span t-esc="selectionSummary"/>
+                    <button type="button" class="btn btn-success btn-sm ms-auto"
+                        t-att-disabled="!selectedIds.length" t-on-click="exportExcel">
+                        <i class="fa fa-file-excel-o me-1" aria-hidden="true"/>Export selection to Excel
+                    </button>
+                    <button type="button" class="btn btn-light btn-sm" t-on-click="clearAll">Clear all</button>
+                </div>
+
+                <t t-foreach="state.tables" t-as="table" t-key="table.id">
+                    <div class="o_plf_card">
+                        <div class="o_plf_card_header">
+                            <input type="checkbox" class="form-check-input" aria-label="Select all variants"
+                                t-att-checked="isTableSelected(table)" t-on-change="() => this.toggleTable(table)"/>
+                            <h2>
+                                <span t-if="table.default_code" class="text-muted">[<t t-esc="table.default_code"/>]</span>
+                                <t t-esc="table.name"/>
+                            </h2>
+                            <span class="text-muted small"><t t-esc="table.variants.length"/> variants</span>
+                            <button type="button" class="btn btn-link btn-sm text-muted ms-auto" t-on-click="() => this.removeTable(table)">
+                                <i class="fa fa-times me-1" aria-hidden="true"/>Remove
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0 o_plf_table">
+                                <thead>
+                                    <tr>
+                                        <th class="o_plf_check"/>
+                                        <th class="o_plf_variant">Variant</th>
+                                        <t t-foreach="state.columns" t-as="warehouse" t-key="warehouse.id">
+                                            <th t-att-class="{'o_plf_branch': warehouse.id === state.branchId}">
+                                                <t t-esc="warehouse.name"/>
+                                                <span t-if="warehouse.id === state.branchId" class="d-block small fw-normal">(my branch)</span>
+                                            </th>
+                                        </t>
+                                        <th>Total</th>
+                                        <th class="o_plf_action"/>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="table.variants" t-as="variant" t-key="variant.id">
+                                        <tr t-att-class="{'o_plf_row_lost': variant.is_lost}">
+                                            <td class="o_plf_check">
+                                                <input type="checkbox" class="form-check-input" aria-label="Select"
+                                                    t-att-checked="state.selected[variant.id]" t-on-change="() => this.toggleVariant(variant)"/>
+                                            </td>
+                                            <td class="o_plf_variant">
+                                                <a href="#" t-on-click.prevent="() => this.openProduct(variant)" t-esc="variant.name"/>
+                                                <span t-if="variant.barcode" class="d-block text-muted small">
+                                                    <i class="fa fa-barcode me-1" aria-hidden="true"/><t t-esc="variant.barcode"/>
+                                                </span>
+                                            </td>
+                                            <t t-foreach="state.columns" t-as="warehouse" t-key="warehouse.id">
+                                                <t t-set="qty" t-value="qtyOf(variant, warehouse)"/>
+                                                <td t-att-class="{'o_plf_branch': warehouse.id === state.branchId, 'o_plf_qty_positive': qty > 0, 'o_plf_qty_none': qty &lt;= 0}">
+                                                    <bdi dir="ltr" t-esc="formatQty(qty)"/>
+                                                </td>
+                                            </t>
+                                            <td class="fw-bold"><bdi dir="ltr" t-esc="formatQty(variant.total)"/></td>
+                                            <td class="o_plf_action">
+                                                <button t-if="variant.is_lost" type="button" class="btn btn-danger btn-sm text-nowrap"
+                                                    t-on-click="() => this.recordLostSale(table, variant)">
+                                                    <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"/>Record lost sale
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </t>
             </div>
         </div>
+    </t>
+
+    <t t-name="product_lost_finder.LostSaleDialog">
+        <Dialog title.translate="Record lost sale" size="'md'">
+            <form t-on-submit.prevent="save">
+                <div class="o_plf_dialog_row">
+                    <span class="text-muted">Product</span>
+                    <span><t t-esc="props.productName"/> — <t t-esc="props.variantName"/></span>
+                </div>
+                <div class="o_plf_dialog_row">
+                    <span class="text-muted">Branch</span>
+                    <span t-esc="props.branchName"/>
+                </div>
+                <div class="o_plf_dialog_row">
+                    <label class="text-muted" for="o_plf_lost_qty">Requested quantity</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <input id="o_plf_lost_qty" t-ref="quantity" type="number" min="0" step="any"
+                            class="form-control" t-model="state.quantity"/>
+                        <span class="text-muted" t-esc="props.uomName"/>
+                    </div>
+                </div>
+                <div class="o_plf_dialog_row">
+                    <label class="text-muted" for="o_plf_lost_note">Note (optional)</label>
+                    <input id="o_plf_lost_note" type="text" class="form-control" t-model="state.note"/>
+                </div>
+                <button type="submit" class="d-none"/>
+            </form>
+            <t t-set-slot="footer">
+                <button class="btn btn-primary" t-att-disabled="!isValid or state.saving" t-on-click="save">Save</button>
+                <button class="btn btn-secondary" t-on-click="props.close">Cancel</button>
+            </t>
+        </Dialog>
     </t>
 </templates>

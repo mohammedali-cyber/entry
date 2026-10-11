@@ -1,25 +1,25 @@
 {
     'name': 'Lost Products',
-    'version': '18.0.1.1.0',
+    'version': '18.0.2.0.0',
     'category': 'Inventory/Inventory',
-    'summary': 'Search products and flag the ones with no stock in the branch warehouse as lost',
+    'summary': 'Product stock per branch, lost sales report and Excel export',
     'description': """
 Lost Products
 =============
-A simple search page (app icon on the home screen) where inventory users type a
-product name, internal reference or barcode. Every storable product found is
-shown with its On Hand quantity in the selected warehouse (branch):
-
-* quantity <= 0 : the product is flagged as "Lost"
-* quantity > 0  : the product is shown as available with its quantity
-
-The module is read-only: it never changes stock, moves or accounting data.
+Search page (app icon on the home screen) where shop employees add products by
+number, name or barcode and see each variant's On Hand quantity in every branch.
+Variants out of stock in the employee's branch can be recorded as lost sales,
+reported per branch, and selected variants can be exported to Excel.
 """,
     'author': 'Mohammed Ali',
     'license': 'LGPL-3',
     'depends': ['stock'],
     'data': [
+        'security/product_lost_finder_security.xml',
+        'security/ir.model.access.csv',
         'views/product_lost_finder_views.xml',
+        'views/product_lost_sale_views.xml',
+        'views/res_users_views.xml',
     ],
     'assets': {
         'web.assets_backend': [

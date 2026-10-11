@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_lost_finder" model="ir.module.category">
+        <field name="name">Lost Products</field>
+        <field name="sequence">32</field>
+    </record>
+
+    <!-- Inventory users use the app for their own branch; this group sees every branch. -->
+    <record id="group_lost_finder_manager" model="res.groups">
+        <field name="name">All Branches Manager</field>
+        <field name="category_id" ref="module_category_lost_finder"/>
+        <field name="implied_ids" eval="[Command.link(ref('stock.group_stock_user'))]"/>
+        <field name="users" eval="[Command.link(ref('base.user_root')), Command.link(ref('base.user_admin'))]"/>
+    </record>
+
+    <record id="rule_lost_sale_company" model="ir.rule">
+        <field name="name">Lost sales: multi-company</field>
+        <field name="model_id" ref="model_product_lost_sale"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_lost_sale_own_branch" model="ir.rule">
+        <field name="name">Lost sales: own branch</field>
+        <field name="model_id" ref="model_product_lost_sale"/>
+        <field name="domain_force">[('warehouse_id', '=', user.lost_finder_warehouse_id.id)]</field>
+        <field name="groups" eval="[Command.link(ref('stock.group_stock_user'))]"/>
+    </record>
+
+    <record id="rule_lost_sale_all_branches" model="ir.rule">
+        <field name="name">Lost sales: all branches</field>
+        <field name="model_id" ref="model_product_lost_sale"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[Command.link(ref('group_lost_finder_manager'))]"/>
+    </record>
+</odoo>

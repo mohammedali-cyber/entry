@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_lost_sale_view_list" model="ir.ui.view">
+        <field name="name">product.lost.sale.list</field>
+        <field name="model">product.lost.sale</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0">
+                <field name="date"/>
+                <field name="warehouse_id"/>
+                <field name="product_tmpl_id" optional="hide"/>
+                <field name="product_id"/>
+                <field name="quantity" sum="Total"/>
+                <field name="uom_id" groups="uom.group_uom" optional="show"/>
+                <field name="price_unit" optional="show"/>
+                <field name="amount" sum="Total" optional="show"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="note" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="product_lost_sale_view_form" model="ir.ui.view">
+        <field name="name">product.lost.sale.form</field>
+        <field name="model">product.lost.sale</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="product_id"/>
+                            <field name="warehouse_id"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="date"/>
+                        </group>
+                        <group>
+                            <label for="quantity"/>
+                            <div class="o_row">
+                                <field name="quantity"/>
+                                <field name="uom_id" groups="uom.group_uom"/>
+                            </div>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="price_unit"/>
+                            <field name="amount"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Note"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="product_lost_sale_view_search" model="ir.ui.view">
+        <field name="name">product.lost.sale.search</field>
+        <field name="model">product.lost.sale</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="product_id"/>
+                <field name="product_tmpl_id"/>
+                <field name="warehouse_id"/>
+                <field name="user_id"/>
+                <filter name="my_lost_sales" string="My Lost Sales" domain="[('user_id', '=', uid)]"/>
+                <separator/>
+                <filter name="filter_date" date="date"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_by_warehouse" string="Branch" context="{'group_by': 'warehouse_id'}"/>
+                    <filter name="group_by_template" string="Product" context="{'group_by': 'product_tmpl_id'}"/>
+                    <filter name="group_by_product" string="Variant" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_by_user" string="Employee" context="{'group_by': 'user_id'}"/>
+                    <filter name="group_by_date" string="Date" context="{'group_by': 'date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="product_lost_sale_view_pivot" model="ir.ui.view">
+        <field name="name">product.lost.sale.pivot</field>
+        <field name="model">product.lost.sale</field>
+        <field name="arch" type="xml">
+            <pivot sample="1">
+                <field name="product_tmpl_id" type="row"/>
+                <field name="warehouse_id" type="col"/>
+                <field name="quantity" type="measure"/>
+                <field name="amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="product_lost_sale_view_graph" model="ir.ui.view">
+        <field name="name">product.lost.sale.graph</field>
+        <field name="model">product.lost.sale</field>
+        <field name="arch" type="xml">
+            <graph type="bar" sample="1">
+                <field name="product_tmpl_id"/>
+                <field name="quantity" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_product_lost_sale" model="ir.actions.act_window">
+        <field name="name">Lost Sales Report</field>
+        <field name="res_model">product.lost.sale</field>
+        <field name="view_mode">list,pivot,graph,form</field>
+        <field name="context">{'search_default_group_by_warehouse': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No lost sale recorded yet</p>
+            <p>Record a lost sale from the product search when a customer asks for a product
+                that is out of stock in your branch.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_product_lost_sale_report"
+        name="Lost Sales Report"
+        parent="menu_product_lost_finder_root"
+        action="action_product_lost_sale"
+        sequence="20"/>
+</odoo>

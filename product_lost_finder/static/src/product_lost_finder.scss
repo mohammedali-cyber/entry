@@ -3,13 +3,13 @@
 
     .o_plf_container {
         width: 100%;
-        max-width: 690px;
+        max-width: 1100px;
         margin: 0 auto;
         padding: 18vh 16px 32px;
         transition: padding-top 0.2s ease;
 
         &.o_plf_has_results {
-            padding-top: 32px;
+            padding-top: 24px;
         }
     }
 
@@ -18,19 +18,24 @@
         align-items: center;
         justify-content: center;
         gap: 16px;
-        margin-bottom: 28px;
+        margin-bottom: 24px;
 
         .o_plf_logo {
-            width: 64px;
-            height: 64px;
-            border-radius: 14px;
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
         }
 
         .o_plf_title {
             margin: 0;
-            font-size: 2.4rem;
+            font-size: 2.2rem;
             font-weight: 600;
         }
+    }
+
+    form[role="search"] {
+        max-width: 690px;
+        margin: 0 auto;
     }
 
     .o_plf_search_box {
@@ -63,11 +68,6 @@
             background: transparent;
             font-size: 1.1rem;
         }
-
-        .o_plf_clear {
-            padding: 0 4px;
-            color: $text-muted;
-        }
     }
 
     .o_plf_actions {
@@ -76,7 +76,7 @@
         align-items: center;
         justify-content: center;
         gap: 12px;
-        margin-top: 24px;
+        margin-top: 20px;
 
         .o_plf_search_button {
             padding: 8px 20px;
@@ -94,51 +94,100 @@
         }
     }
 
-    .o_plf_results {
-        margin-top: 28px;
+    .o_plf_choices {
+        max-width: 690px;
+        margin: 24px auto 0;
     }
 
-    .o_plf_result {
+    .o_plf_selection_bar {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        margin-bottom: 8px;
+        gap: 8px;
+        margin-top: 24px;
+        padding: 10px 14px;
         border: 1px solid $border-color;
-        border-inline-start-width: 4px;
         border-radius: 8px;
-        cursor: pointer;
+        background-color: $o-gray-100;
+        font-weight: 500;
+    }
 
-        &:hover {
-            background-color: $o-gray-100;
-        }
+    .o_plf_card {
+        margin-top: 16px;
+        border: 1px solid $border-color;
+        border-radius: 8px;
+        overflow: hidden;
 
-        &.o_plf_lost {
-            border-inline-start-color: $danger;
-        }
-
-        &.o_plf_available {
-            border-inline-start-color: $success;
-        }
-
-        .o_plf_product_name {
-            font-weight: 500;
-        }
-
-        .o_plf_details {
+        .o_plf_card_header {
             display: flex;
             flex-wrap: wrap;
-            column-gap: 16px;
-        }
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-bottom: 1px solid $border-color;
+            background-color: $o-gray-100;
 
-        .o_plf_other_warehouses {
-            margin-top: 2px;
-            color: $success;
-        }
-
-        .o_plf_badge {
-            flex: 0 0 auto;
-            font-size: 0.85rem;
+            h2 {
+                margin: 0;
+                font-size: 1.15rem;
+            }
         }
     }
+
+    .o_plf_table {
+        th,
+        td {
+            text-align: center;
+            padding: 8px 10px;
+        }
+
+        thead th {
+            background-color: $o-view-background-color;
+            white-space: nowrap;
+        }
+
+        .o_plf_check {
+            width: 36px;
+        }
+
+        .o_plf_variant {
+            text-align: start;
+            min-width: 160px;
+        }
+
+        .o_plf_action {
+            width: 1%;
+            text-align: end;
+        }
+
+        .o_plf_branch {
+            background-color: rgba($warning, 0.12);
+        }
+
+        thead .o_plf_branch {
+            background-color: rgba($warning, 0.3);
+        }
+
+        .o_plf_qty_positive {
+            color: $success;
+            font-weight: 700;
+        }
+
+        .o_plf_qty_none {
+            color: $text-muted;
+        }
+
+        tr.o_plf_row_lost .o_plf_branch {
+            color: $danger;
+            font-weight: 700;
+        }
+    }
+}
+
+.o_plf_dialog_row {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
 }

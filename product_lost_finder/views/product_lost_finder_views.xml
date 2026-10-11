@@ -11,4 +11,10 @@
         web_icon="product_lost_finder,static/description/icon.png"
         groups="stock.group_stock_user"
         sequence="31"/>
+
+    <menuitem id="menu_product_lost_finder_search"
+        name="Product Search"
+        parent="menu_product_lost_finder_root"
+        action="action_product_lost_finder"
+        sequence="10"/>
 </odoo>
