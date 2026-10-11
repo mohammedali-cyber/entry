@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="product_lost_finder.SearchPage">
+        <div class="o_action o_product_lost_finder h-100 overflow-auto">
+            <div class="o_plf_container" t-att-class="{'o_plf_has_results': state.searched}">
+                <div class="o_plf_brand">
+                    <img src="/product_lost_finder/static/description/icon.png" alt="" class="o_plf_logo"/>
+                    <h1 class="o_plf_title">Lost Products</h1>
+                </div>
+
+                <div t-if="!state.warehouses.length" class="alert alert-warning text-center">
+                    No warehouse is available for your company.
+                </div>
+                <form t-else="" role="search" t-on-submit.prevent="onSearch">
+                    <div class="o_plf_search_box">
+                        <i class="fa fa-search o_plf_search_icon" aria-hidden="true"/>
+                        <input t-ref="searchInput" type="text" class="o_plf_search_input"
+                            t-model="state.term"
+                            placeholder="Product name, internal reference or barcode"
+                            aria-label="Search products"
+                            autocomplete="off"/>
+                        <button t-if="state.term" type="button" class="btn btn-link o_plf_clear"
+                            title="Clear" aria-label="Clear" t-on-click="onClear">
+                            <i class="fa fa-times"/>
+                        </button>
+                    </div>
+                    <div class="o_plf_actions">
+                        <button type="submit" class="btn btn-secondary o_plf_search_button" t-att-disabled="state.loading">
+                            <i t-if="state.loading" class="fa fa-circle-o-notch fa-spin me-1"/>
+                            Search
+                        </button>
+                        <div class="o_plf_warehouse">
+                            <i class="fa fa-building-o text-muted" aria-hidden="true"/>
+                            <select class="form-select form-select-sm" aria-label="Warehouse"
+                                t-model.number="state.warehouseId" t-on-change="onWarehouseChange">
+                                <t t-foreach="state.warehouses" t-as="warehouse" t-key="warehouse.id">
+                                    <option t-att-value="warehouse.id" t-esc="warehouse.name"/>
+                                </t>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+
+                <div t-if="state.searched" class="o_plf_results">
+                    <div t-if="!state.products.length" class="alert alert-secondary text-center">
+                        No product found with this name.
+                    </div>
+                    <div t-if="showResultsHint" class="text-muted small mb-2" t-esc="resultsHint"/>
+                    <t t-foreach="state.products" t-as="product" t-key="product.id">
+                        <div class="o_plf_result" role="button"
+                            t-att-class="product.is_lost ? 'o_plf_lost' : 'o_plf_available'"
+                            t-on-click="() => this.openProduct(product)">
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="o_plf_product_name text-truncate" t-esc="product.name"/>
+                                <div class="o_plf_details text-muted small">
+                                    <span t-if="product.barcode" class="text-nowrap">
+                                        <i class="fa fa-barcode me-1" aria-hidden="true"/>
+                                        <t t-esc="product.barcode"/>
+                                    </span>
+                                    <span class="text-nowrap">
+                                        On hand: <bdi dir="ltr" t-esc="formatQty(product)"/> <t t-esc="product.uom_name"/>
+                                    </span>
+                                </div>
+                            </div>
+                            <span t-if="product.is_lost" class="badge rounded-pill text-bg-danger o_plf_badge">
+                                <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"/>
+                                Product is lost
+                            </span>
+                            <span t-else="" class="badge rounded-pill text-bg-success o_plf_badge">
+                                <i class="fa fa-check me-1" aria-hidden="true"/>
+                                Product is available
+                            </span>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

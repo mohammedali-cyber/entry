@@ -1,0 +1,139 @@
+.o_product_lost_finder {
+    background-color: $o-view-background-color;
+
+    .o_plf_container {
+        width: 100%;
+        max-width: 690px;
+        margin: 0 auto;
+        padding: 18vh 16px 32px;
+        transition: padding-top 0.2s ease;
+
+        &.o_plf_has_results {
+            padding-top: 32px;
+        }
+    }
+
+    .o_plf_brand {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        margin-bottom: 28px;
+
+        .o_plf_logo {
+            width: 64px;
+            height: 64px;
+            border-radius: 14px;
+        }
+
+        .o_plf_title {
+            margin: 0;
+            font-size: 2.4rem;
+            font-weight: 600;
+        }
+    }
+
+    .o_plf_search_box {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 48px;
+        padding: 0 16px;
+        border: 1px solid $border-color;
+        border-radius: 24px;
+        background-color: $o-view-background-color;
+        transition: box-shadow 0.15s ease;
+
+        &:hover,
+        &:focus-within {
+            border-color: transparent;
+            box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
+        }
+
+        .o_plf_search_icon {
+            color: $text-muted;
+        }
+
+        .o_plf_search_input {
+            flex: 1 1 auto;
+            min-width: 0;
+            height: 100%;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            font-size: 1.1rem;
+        }
+
+        .o_plf_clear {
+            padding: 0 4px;
+            color: $text-muted;
+        }
+    }
+
+    .o_plf_actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 24px;
+
+        .o_plf_search_button {
+            padding: 8px 20px;
+        }
+
+        .o_plf_warehouse {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+
+            .form-select {
+                width: auto;
+                max-width: 260px;
+            }
+        }
+    }
+
+    .o_plf_results {
+        margin-top: 28px;
+    }
+
+    .o_plf_result {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        border: 1px solid $border-color;
+        border-inline-start-width: 4px;
+        border-radius: 8px;
+        cursor: pointer;
+
+        &:hover {
+            background-color: $o-gray-100;
+        }
+
+        &.o_plf_lost {
+            border-inline-start-color: $danger;
+        }
+
+        &.o_plf_available {
+            border-inline-start-color: $success;
+        }
+
+        .o_plf_product_name {
+            font-weight: 500;
+        }
+
+        .o_plf_details {
+            display: flex;
+            flex-wrap: wrap;
+            column-gap: 16px;
+        }
+
+        .o_plf_badge {
+            flex: 0 0 auto;
+            font-size: 0.85rem;
+        }
+    }
+}

@@ -1,0 +1,107 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* product_lost_finder
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-11 10:38+0000\n"
+"PO-Revision-Date: 2026-10-11 10:38+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Clear"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+#: model:ir.actions.client,name:product_lost_finder.action_product_lost_finder
+#: model:ir.ui.menu,name:product_lost_finder.menu_product_lost_finder_root
+msgid "Lost Products"
+msgstr ""
+
+#. module: product_lost_finder
+#: model:ir.model,name:product_lost_finder.model_product_lost_finder
+msgid "Lost Products Finder"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "No product found with this name."
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "No warehouse is available for your company."
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "On hand:"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+msgid "Only inventory users can search for lost products."
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_finder.py:0
+msgid "Please select a warehouse."
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Product is available"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Product is lost"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Product name, internal reference or barcode"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Search"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Search products"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.js:0
+msgid "Showing the first %(count)s of %(total)s products, refine your search."
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
+msgid "Warehouse"
+msgstr ""
