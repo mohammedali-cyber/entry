@@ -235,7 +235,7 @@ class TestLostSaleDetailReport(TransactionCase):
         ])
 
     def _report(self, user, **filters):
-        filters.setdefault('column_attribute_id', self.size.id)
+        filters.setdefault('column_attribute_id', self.color.id)
         return self.env['product.lost.sale'].with_user(user).get_detail_report(filters)
 
     def _matrix(self, report):
@@ -247,33 +247,37 @@ class TestLostSaleDetailReport(TransactionCase):
         attributes = {a['name']: [v['name'] for v in a['values']] for a in options['attributes']}
         self.assertEqual(attributes['PLF color'], ['WHITE', 'SILVER'])
         self.assertEqual(attributes['PLF size'], ['38', '39'])
-        self.assertEqual(options['column_attribute_id'], self.size.id, "Size attribute is the default column")
+        self.assertEqual(options['column_attribute_id'], self.color.id, "Color attribute is the default column")
         names = [t['name'] for t in options['templates']]
         self.assertIn('PLF Detail Shoe', names)
         self.assertIn('PLF Detail Sandal', names)
 
-    def test_product_filter_shows_colors_by_size(self):
+    def test_product_filter_shows_colors_without_sizes(self):
         report = self._report(self.manager, template_id=self.shoe.id)
-        self.assertEqual(self._matrix(report), {'WHITE': {'38': 5}, 'SILVER': {'39': 1}})
+        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'WHITE': 5, 'SILVER': 1}})
         self.assertEqual(report['total'], 6)
         self.assertEqual(report['amount'], 60)
-        self.assertEqual([c['name'] for c in report['columns']], ['38', '39'])
+        self.assertEqual([c['name'] for c in report['columns']], ['WHITE', 'SILVER'])
+
+    def test_size_only_narrows_when_chosen(self):
+        report = self._report(self.manager, template_id=self.shoe.id, value_ids=[self.s39.id])
+        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'SILVER': 1}})
 
     def test_color_filter_shows_all_products_with_that_color(self):
         report = self._report(self.manager, value_ids=[self.white.id])
-        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'38': 5}, 'PLF Detail Sandal': {'38': 2}})
+        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'WHITE': 5}, 'PLF Detail Sandal': {'WHITE': 2}})
         report = self._report(self.manager, value_ids=[self.white.id, self.s39.id])
         self.assertFalse(report['rows'])
 
     def test_branch_and_period_filters(self):
         report = self._report(self.manager, warehouse_id=self.wh_branch.id)
-        self.assertEqual(self._matrix(report), {'PLF Detail Sandal / WHITE': {'38': 2}})
+        self.assertEqual(self._matrix(report), {'PLF Detail Sandal': {'WHITE': 2}})
         report = self._report(self.manager, date_from='2026-10-01', date_to='2026-10-05')
-        self.assertEqual(self._matrix(report), {'PLF Detail Shoe / WHITE': {'38': 5}})
+        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'WHITE': 5}})
 
     def test_employee_sees_own_branch_only(self):
         report = self._report(self.employee, warehouse_id=self.wh_branch.id)
-        self.assertEqual(self._matrix(report), {'PLF Detail Shoe / WHITE': {'38': 5}, 'PLF Detail Shoe / SILVER': {'39': 1}})
+        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'WHITE': 5, 'SILVER': 1}})
         options = self.env['product.lost.sale'].with_user(self.employee).get_detail_options()
         self.assertEqual([w['id'] for w in options['warehouses']], [self.wh_main.id])
         self.assertNotIn('PLF Detail Sandal', [t['name'] for t in options['templates']])
@@ -281,12 +285,12 @@ class TestLostSaleDetailReport(TransactionCase):
     def test_export_detail_xlsx(self):
         LostSale = self.env['product.lost.sale'].with_user(self.manager).with_context(lang='en_US')
         filename, content = LostSale.export_detail_xlsx({'template_id': self.shoe.id,
-                                                         'column_attribute_id': self.size.id})
+                                                         'column_attribute_id': self.color.id})
         self.assertTrue(filename.endswith('.xlsx'))
         if not openpyxl:
             return
         sheet = openpyxl.load_workbook(io.BytesIO(content)).active
         rows = list(sheet.iter_rows(min_row=4, values_only=True))
-        self.assertEqual(rows[0], ('Product / Variant', '38', '39', 'Total', 'Lost Amount'))
-        self.assertEqual(rows[1], ('WHITE', 5, 0, 5, 50))
+        self.assertEqual(rows[0], ('Product', 'WHITE', 'SILVER', 'Total', 'Lost Amount'))
+        self.assertEqual(rows[1], ('PLF Detail Shoe', 5, 1, 6, 60))
         self.assertEqual(rows[-1], ('Total', 5, 1, 6, 60))

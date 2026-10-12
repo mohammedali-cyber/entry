@@ -86,8 +86,8 @@ class ProductLostSale(models.Model):
             *(product for [product] in self._read_group([], ['product_id'])))
         values = self._detail_attribute_values(products)
         attributes = values.attribute_id.sorted(lambda a: (a.sequence, a.id))
-        column_attribute = attributes.filtered(lambda a: 'size' in a.name.lower() or 'مقاس' in a.name)[:1] \
-            or attributes[-1:]
+        column_attribute = attributes.filtered(
+            lambda a: any(word in a.name.lower() for word in ('color', 'colour', 'لون')))[:1] or attributes[:1]
         is_manager = Finder._is_manager()
         warehouses = Finder._allowed_warehouses()
         if not is_manager:
@@ -128,27 +128,22 @@ class ProductLostSale(models.Model):
 
     @api.model
     def get_detail_report(self, filters):
-        """Matrix of lost quantities: columns are the values of one attribute (e.g. size),
-        rows are the products and/or the other attribute values not fixed by a filter."""
+        """Matrix of lost quantities: rows are the products, columns the values of one
+        attribute (color by default). Other attributes (e.g. size) are not broken down:
+        they only narrow the report when a value is chosen in the filters."""
         self.env['product.lost.finder']._check_user_access()
         filters = filters or {}
         groups = self._read_group(self._detail_domain(filters), ['product_id'], ['quantity:sum', 'amount:sum'])
         column_attribute = self.env['product.attribute'].browse(filters.get('column_attribute_id')).exists()
-        fixed_attributes = self.env['product.attribute.value'].browse(filters.get('value_ids') or []).attribute_id
-        by_template = not filters.get('template_id')
 
         columns, rows = {}, {}
         for product, quantity, amount in groups:
-            values = self._detail_attribute_values(product).sorted(lambda v: (v.attribute_id.sequence, v.sequence))
-            column_value = values.filtered(lambda v: v.attribute_id == column_attribute)[:1]
+            column_value = self._detail_attribute_values(product).filtered(
+                lambda v: v.attribute_id == column_attribute)[:1]
             column_key = column_value.id or 0
             columns.setdefault(column_key, column_value)
-            row_values = values.filtered(lambda v: v.attribute_id not in column_attribute | fixed_attributes)
-            row_key = (product.product_tmpl_id.id if by_template else 0, tuple(row_values.ids))
-            label = [product.product_tmpl_id.name] if by_template else []
-            label += row_values.mapped('name')
-            row = rows.setdefault(row_key, {'label': ' / '.join(label) or product.display_name,
-                                            'cells': {}, 'total': 0.0, 'amount': 0.0})
+            template = product.product_tmpl_id
+            row = rows.setdefault(template.id, {'label': template.name, 'cells': {}, 'total': 0.0, 'amount': 0.0})
             row['cells'][str(column_key)] = row['cells'].get(str(column_key), 0.0) + quantity
             row['total'] += quantity
             row['amount'] += amount
@@ -193,7 +188,7 @@ class ProductLostSale(models.Model):
         sheet.write(0, 0, _("Lost Sales - Detailed Report"), title)
         sheet.write(1, 0, self._detail_filters_text(filters), info)
         header_row = 3
-        headers = [_("Product / Variant")] + [c['name'] for c in report['columns']] + [_("Total"), _("Lost Amount")]
+        headers = [_("Product")] + [c['name'] for c in report['columns']] + [_("Total"), _("Lost Amount")]
         sheet.write_row(header_row, 0, headers, head)
         row_index = header_row
         for row in report['rows']:

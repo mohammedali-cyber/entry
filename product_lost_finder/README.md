@@ -16,10 +16,11 @@ The technical name stays `product_lost_finder` so that upgrades keep the recorde
    barcode, sales price, quantity per branch, total, status in the branch).
 6. **Detailed Report**: lost quantities as a matrix. Filters: product, each
    attribute (color, size... read from the products automatically), branch,
-   period. Columns are the values of one attribute (size by default, can be
-   changed); rows are the products and/or the attribute values not filtered.
-   Choosing a product shows all its colors × sizes; choosing a color shows every
-   product having that color. Exportable to Excel.
+   period. Rows are the products, columns the values of one attribute (color by
+   default, can be changed). Other attributes such as size are not broken down:
+   choosing a size in the filters only narrows the numbers. Choosing a color
+   shows every product having that color. Products without the column attribute
+   are counted under "Other". Exportable to Excel.
 
 Read-only for stock: nothing here changes quantities, moves or accounting. Lost
 sales are follow-up records only.
