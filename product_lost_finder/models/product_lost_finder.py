@@ -7,14 +7,14 @@ from odoo.tools.misc import xlsxwriter
 
 
 class ProductLostFinder(models.AbstractModel):
-    """Backend of the "Lost Products" search page.
+    """Backend of the "Lost Sales" product search page.
 
     Read-only service: it finds products and reports, for every variant, the
     On Hand quantity in each warehouse (branch) of the user's companies. A
     variant whose quantity is zero or negative in the user's branch is lost.
     """
     _name = 'product.lost.finder'
-    _description = 'Lost Products Finder'
+    _description = 'Lost Sales Product Finder'
 
     _CHOICE_LIMIT = 20
 

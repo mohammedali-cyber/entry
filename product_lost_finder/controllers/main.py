@@ -14,3 +14,11 @@ class ProductLostFinderController(http.Controller):
             ('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
             ('Content-Disposition', content_disposition(filename)),
         ])
+
+    @http.route('/product_lost_finder/export_detail_xlsx', type='http', auth='user', methods=['POST'])
+    def export_detail_xlsx(self, filters, **kwargs):
+        filename, content = request.env['product.lost.sale'].export_detail_xlsx(json.loads(filters))
+        return request.make_response(content, headers=[
+            ('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+            ('Content-Disposition', content_disposition(filename)),
+        ])

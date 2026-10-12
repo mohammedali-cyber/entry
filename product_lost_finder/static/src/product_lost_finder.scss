@@ -191,3 +191,82 @@
     gap: 12px;
     margin-bottom: 12px;
 }
+
+.o_lost_sale_detail {
+    background-color: $o-view-background-color;
+
+    .o_lsd_container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px 16px 32px;
+    }
+
+    .o_lsd_title {
+        margin: 0 0 16px;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .o_lsd_filters {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid $border-color;
+        border-radius: 8px;
+        background-color: $o-gray-100;
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.8rem;
+            color: $text-muted;
+        }
+    }
+
+    .o_lsd_toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin: 14px 0 10px;
+
+        .form-select {
+            width: auto;
+        }
+    }
+
+    .o_lsd_table {
+        th,
+        td {
+            text-align: center;
+            padding: 8px 10px;
+        }
+
+        thead th {
+            background-color: $o-gray-100;
+            white-space: nowrap;
+        }
+
+        .o_lsd_label {
+            text-align: start;
+            font-weight: 600;
+            min-width: 220px;
+        }
+
+        .o_lsd_qty {
+            color: $danger;
+            font-weight: 700;
+        }
+
+        .o_lsd_empty {
+            color: $o-gray-400;
+        }
+
+        tfoot td {
+            background-color: $o-gray-100;
+            font-weight: 700;
+        }
+    }
+}

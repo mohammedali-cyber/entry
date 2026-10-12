@@ -116,4 +116,10 @@
         parent="menu_product_lost_finder_root"
         action="action_product_lost_sale"
         sequence="20"/>
+
+    <menuitem id="menu_lost_sale_detail_report"
+        name="Detailed Report"
+        parent="menu_product_lost_finder_root"
+        action="action_lost_sale_detail_report"
+        sequence="30"/>
 </odoo>

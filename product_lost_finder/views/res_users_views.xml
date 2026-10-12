@@ -6,7 +6,7 @@
         <field name="inherit_id" ref="base.view_users_form"/>
         <field name="arch" type="xml">
             <group name="messaging" position="after">
-                <group name="lost_finder" string="Lost Products" groups="stock.group_stock_manager">
+                <group name="lost_finder" string="Lost Sales" groups="stock.group_stock_manager">
                     <field name="lost_finder_warehouse_id" options="{'no_create': True}"/>
                 </group>
             </group>

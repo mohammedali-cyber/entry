@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-11 13:20+0000\n"
-"PO-Revision-Date: 2026-10-11 13:20+0000\n"
+"POT-Creation-Date: 2026-10-12 09:01+0000\n"
+"PO-Revision-Date: 2026-10-12 09:01+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -55,8 +55,28 @@ msgid "Add product"
 msgstr ""
 
 #. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "All"
+msgstr ""
+
+#. module: product_lost_finder
 #: model:res.groups,name:product_lost_finder.group_lost_finder_manager
 msgid "All Branches Manager"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_sale.py:0
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "All branches"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.js:0
+msgid "All time"
 msgstr ""
 
 #. module: product_lost_finder
@@ -73,6 +93,7 @@ msgstr ""
 
 #. module: product_lost_finder
 #. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
 #: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__warehouse_id
 #: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
@@ -81,14 +102,14 @@ msgstr ""
 
 #. module: product_lost_finder
 #: model:ir.model.fields,field_description:product_lost_finder.field_res_users__lost_finder_warehouse_id
-msgid "Branch (Lost Products)"
+msgid "Branch (Lost Sales)"
 msgstr ""
 
 #. module: product_lost_finder
 #: model:ir.model.fields,help:product_lost_finder.field_res_users__lost_finder_warehouse_id
 msgid ""
-"Branch of the employee in the Lost Products app: lost sales are recorded for"
-" this warehouse and the employee only sees the lost sales of this branch."
+"Branch of the employee in the Lost Sales app: lost sales are recorded for "
+"this warehouse and the employee only sees the lost sales of this branch."
 msgstr ""
 
 #. module: product_lost_finder
@@ -107,6 +128,12 @@ msgstr ""
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
 msgid "Clear all"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Columns:"
 msgstr ""
 
 #. module: product_lost_finder
@@ -130,6 +157,12 @@ msgid "Currency"
 msgstr ""
 
 #. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.js:0
+msgid "Custom dates"
+msgstr ""
+
+#. module: product_lost_finder
 #: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__date
 #: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
 msgid "Date"
@@ -138,6 +171,16 @@ msgstr ""
 #. module: product_lost_finder
 #: model:ir.model.fields,help:product_lost_finder.field_product_lost_sale__uom_id
 msgid "Default unit of measure used for all stock operations."
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_sale.py:0
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+#: model:ir.actions.client,name:product_lost_finder.action_lost_sale_detail_report
+#: model:ir.ui.menu,name:product_lost_finder.menu_lost_sale_detail_report
+msgid "Detailed Report"
 msgstr ""
 
 #. module: product_lost_finder
@@ -158,6 +201,18 @@ msgid "Export selection to Excel"
 msgstr ""
 
 #. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Export to Excel"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "From"
+msgstr ""
+
+#. module: product_lost_finder
 #: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
 msgid "Group By"
 msgstr ""
@@ -165,6 +220,12 @@ msgstr ""
 #. module: product_lost_finder
 #: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__id
 msgid "ID"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.js:0
+msgid "Last 3 months"
 msgstr ""
 
 #. module: product_lost_finder
@@ -178,14 +239,29 @@ msgid "Last Updated on"
 msgstr ""
 
 #. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.js:0
+msgid "Last month"
+msgstr ""
+
+#. module: product_lost_finder
 #. odoo-python
 #: code:addons/product_lost_finder/models/product_lost_finder.py:0
 msgid "Lost"
 msgstr ""
 
 #. module: product_lost_finder
+#. odoo-javascript
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_sale.py:0
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
 #: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__amount
 msgid "Lost Amount"
+msgstr ""
+
+#. module: product_lost_finder
+#: model:ir.model,name:product_lost_finder.model_product_lost_sale
+msgid "Lost Sale"
 msgstr ""
 
 #. module: product_lost_finder
@@ -195,17 +271,18 @@ msgstr ""
 #: model:ir.module.category,name:product_lost_finder.module_category_lost_finder
 #: model:ir.ui.menu,name:product_lost_finder.menu_product_lost_finder_root
 #: model_terms:ir.ui.view,arch_db:product_lost_finder.res_users_view_form_lost_finder
-msgid "Lost Products"
+msgid "Lost Sales"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_sale.py:0
+msgid "Lost Sales - Detailed Report"
 msgstr ""
 
 #. module: product_lost_finder
 #: model:ir.model,name:product_lost_finder.model_product_lost_finder
-msgid "Lost Products Finder"
-msgstr ""
-
-#. module: product_lost_finder
-#: model:ir.model,name:product_lost_finder.model_product_lost_sale
-msgid "Lost Sale"
+msgid "Lost Sales Product Finder"
 msgstr ""
 
 #. module: product_lost_finder
@@ -231,6 +308,12 @@ msgstr ""
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
 msgid "My branch:"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "No lost sale matches these filters."
 msgstr ""
 
 #. module: product_lost_finder
@@ -263,11 +346,32 @@ msgid "Only inventory users can search for lost products."
 msgstr ""
 
 #. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_sale.py:0
+msgid "Other"
+msgstr ""
+
+#. module: product_lost_finder
 #. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Period"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
 #: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__product_id
 #: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
 msgid "Product"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_sale.py:0
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Product / Variant"
 msgstr ""
 
 #. module: product_lost_finder
@@ -299,6 +403,8 @@ msgid "Product number, name or barcode"
 msgstr ""
 
 #. module: product_lost_finder
+#. odoo-python
+#: code:addons/product_lost_finder/models/product_lost_sale.py:0
 #: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__quantity
 msgid "Quantity"
 msgstr ""
@@ -326,6 +432,12 @@ msgstr ""
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
 msgid "Requested quantity"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Reset filters"
 msgstr ""
 
 #. module: product_lost_finder
@@ -394,6 +506,12 @@ msgid "The requested quantity must be greater than zero."
 msgstr ""
 
 #. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.js:0
+msgid "This month"
+msgstr ""
+
+#. module: product_lost_finder
 #. odoo-python
 #: code:addons/product_lost_finder/models/product_lost_sale.py:0
 msgid "This product does not exist or does not track inventory."
@@ -407,8 +525,22 @@ msgstr ""
 
 #. module: product_lost_finder
 #. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.js:0
+msgid "This year"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "To"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
 #. odoo-python
 #: code:addons/product_lost_finder/models/product_lost_finder.py:0
+#: code:addons/product_lost_finder/models/product_lost_sale.py:0
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
 #: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_list
 msgid "Total"

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="product_lost_finder.DetailReport">
+        <div class="o_action o_lost_sale_detail h-100 overflow-auto">
+            <div class="o_lsd_container">
+                <h2 class="o_lsd_title">Detailed Report</h2>
+
+                <div class="o_lsd_filters">
+                    <div class="o_lsd_filter">
+                        <label for="o_lsd_product">Product</label>
+                        <select id="o_lsd_product" class="form-select form-select-sm"
+                            t-model.number="state.templateId" t-on-change="loadReport">
+                            <option value="0">All</option>
+                            <t t-foreach="state.options.templates" t-as="template" t-key="template.id">
+                                <option t-att-value="template.id" t-esc="template.name"/>
+                            </t>
+                        </select>
+                    </div>
+                    <t t-foreach="state.options.attributes" t-as="attribute" t-key="attribute.id">
+                        <div class="o_lsd_filter">
+                            <label t-att-for="'o_lsd_attr_' + attribute.id" t-esc="attribute.name"/>
+                            <select t-att-id="'o_lsd_attr_' + attribute.id" class="form-select form-select-sm"
+                                t-on-change="(ev) => this.onValueChange(attribute, ev)">
+                                <option value="0" t-att-selected="!state.valueByAttribute[attribute.id]">All</option>
+                                <t t-foreach="attribute.values" t-as="value" t-key="value.id">
+                                    <option t-att-value="value.id" t-att-selected="state.valueByAttribute[attribute.id] === value.id"
+                                        t-esc="value.name"/>
+                                </t>
+                            </select>
+                        </div>
+                    </t>
+                    <div class="o_lsd_filter">
+                        <label for="o_lsd_branch">Branch</label>
+                        <select t-if="state.options.is_manager" id="o_lsd_branch" class="form-select form-select-sm"
+                            t-model.number="state.warehouseId" t-on-change="loadReport">
+                            <option value="0">All branches</option>
+                            <t t-foreach="state.options.warehouses" t-as="warehouse" t-key="warehouse.id">
+                                <option t-att-value="warehouse.id" t-esc="warehouse.name"/>
+                            </t>
+                        </select>
+                        <div t-else="" id="o_lsd_branch" class="form-control form-control-sm bg-light" t-esc="branchLabel"/>
+                    </div>
+                    <div class="o_lsd_filter">
+                        <label for="o_lsd_period">Period</label>
+                        <select id="o_lsd_period" class="form-select form-select-sm"
+                            t-model="state.period" t-on-change="loadReport">
+                            <t t-foreach="periods" t-as="period" t-key="period.key">
+                                <option t-att-value="period.key" t-esc="period.label"/>
+                            </t>
+                        </select>
+                    </div>
+                    <t t-if="state.period === 'custom'">
+                        <div class="o_lsd_filter">
+                            <label for="o_lsd_from">From</label>
+                            <input id="o_lsd_from" type="date" class="form-control form-control-sm"
+                                t-model="state.dateFrom" t-on-change="loadReport"/>
+                        </div>
+                        <div class="o_lsd_filter">
+                            <label for="o_lsd_to">To</label>
+                            <input id="o_lsd_to" type="date" class="form-control form-control-sm"
+                                t-model="state.dateTo" t-on-change="loadReport"/>
+                        </div>
+                    </t>
+                </div>
+
+                <div class="o_lsd_toolbar">
+                    <div t-if="state.options.attributes.length" class="d-flex align-items-center gap-2">
+                        <label for="o_lsd_columns" class="text-muted text-nowrap">Columns:</label>
+                        <select id="o_lsd_columns" class="form-select form-select-sm"
+                            t-model.number="state.columnAttributeId" t-on-change="loadReport">
+                            <t t-foreach="state.options.attributes" t-as="attribute" t-key="attribute.id">
+                                <option t-att-value="attribute.id" t-esc="attribute.name"/>
+                            </t>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-light btn-sm" t-on-click="resetFilters">
+                        <i class="fa fa-undo me-1" aria-hidden="true"/>Reset filters
+                    </button>
+                    <i t-if="state.loading" class="fa fa-circle-o-notch fa-spin text-muted"/>
+                    <button type="button" class="btn btn-success btn-sm ms-auto"
+                        t-att-disabled="!state.report or !state.report.rows.length" t-on-click="exportExcel">
+                        <i class="fa fa-file-excel-o me-1" aria-hidden="true"/>Export to Excel
+                    </button>
+                </div>
+
+                <t t-set="report" t-value="state.report"/>
+                <div t-if="report and !report.rows.length" class="alert alert-secondary text-center">
+                    No lost sale matches these filters.
+                </div>
+                <div t-elif="report" class="table-responsive o_lsd_table_wrap">
+                    <table class="table table-sm table-bordered align-middle mb-0 o_lsd_table">
+                        <thead>
+                            <tr>
+                                <th class="o_lsd_label">Product / Variant</th>
+                                <t t-foreach="report.columns" t-as="column" t-key="column.key">
+                                    <th t-esc="column.name"/>
+                                </t>
+                                <th>Total</th>
+                                <th>Lost Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="report.rows" t-as="row" t-key="row_index">
+                                <tr>
+                                    <td class="o_lsd_label" t-esc="row.label"/>
+                                    <t t-foreach="report.columns" t-as="column" t-key="column.key">
+                                        <t t-set="qty" t-value="row.cells[column.key] or 0"/>
+                                        <td t-att-class="qty ? 'o_lsd_qty' : 'o_lsd_empty'"><bdi dir="ltr" t-esc="formatQty(qty)"/></td>
+                                    </t>
+                                    <td class="fw-bold"><bdi dir="ltr" t-esc="formatQty(row.total)"/></td>
+                                    <td class="text-nowrap" t-esc="formatAmount(row.amount)"/>
+                                </tr>
+                            </t>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td class="o_lsd_label">Total</td>
+                                <t t-foreach="report.columns" t-as="column" t-key="column.key">
+                                    <td><bdi dir="ltr" t-esc="formatQty(report.column_totals[column.key] or 0)"/></td>
+                                </t>
+                                <td><bdi dir="ltr" t-esc="formatQty(report.total)"/></td>
+                                <td class="text-nowrap" t-esc="formatAmount(report.amount)"/>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

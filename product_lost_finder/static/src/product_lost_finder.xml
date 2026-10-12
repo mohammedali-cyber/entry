@@ -5,7 +5,7 @@
             <div class="o_plf_container" t-att-class="{'o_plf_has_results': state.tables.length or state.choices.length or state.message}">
                 <div class="o_plf_brand">
                     <img src="/product_lost_finder/static/description/icon.png" alt="" class="o_plf_logo"/>
-                    <h1 class="o_plf_title">Lost Products</h1>
+                    <h1 class="o_plf_title">Lost Sales</h1>
                 </div>
 
                 <div t-if="!state.branchId" class="alert alert-warning text-center">

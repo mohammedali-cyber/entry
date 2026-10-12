@@ -1,15 +1,16 @@
 {
-    'name': 'Lost Products',
-    'version': '18.0.2.0.0',
+    'name': 'Lost Sales',
+    'version': '18.0.3.0.0',
     'category': 'Inventory/Inventory',
-    'summary': 'Product stock per branch, lost sales report and Excel export',
+    'summary': 'Product stock per branch, lost sales reports and Excel export',
     'description': """
-Lost Products
-=============
+Lost Sales
+==========
 Search page (app icon on the home screen) where shop employees add products by
 number, name or barcode and see each variant's On Hand quantity in every branch.
 Variants out of stock in the employee's branch can be recorded as lost sales,
-reported per branch, and selected variants can be exported to Excel.
+reported per branch, and selected variants can be exported to Excel. A detailed
+report breaks lost quantities down by product and attribute values (color, size...).
 """,
     'author': 'Mohammed Ali',
     'license': 'LGPL-3',

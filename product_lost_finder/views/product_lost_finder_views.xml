@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="action_product_lost_finder" model="ir.actions.client">
-        <field name="name">Lost Products</field>
+        <field name="name">Lost Sales</field>
         <field name="tag">product_lost_finder.search_page</field>
     </record>
 
     <menuitem id="menu_product_lost_finder_root"
-        name="Lost Products"
+        name="Lost Sales"
         action="action_product_lost_finder"
         web_icon="product_lost_finder,static/description/icon.png"
         groups="stock.group_stock_user"
@@ -17,4 +17,9 @@
         parent="menu_product_lost_finder_root"
         action="action_product_lost_finder"
         sequence="10"/>
+
+    <record id="action_lost_sale_detail_report" model="ir.actions.client">
+        <field name="name">Detailed Report</field>
+        <field name="tag">product_lost_finder.detail_report</field>
+    </record>
 </odoo>

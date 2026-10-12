@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="module_category_lost_finder" model="ir.module.category">
-        <field name="name">Lost Products</field>
+        <field name="name">Lost Sales</field>
         <field name="sequence">32</field>
     </record>
 
