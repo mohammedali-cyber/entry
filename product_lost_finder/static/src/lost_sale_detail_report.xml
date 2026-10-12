@@ -10,15 +10,12 @@
                         <label for="o_lsd_product">Product</label>
                         <div class="o_lsd_product">
                             <AutoComplete id="'o_lsd_product'"
-                                value="state.productLabel"
+                                value="''"
+                                resetOnSelect="true"
                                 sources="productSources"
                                 onSelect.bind="onProductSelect"
-                                placeholder.translate="Name, number or barcode"
+                                placeholder.translate="Add a product..."
                                 class="'o_lsd_product_input'"/>
-                            <button t-if="state.productLabel" type="button" class="btn btn-link btn-sm o_lsd_product_clear"
-                                title="Clear" aria-label="Clear" t-on-click="clearProduct">
-                                <i class="fa fa-times"/>
-                            </button>
                         </div>
                     </div>
                     <t t-foreach="state.options.attributes" t-as="attribute" t-key="attribute.id">
@@ -77,6 +74,20 @@
                     </t>
                 </div>
 
+                <div t-if="state.productFilters.length" class="o_lsd_chips">
+                    <span class="text-muted small">Products:</span>
+                    <t t-foreach="state.productFilters" t-as="filter" t-key="filter.key">
+                        <span class="badge rounded-pill text-bg-light o_lsd_chip">
+                            <t t-esc="filter.label"/>
+                            <button type="button" class="btn btn-link p-0 ms-1 o_lsd_chip_remove" title="Remove"
+                                aria-label="Remove" t-on-click="() => this.removeProductFilter(filter)">
+                                <i class="fa fa-times"/>
+                            </button>
+                        </span>
+                    </t>
+                    <button type="button" class="btn btn-link btn-sm p-0" t-on-click="clearProducts">Clear all</button>
+                </div>
+
                 <div class="o_lsd_toolbar">
                     <div t-if="state.options.attributes.length" class="d-flex align-items-center gap-2">
                         <label for="o_lsd_columns" class="text-muted text-nowrap">Columns:</label>
@@ -107,7 +118,7 @@
                     No product matches these filters.
                 </div>
                 <div t-elif="report" class="table-responsive o_lsd_table_wrap">
-                    <div t-if="report.row_count > report.rows.length" class="text-muted small mb-2" t-esc="rowsHint"/>
+                    <div class="text-muted small mb-2" t-esc="rowsHint"/>
                     <table class="table table-sm table-bordered align-middle mb-0 o_lsd_table">
                         <thead>
                             <tr>
@@ -158,6 +169,12 @@
                             </tr>
                         </tfoot>
                     </table>
+                    <div t-if="hasMoreRows" class="text-center my-3">
+                        <button type="button" class="btn btn-secondary" t-att-disabled="state.loadingMore" t-on-click="loadMore">
+                            <i t-if="state.loadingMore" class="fa fa-circle-o-notch fa-spin me-1"/>
+                            Show more
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

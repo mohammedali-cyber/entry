@@ -288,6 +288,19 @@ class TestLostSaleDetailReport(TransactionCase):
         self.assertEqual(self._matrix(report), {'PLF Detail Sandal': {'WHITE': (0, 2, True)}})
         self.assertFalse(self._report(self.manager, product_term='PLF nothing')['rows'])
 
+    def test_several_products(self):
+        report = self._report(self.manager, product_term=False,
+                              products=[{'template_id': self.shoe.id}, {'term': 'Boots'}])
+        self.assertEqual(set(self._matrix(report)), {'PLF Detail Shoe', 'PLF Detail Boots'})
+        self.assertEqual(report['lost'], 6, "Only the lost sales of the searched products")
+
+    def test_pages(self):
+        first = self._report(self.manager, limit=2)
+        self.assertEqual((len(first['rows']), first['row_count']), (2, 3))
+        self.assertEqual(first['stock'], 7, "Totals cover every row, not only the page")
+        second = self._report(self.manager, limit=2, offset=2)
+        self.assertEqual([r['label'] for r in second['rows']], ['PLF Detail Boots'])
+
     def test_branch_and_period_filters(self):
         report = self._report(self.manager, warehouse_id=self.wh_branch.id)
         self.assertEqual(self._matrix(report), {

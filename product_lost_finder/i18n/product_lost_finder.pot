@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-12 11:29+0000\n"
-"PO-Revision-Date: 2026-10-12 11:29+0000\n"
+"POT-Creation-Date: 2026-10-12 13:44+0000\n"
+"PO-Revision-Date: 2026-10-12 13:44+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -58,6 +58,12 @@ msgstr ""
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
 msgid "= lost sales recorded in the period"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Add a product..."
 msgstr ""
 
 #. module: product_lost_finder
@@ -159,11 +165,6 @@ msgstr ""
 #. module: product_lost_finder
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
-msgid "Clear"
-msgstr ""
-
-#. module: product_lost_finder
-#. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
 msgid "Clear all"
 msgstr ""
@@ -377,12 +378,6 @@ msgid "My branch:"
 msgstr ""
 
 #. module: product_lost_finder
-#. odoo-javascript
-#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
-msgid "Name, number or barcode"
-msgstr ""
-
-#. module: product_lost_finder
 #: model_terms:ir.actions.act_window,help:product_lost_finder.action_product_lost_sale
 msgid "No lost sale recorded yet"
 msgstr ""
@@ -469,6 +464,12 @@ msgid "Product number, name or barcode"
 msgstr ""
 
 #. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Products:"
+msgstr ""
+
+#. module: product_lost_finder
 #. odoo-python
 #: code:addons/product_lost_finder/models/product_lost_sale.py:0
 #: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__quantity
@@ -490,6 +491,7 @@ msgstr ""
 
 #. module: product_lost_finder
 #. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
 msgid "Remove"
 msgstr ""
@@ -576,10 +578,14 @@ msgstr ""
 
 #. module: product_lost_finder
 #. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Show more"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
 #: code:addons/product_lost_finder/static/src/lost_sale_detail_report.js:0
-msgid ""
-"Showing the first %(count)s of %(total)s products, refine the filters to see"
-" the others."
+msgid "Showing %(count)s of %(total)s products"
 msgstr ""
 
 #. module: product_lost_finder

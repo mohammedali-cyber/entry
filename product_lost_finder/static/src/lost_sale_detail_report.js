@@ -11,6 +11,7 @@ import { formatFloat } from "@web/core/utils/numbers";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 
 const { DateTime } = luxon;
+const PAGE_SIZE = 50;
 
 export class LostSaleDetailReport extends Component {
     static template = "product_lost_finder.DetailReport";
@@ -29,9 +30,7 @@ export class LostSaleDetailReport extends Component {
         ];
         this.state = useState({
             options: null,
-            templateId: 0,
-            productTerm: "",
-            productLabel: "",
+            productFilters: [],
             valueByAttribute: {},
             warehouseId: 0,
             columnAttributeId: 0,
@@ -41,8 +40,10 @@ export class LostSaleDetailReport extends Component {
             dateTo: "",
             report: null,
             loading: false,
+            loadingMore: false,
         });
         this.loadSequence = 0;
+        this.nextFilterKey = 1;
 
         onWillStart(async () => {
             const options = await this.orm.call("product.lost.sale", "get_detail_options", []);
@@ -55,8 +56,9 @@ export class LostSaleDetailReport extends Component {
     get filters() {
         const range = this.dateRange;
         return {
-            template_id: this.state.templateId || false,
-            product_term: this.state.templateId ? false : this.state.productTerm || false,
+            products: this.state.productFilters.map((f) =>
+                f.templateId ? { template_id: f.templateId } : { term: f.term }
+            ),
             value_ids: Object.values(this.state.valueByAttribute).filter((id) => id),
             warehouse_id: this.state.warehouseId || false,
             column_attribute_id: this.state.columnAttributeId || false,
@@ -93,10 +95,14 @@ export class LostSaleDetailReport extends Component {
     }
 
     get rowsHint() {
-        return _t("Showing the first %(count)s of %(total)s products, refine the filters to see the others.", {
+        return _t("Showing %(count)s of %(total)s products", {
             count: this.state.report.rows.length,
             total: this.state.report.row_count,
         });
+    }
+
+    get hasMoreRows() {
+        return this.state.report && this.state.report.rows.length < this.state.report.row_count;
     }
 
     formatStock(qty) {
@@ -115,7 +121,9 @@ export class LostSaleDetailReport extends Component {
         const sequence = ++this.loadSequence;
         this.state.loading = true;
         try {
-            const report = await this.orm.call("product.lost.sale", "get_detail_report", [this.filters]);
+            const report = await this.orm.call("product.lost.sale", "get_detail_report", [
+                { ...this.filters, offset: 0, limit: PAGE_SIZE },
+            ]);
             if (sequence === this.loadSequence) {
                 this.state.report = report;
             }
@@ -123,6 +131,22 @@ export class LostSaleDetailReport extends Component {
             if (sequence === this.loadSequence) {
                 this.state.loading = false;
             }
+        }
+    }
+
+    async loadMore() {
+        const sequence = this.loadSequence;
+        this.state.loadingMore = true;
+        try {
+            const page = await this.orm.call("product.lost.sale", "get_detail_report", [
+                { ...this.filters, offset: this.state.report.rows.length, limit: PAGE_SIZE },
+            ]);
+            // Drop the page if the filters changed meanwhile.
+            if (sequence === this.loadSequence) {
+                this.state.report.rows.push(...page.rows);
+            }
+        } finally {
+            this.state.loadingMore = false;
         }
     }
 
@@ -146,16 +170,27 @@ export class LostSaleDetailReport extends Component {
     }
 
     onProductSelect(option) {
-        Object.assign(this.state, {
-            templateId: option.templateId || 0,
-            productTerm: option.term || "",
-            productLabel: option.templateId ? option.label : option.term,
-        });
+        const exists = this.state.productFilters.some((f) =>
+            option.templateId ? f.templateId === option.templateId : !f.templateId && f.term === option.term
+        );
+        if (!exists) {
+            this.state.productFilters.push({
+                key: this.nextFilterKey++,
+                templateId: option.templateId || 0,
+                term: option.term || "",
+                label: option.templateId ? option.label : `"${option.term}"`,
+            });
+            this.loadReport();
+        }
+    }
+
+    removeProductFilter(filter) {
+        this.state.productFilters = this.state.productFilters.filter((f) => f.key !== filter.key);
         this.loadReport();
     }
 
-    clearProduct() {
-        Object.assign(this.state, { templateId: 0, productTerm: "", productLabel: "" });
+    clearProducts() {
+        this.state.productFilters = [];
         this.loadReport();
     }
 
@@ -166,9 +201,7 @@ export class LostSaleDetailReport extends Component {
 
     resetFilters() {
         Object.assign(this.state, {
-            templateId: 0,
-            productTerm: "",
-            productLabel: "",
+            productFilters: [],
             valueByAttribute: {},
             warehouseId: 0,
             period: "this_month",

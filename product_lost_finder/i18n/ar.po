@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-12 11:29+0000\n"
-"PO-Revision-Date: 2026-10-12 11:29+0000\n"
+"POT-Creation-Date: 2026-10-12 13:44+0000\n"
+"PO-Revision-Date: 2026-10-12 13:44+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ar\n"
@@ -63,6 +63,12 @@ msgstr "(فرعي)"
 #: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
 msgid "= lost sales recorded in the period"
 msgstr "= مبيعات ضائعة مسجلة في الفترة"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Add a product..."
+msgstr "أضف منتجًا..."
 
 #. module: product_lost_finder
 #. odoo-javascript
@@ -165,11 +171,6 @@ msgstr "إلغاء"
 #. module: product_lost_finder
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
-msgid "Clear"
-msgstr "مسح"
-
-#. module: product_lost_finder
-#. odoo-javascript
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
 msgid "Clear all"
 msgstr "مسح الكل"
@@ -385,12 +386,6 @@ msgid "My branch:"
 msgstr "فرعي:"
 
 #. module: product_lost_finder
-#. odoo-javascript
-#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
-msgid "Name, number or barcode"
-msgstr "الاسم أو الرقم أو الباركود"
-
-#. module: product_lost_finder
 #: model_terms:ir.actions.act_window,help:product_lost_finder.action_product_lost_sale
 msgid "No lost sale recorded yet"
 msgstr "لم تُسجَّل أي بيعة ضائعة بعد"
@@ -477,6 +472,12 @@ msgid "Product number, name or barcode"
 msgstr "رقم المنتج أو اسمه أو الباركود"
 
 #. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Products:"
+msgstr "المنتجات:"
+
+#. module: product_lost_finder
 #. odoo-python
 #: code:addons/product_lost_finder/models/product_lost_sale.py:0
 #: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__quantity
@@ -499,6 +500,7 @@ msgstr "تسجيل بيعة ضائعة"
 
 #. module: product_lost_finder
 #. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
 #: code:addons/product_lost_finder/static/src/product_lost_finder.xml:0
 msgid "Remove"
 msgstr "إزالة"
@@ -585,12 +587,15 @@ msgstr "المنتجات المختارة"
 
 #. module: product_lost_finder
 #. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Show more"
+msgstr "عرض المزيد"
+
+#. module: product_lost_finder
+#. odoo-javascript
 #: code:addons/product_lost_finder/static/src/lost_sale_detail_report.js:0
-msgid ""
-"Showing the first %(count)s of %(total)s products, refine the filters to see"
-" the others."
-msgstr ""
-"يتم عرض أول %(count)s من أصل %(total)s منتج، حدّد الاختيارات لرؤية الباقي."
+msgid "Showing %(count)s of %(total)s products"
+msgstr "يتم عرض %(count)s من أصل %(total)s منتج"
 
 #. module: product_lost_finder
 #. odoo-javascript

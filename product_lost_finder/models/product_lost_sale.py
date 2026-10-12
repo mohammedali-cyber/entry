@@ -5,6 +5,7 @@ import pytz
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
+from odoo.osv import expression
 from odoo.tools import float_compare
 from odoo.tools.misc import xlsxwriter
 
@@ -74,9 +75,6 @@ class ProductLostSale(models.Model):
     # Detailed report: lost quantities by product / attribute values
     # ------------------------------------------------------------------
 
-    def _detail_attribute_values(self, product):
-        return product.product_template_attribute_value_ids.product_attribute_value_id
-
     @api.model
     def get_detail_options(self):
         """Choices of the detailed report filters: the variant attributes (color, size...)
@@ -109,11 +107,9 @@ class ProductLostSale(models.Model):
     def _detail_domain(self, filters):
         domain = []
         Finder = self.env['product.lost.finder']
-        if filters.get('template_id'):
-            domain.append(('product_tmpl_id', '=', filters['template_id']))
-        elif (filters.get('product_term') or '').strip():
-            # Every product whose name, internal reference or barcode contains the text.
-            domain.append(('product_id', 'any', Finder._product_domain(filters['product_term'].strip())))
+        product_domain = self._detail_product_domain(filters)
+        if product_domain:
+            domain.append(('product_id', 'any', product_domain))
         for value_id in filters.get('value_ids') or []:
             domain.append(('product_id.product_template_attribute_value_ids.product_attribute_value_id', '=', value_id))
         if not Finder._is_manager():
@@ -129,16 +125,32 @@ class ProductLostSale(models.Model):
                 domain.append(('date', operator, local_start.astimezone(pytz.utc).replace(tzinfo=None)))
         return domain
 
-    _DETAIL_ROW_LIMIT = 300
+    _DETAIL_PAGE_SIZE = 50
+
+    def _detail_product_items(self, filters):
+        """Products searched in the report: [{'template_id': id} or {'term': text}]."""
+        items = list(filters.get('products') or [])
+        if filters.get('template_id'):
+            items.append({'template_id': filters['template_id']})
+        elif (filters.get('product_term') or '').strip():
+            items.append({'term': filters['product_term']})
+        return items
+
+    def _detail_product_domain(self, filters):
+        """product.product domain matching ANY of the searched products (empty = all)."""
+        Finder = self.env['product.lost.finder']
+        domains = []
+        for item in self._detail_product_items(filters):
+            if item.get('template_id'):
+                domains.append([('product_tmpl_id', '=', int(item['template_id']))])
+            elif (item.get('term') or '').strip():
+                # Every product whose name, internal reference or barcode contains the text.
+                domains.append(Finder._product_domain(item['term'].strip()))
+        return expression.OR(domains) if domains else []
 
     def _detail_products(self, filters):
         """Storable products of the inventory matching the product / attribute filters."""
-        Finder = self.env['product.lost.finder']
-        domain = [('is_storable', '=', True)]
-        if filters.get('template_id'):
-            domain.append(('product_tmpl_id', '=', filters['template_id']))
-        elif (filters.get('product_term') or '').strip():
-            domain += Finder._product_domain(filters['product_term'].strip())
+        domain = [('is_storable', '=', True)] + self._detail_product_domain(filters)
         for value_id in filters.get('value_ids') or []:
             domain.append(('product_template_attribute_value_ids.product_attribute_value_id', '=', value_id))
         return self.env['product.product'].search(domain)
@@ -150,6 +162,20 @@ class ProductLostSale(models.Model):
             return Finder._allowed_warehouses().filtered(lambda w: w.id == filters.get('warehouse_id'))
         return Finder._get_branch(False)
 
+    def _detail_stock(self, products, warehouse):
+        """{product id: On Hand quantity} with one grouped query on the quants (the same
+        locations and figure as qty_available, without computing it product by product)."""
+        Product = self.env['product.product']
+        if warehouse:
+            Product = Product.with_context(warehouse_id=warehouse.id)
+        quant_domain = Product._get_domain_locations()[0]
+        groups = self.env['stock.quant']._read_group(
+            expression.AND([quant_domain, [('product_id', 'in', products.ids)]]),
+            ['product_id'], ['quantity:sum'])
+        stock = dict.fromkeys(products.ids, 0.0)
+        stock.update({product.id: quantity for product, quantity in groups})
+        return stock
+
     @api.model
     def get_detail_report(self, filters):
         """Every storable product (lost or not) as a matrix: rows are the products, columns
@@ -159,18 +185,28 @@ class ProductLostSale(models.Model):
         self.env['product.lost.finder']._check_user_access()
         filters = filters or {}
         products = self._detail_products(filters)
-        warehouse = self._detail_stock_warehouse(filters)
-        stock_products = products.with_context(warehouse_id=warehouse.id) if warehouse else products
-        stock = dict(zip(products.ids, stock_products.mapped('qty_available')))
+        stock = self._detail_stock(products, self._detail_stock_warehouse(filters))
         lost = {product.id: (quantity, amount) for product, quantity, amount in self._read_group(
             self._detail_domain(filters) + [('product_id', 'in', products.ids)],
             ['product_id'], ['quantity:sum', 'amount:sum'])}
         column_attribute = self.env['product.attribute'].browse(filters.get('column_attribute_id')).exists()
 
+        # Column value of every variant, read in one go from the attribute side (much faster
+        # than reading the attribute values of each variant one by one).
+        column_value_by_product = {}
+        if column_attribute:
+            ptavs = self.env['product.template.attribute.value'].search([
+                ('attribute_id', '=', column_attribute.id),
+                ('product_tmpl_id', 'in', products.product_tmpl_id.ids),
+            ])
+            for ptav in ptavs:
+                for product_id in ptav.ptav_product_variant_ids.ids:
+                    column_value_by_product[product_id] = ptav.product_attribute_value_id
+        no_value = self.env['product.attribute.value']
+
         columns, rows = {}, {}
         for product in products:
-            column_value = self._detail_attribute_values(product).filtered(
-                lambda v: v.attribute_id == column_attribute)[:1]
+            column_value = column_value_by_product.get(product.id, no_value)
             key = str(column_value.id or 0)
             columns.setdefault(key, column_value)
             template = product.product_tmpl_id
@@ -209,9 +245,13 @@ class ProductLostSale(models.Model):
                 totals = column_totals.setdefault(key, {'stock': 0.0, 'lost': 0.0})
                 totals['stock'] += cell['stock']
                 totals['lost'] += cell['lost']
+        offset = int(filters.get('offset') or 0)
+        limit = filters.get('limit', self._DETAIL_PAGE_SIZE)
+        page = sorted_rows[offset:offset + limit] if limit else sorted_rows[offset:]
         return {
             'columns': [{'key': key, 'name': value.name or no_value_label} for key, value in ordered_columns],
-            'rows': sorted_rows[:self._DETAIL_ROW_LIMIT],
+            'rows': page,
+            'offset': offset,
             'row_count': len(sorted_rows),
             'column_totals': column_totals,
             'stock': sum(r['stock'] for r in sorted_rows),
@@ -222,8 +262,9 @@ class ProductLostSale(models.Model):
 
     @api.model
     def export_detail_xlsx(self, filters):
-        """Excel file of the detailed report: returns (file name, content)."""
-        report = self.get_detail_report(filters)
+        """Excel file of the detailed report (every row, not only the page shown):
+        returns (file name, content)."""
+        report = self.get_detail_report(dict(filters, offset=0, limit=False))
         output = io.BytesIO()
         workbook = xlsxwriter.Workbook(output, {'in_memory': True})
         sheet = workbook.add_worksheet(_("Detailed Report"))
@@ -293,10 +334,11 @@ class ProductLostSale(models.Model):
 
     def _detail_filters_text(self, filters):
         parts = []
-        if filters.get('template_id'):
-            parts.append(self.env['product.template'].browse(filters['template_id']).name)
-        elif (filters.get('product_term') or '').strip():
-            parts.append('"%s"' % filters['product_term'].strip())
+        for item in self._detail_product_items(filters):
+            if item.get('template_id'):
+                parts.append(self.env['product.template'].browse(int(item['template_id'])).name)
+            elif (item.get('term') or '').strip():
+                parts.append('"%s"' % item['term'].strip())
         parts += self.env['product.attribute.value'].browse(filters.get('value_ids') or []).mapped(
             lambda v: '%s: %s' % (v.attribute_id.name, v.name))
         warehouse_id = filters.get('warehouse_id') if self.env['product.lost.finder']._is_manager() \

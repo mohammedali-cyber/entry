@@ -279,19 +279,9 @@
         height: $input-height-sm;
         font-size: $input-font-size-sm;
         padding: $input-padding-y-sm $input-padding-x-sm;
-        padding-inline-end: 2rem;
         border: 1px solid $border-color;
         border-radius: $border-radius;
         background-color: $o-view-background-color;
-    }
-
-    .o_lsd_product_clear {
-        position: absolute;
-        top: 50%;
-        inset-inline-end: 4px;
-        transform: translateY(-50%);
-        padding: 0 4px;
-        color: $text-muted;
     }
 }
 
@@ -344,6 +334,30 @@
                 color: $danger;
                 font-weight: 700;
             }
+        }
+    }
+}
+
+.o_lost_sale_detail {
+    .o_lsd_chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+    }
+
+    .o_lsd_chip {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid $border-color;
+        font-size: 0.85rem;
+        font-weight: 500;
+
+        .o_lsd_chip_remove {
+            color: $text-muted;
+            font-size: 0.75rem;
+            line-height: 1;
         }
     }
 }
