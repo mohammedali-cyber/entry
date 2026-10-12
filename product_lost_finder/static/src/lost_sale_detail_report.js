@@ -36,6 +36,7 @@ export class LostSaleDetailReport extends Component {
             warehouseId: 0,
             columnAttributeId: 0,
             period: "this_month",
+            status: "all",
             dateFrom: "",
             dateTo: "",
             report: null,
@@ -59,6 +60,7 @@ export class LostSaleDetailReport extends Component {
             value_ids: Object.values(this.state.valueByAttribute).filter((id) => id),
             warehouse_id: this.state.warehouseId || false,
             column_attribute_id: this.state.columnAttributeId || false,
+            status: this.state.status,
             date_from: range.from,
             date_to: range.to,
         };
@@ -88,6 +90,17 @@ export class LostSaleDetailReport extends Component {
     get branchLabel() {
         const warehouses = this.state.options?.warehouses || [];
         return warehouses.length ? warehouses[0].name : "";
+    }
+
+    get rowsHint() {
+        return _t("Showing the first %(count)s of %(total)s products, refine the filters to see the others.", {
+            count: this.state.report.rows.length,
+            total: this.state.report.row_count,
+        });
+    }
+
+    formatStock(qty) {
+        return formatFloat(qty, { trailingZeros: false });
     }
 
     formatQty(qty) {
@@ -159,6 +172,7 @@ export class LostSaleDetailReport extends Component {
             valueByAttribute: {},
             warehouseId: 0,
             period: "this_month",
+            status: "all",
             dateFrom: "",
             dateTo: "",
         });

@@ -219,6 +219,11 @@ class TestLostSaleDetailReport(TransactionCase):
         cls.shoe_s39 = variant(cls.shoe, cls.silver, cls.s39)
         cls.sandal_w38 = variant(cls.sandal, cls.white, cls.s38)
 
+        cls.boots = template('PLF Detail Boots', cls.silver, cls.s38)
+        Quant = cls.env['stock.quant']
+        Quant._update_available_quantity(cls.shoe_s39, cls.wh_main.lot_stock_id, 3)
+        Quant._update_available_quantity(cls.boots.product_variant_ids, cls.wh_branch.lot_stock_id, 4)
+
         cls.manager = new_test_user(cls.env, login='plf_detail_manager',
                                     groups='product_lost_finder.group_lost_finder_manager', tz='UTC')
         cls.employee = new_test_user(cls.env, login='plf_detail_employee', groups='stock.group_stock_user', tz='UTC')
@@ -236,11 +241,14 @@ class TestLostSaleDetailReport(TransactionCase):
 
     def _report(self, user, **filters):
         filters.setdefault('column_attribute_id', self.color.id)
+        filters.setdefault('product_term', 'PLF Detail')
         return self.env['product.lost.sale'].with_user(user).get_detail_report(filters)
 
     def _matrix(self, report):
+        """{product: {column: (stock, requested, is_lost)}}"""
         names = {c['key']: c['name'] for c in report['columns']}
-        return {row['label']: {names[k]: q for k, q in row['cells'].items()} for row in report['rows']}
+        return {row['label']: {names[k]: (c['stock'], c['lost'], c['is_lost']) for k, c in row['cells'].items()}
+                for row in report['rows']}
 
     def test_options(self):
         options = self.env['product.lost.sale'].with_user(self.manager).get_detail_options()
@@ -249,57 +257,63 @@ class TestLostSaleDetailReport(TransactionCase):
         self.assertEqual(attributes['PLF size'], ['38', '39'])
         self.assertEqual(options['column_attribute_id'], self.color.id, "Color attribute is the default column")
 
-    def test_options_cover_inventory_without_lost_sales(self):
-        boots = self.env['product.template'].create({
-            'name': 'PLF Detail Boots', 'is_storable': True,
-            'attribute_line_ids': [(0, 0, {'attribute_id': self.color.id, 'value_ids': [(6, 0, self.silver.ids)]})],
+    def test_all_products_with_stock_and_lost_sales(self):
+        report = self._report(self.manager)
+        self.assertEqual(self._matrix(report), {
+            'PLF Detail Shoe': {'WHITE': (0, 5, True), 'SILVER': (3, 1, False)},
+            'PLF Detail Sandal': {'WHITE': (0, 2, True)},
+            'PLF Detail Boots': {'SILVER': (4, 0, False)},
         })
-        black = self.env['product.attribute.value'].create({'name': 'PLF BLACK', 'attribute_id': self.color.id})
-        boots.attribute_line_ids.value_ids |= black
-        options = self.env['product.lost.sale'].with_user(self.employee).get_detail_options()
-        colors = next(a for a in options['attributes'] if a['id'] == self.color.id)
-        self.assertIn('PLF BLACK', [v['name'] for v in colors['values']],
-                      "Values of products without lost sales are offered too")
-        found = self.env['product.lost.finder'].with_user(self.employee).search_templates('PLF Detail Boots')
-        self.assertEqual([t['id'] for t in found['templates']], [boots.id], "Any inventory product can be searched")
+        self.assertEqual([r['label'] for r in report['rows']],
+                         ['PLF Detail Shoe', 'PLF Detail Sandal', 'PLF Detail Boots'], "Most requested first")
+        self.assertEqual((report['stock'], report['lost'], report['amount']), (7, 8, 80))
+        boots = report['rows'][-1]
+        self.assertEqual((boots['lost'], boots['amount']), (0, 0), "Products without lost sales are listed too")
 
-    def test_product_text_search(self):
-        report = self._report(self.manager, product_term='Sandal')
-        self.assertEqual(self._matrix(report), {'PLF Detail Sandal': {'WHITE': 2}})
-        report = self._report(self.manager, product_term='PLF Detail')
-        self.assertEqual(set(self._matrix(report)), {'PLF Detail Shoe', 'PLF Detail Sandal'})
-        self.assertFalse(self._report(self.manager, product_term='PLF nothing')['rows'])
+    def test_status_filter(self):
+        lost = self._report(self.manager, status='lost')
+        self.assertEqual({r['label'] for r in lost['rows']}, {'PLF Detail Shoe', 'PLF Detail Sandal'})
+        available = self._report(self.manager, status='available')
+        self.assertEqual([r['label'] for r in available['rows']], ['PLF Detail Boots'])
 
-    def test_product_filter_shows_colors_without_sizes(self):
+    def test_product_and_attribute_filters(self):
         report = self._report(self.manager, template_id=self.shoe.id)
-        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'WHITE': 5, 'SILVER': 1}})
-        self.assertEqual(report['total'], 6)
-        self.assertEqual(report['amount'], 60)
-        self.assertEqual([c['name'] for c in report['columns']], ['WHITE', 'SILVER'])
-
-    def test_size_only_narrows_when_chosen(self):
-        report = self._report(self.manager, template_id=self.shoe.id, value_ids=[self.s39.id])
-        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'SILVER': 1}})
-
-    def test_color_filter_shows_all_products_with_that_color(self):
+        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'WHITE': (0, 5, True), 'SILVER': (3, 1, False)}})
         report = self._report(self.manager, value_ids=[self.white.id])
-        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'WHITE': 5}, 'PLF Detail Sandal': {'WHITE': 2}})
-        report = self._report(self.manager, value_ids=[self.white.id, self.s39.id])
-        self.assertFalse(report['rows'])
+        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'WHITE': (0, 5, True)},
+                                                'PLF Detail Sandal': {'WHITE': (0, 2, True)}})
+        report = self._report(self.manager, template_id=self.shoe.id, value_ids=[self.s39.id])
+        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'WHITE': (0, 0, True), 'SILVER': (3, 1, False)}})
+        report = self._report(self.manager, product_term='Sandal')
+        self.assertEqual(self._matrix(report), {'PLF Detail Sandal': {'WHITE': (0, 2, True)}})
+        self.assertFalse(self._report(self.manager, product_term='PLF nothing')['rows'])
 
     def test_branch_and_period_filters(self):
         report = self._report(self.manager, warehouse_id=self.wh_branch.id)
-        self.assertEqual(self._matrix(report), {'PLF Detail Sandal': {'WHITE': 2}})
+        self.assertEqual(self._matrix(report), {
+            'PLF Detail Shoe': {'WHITE': (0, 0, True), 'SILVER': (0, 0, True)},
+            'PLF Detail Sandal': {'WHITE': (0, 2, True)},
+            'PLF Detail Boots': {'SILVER': (4, 0, False)},
+        })
         report = self._report(self.manager, date_from='2026-10-01', date_to='2026-10-05')
-        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'WHITE': 5}})
+        self.assertEqual(report['lost'], 5, "Only the lost sales of the period are counted")
+        self.assertEqual(report['stock'], 7, "Stock is the current quantity whatever the period")
 
     def test_employee_sees_own_branch_only(self):
         report = self._report(self.employee, warehouse_id=self.wh_branch.id)
-        self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'WHITE': 5, 'SILVER': 1}})
+        matrix = self._matrix(report)
+        self.assertEqual(matrix['PLF Detail Shoe'], {'WHITE': (0, 5, True), 'SILVER': (3, 1, False)})
+        self.assertEqual(matrix['PLF Detail Sandal'], {'WHITE': (0, 0, True)}, "Other branch lost sales are hidden")
+        self.assertEqual(matrix['PLF Detail Boots'], {'SILVER': (0, 0, True)}, "Stock of the own branch only")
         options = self.env['product.lost.sale'].with_user(self.employee).get_detail_options()
         self.assertEqual([w['id'] for w in options['warehouses']], [self.wh_main.id])
-        self.assertFalse(self._report(self.employee, product_term='Sandal')['rows'],
-                         "The sandal lost sale belongs to another branch")
+
+    def test_options_cover_inventory(self):
+        black = self.env['product.attribute.value'].create({'name': 'PLF BLACK', 'attribute_id': self.color.id})
+        self.boots.attribute_line_ids.filtered(lambda line: line.attribute_id == self.color).value_ids |= black
+        options = self.env['product.lost.sale'].with_user(self.employee).get_detail_options()
+        colors = next(a for a in options['attributes'] if a['id'] == self.color.id)
+        self.assertIn('PLF BLACK', [v['name'] for v in colors['values']])
 
     def test_export_detail_xlsx(self):
         LostSale = self.env['product.lost.sale'].with_user(self.manager).with_context(lang='en_US')
@@ -309,7 +323,8 @@ class TestLostSaleDetailReport(TransactionCase):
         if not openpyxl:
             return
         sheet = openpyxl.load_workbook(io.BytesIO(content)).active
-        rows = list(sheet.iter_rows(min_row=4, values_only=True))
-        self.assertEqual(rows[0], ('Product', 'WHITE', 'SILVER', 'Total', 'Lost Amount'))
-        self.assertEqual(rows[1], ('PLF Detail Shoe', 5, 1, 6, 60))
-        self.assertEqual(rows[-1], ('Total', 5, 1, 6, 60))
+        rows = list(sheet.iter_rows(min_row=5, values_only=True))
+        self.assertEqual(rows[0], ('Product', 'WHITE', 'WHITE requested', 'SILVER', 'SILVER requested',
+                                   'Stock', 'Requested', 'Lost Amount'))
+        self.assertEqual(rows[1], ('PLF Detail Shoe', 0, 5, 3, 1, 3, 6, 60))
+        self.assertEqual(rows[-1], ('Total', 0, 5, 3, 1, 3, 6, 60))

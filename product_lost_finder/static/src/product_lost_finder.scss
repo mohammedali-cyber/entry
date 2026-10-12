@@ -294,3 +294,56 @@
         color: $text-muted;
     }
 }
+
+.o_lost_sale_detail {
+    .o_lsd_legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        margin-bottom: 8px;
+    }
+
+    .o_lsd_dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin-inline-end: 5px;
+        border-radius: 50%;
+
+        &.o_lsd_dot_ok {
+            background-color: $success;
+        }
+
+        &.o_lsd_dot_lost {
+            background-color: $danger;
+        }
+    }
+
+    .o_lsd_requested {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: $danger;
+        white-space: nowrap;
+    }
+
+    .o_lsd_legend .o_lsd_requested {
+        display: inline;
+    }
+
+    .o_lsd_table {
+        .o_lsd_cell_ok .o_lsd_stock {
+            color: $success;
+            font-weight: 700;
+        }
+
+        .o_lsd_cell_lost {
+            background-color: rgba($danger, 0.08);
+
+            .o_lsd_stock {
+                color: $danger;
+                font-weight: 700;
+            }
+        }
+    }
+}

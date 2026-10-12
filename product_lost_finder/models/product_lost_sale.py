@@ -129,40 +129,93 @@ class ProductLostSale(models.Model):
                 domain.append(('date', operator, local_start.astimezone(pytz.utc).replace(tzinfo=None)))
         return domain
 
+    _DETAIL_ROW_LIMIT = 300
+
+    def _detail_products(self, filters):
+        """Storable products of the inventory matching the product / attribute filters."""
+        Finder = self.env['product.lost.finder']
+        domain = [('is_storable', '=', True)]
+        if filters.get('template_id'):
+            domain.append(('product_tmpl_id', '=', filters['template_id']))
+        elif (filters.get('product_term') or '').strip():
+            domain += Finder._product_domain(filters['product_term'].strip())
+        for value_id in filters.get('value_ids') or []:
+            domain.append(('product_template_attribute_value_ids.product_attribute_value_id', '=', value_id))
+        return self.env['product.product'].search(domain)
+
+    def _detail_stock_warehouse(self, filters):
+        """Warehouse whose On Hand quantity is shown; empty for managers on all branches."""
+        Finder = self.env['product.lost.finder']
+        if Finder._is_manager():
+            return Finder._allowed_warehouses().filtered(lambda w: w.id == filters.get('warehouse_id'))
+        return Finder._get_branch(False)
+
     @api.model
     def get_detail_report(self, filters):
-        """Matrix of lost quantities: rows are the products, columns the values of one
-        attribute (color by default). Other attributes (e.g. size) are not broken down:
-        they only narrow the report when a value is chosen in the filters."""
+        """Every storable product (lost or not) as a matrix: rows are the products, columns
+        the values of one attribute (color by default). Each cell holds the current On Hand
+        quantity (zero or less = lost) and the lost sales recorded in the period. Other
+        attributes (e.g. size) are not broken down: choosing a value only narrows the report."""
         self.env['product.lost.finder']._check_user_access()
         filters = filters or {}
-        groups = self._read_group(self._detail_domain(filters), ['product_id'], ['quantity:sum', 'amount:sum'])
+        products = self._detail_products(filters)
+        warehouse = self._detail_stock_warehouse(filters)
+        stock_products = products.with_context(warehouse_id=warehouse.id) if warehouse else products
+        stock = dict(zip(products.ids, stock_products.mapped('qty_available')))
+        lost = {product.id: (quantity, amount) for product, quantity, amount in self._read_group(
+            self._detail_domain(filters) + [('product_id', 'in', products.ids)],
+            ['product_id'], ['quantity:sum', 'amount:sum'])}
         column_attribute = self.env['product.attribute'].browse(filters.get('column_attribute_id')).exists()
 
         columns, rows = {}, {}
-        for product, quantity, amount in groups:
+        for product in products:
             column_value = self._detail_attribute_values(product).filtered(
                 lambda v: v.attribute_id == column_attribute)[:1]
-            column_key = column_value.id or 0
-            columns.setdefault(column_key, column_value)
+            key = str(column_value.id or 0)
+            columns.setdefault(key, column_value)
             template = product.product_tmpl_id
-            row = rows.setdefault(template.id, {'label': template.name, 'cells': {}, 'total': 0.0, 'amount': 0.0})
-            row['cells'][str(column_key)] = row['cells'].get(str(column_key), 0.0) + quantity
-            row['total'] += quantity
-            row['amount'] += amount
+            row = rows.setdefault(template.id, {
+                'label': template.name, 'cells': {}, 'stock': 0.0, 'lost': 0.0, 'amount': 0.0,
+                'rounding': template.uom_id.rounding,
+            })
+            cell = row['cells'].setdefault(key, {'stock': 0.0, 'lost': 0.0})
+            lost_qty, lost_amount = lost.get(product.id, (0.0, 0.0))
+            cell['stock'] += stock[product.id]
+            cell['lost'] += lost_qty
+            row['stock'] += stock[product.id]
+            row['lost'] += lost_qty
+            row['amount'] += lost_amount
 
-        no_value_label = _("Other") if column_attribute else _("Quantity")
-        ordered_columns = sorted(columns.items(), key=lambda c: (not c[0], c[1].sequence, c[1].id))
-        column_totals = {}
         for row in rows.values():
-            for key, quantity in row['cells'].items():
-                column_totals[key] = column_totals.get(key, 0.0) + quantity
-        sorted_rows = sorted(rows.values(), key=lambda r: (-r['total'], r['label']))
+            rounding = row.pop('rounding')
+            for cell in row['cells'].values():
+                cell['is_lost'] = float_compare(cell['stock'], 0.0, precision_rounding=rounding) <= 0
+            row['lost_count'] = sum(cell['is_lost'] for cell in row['cells'].values())
+        status = filters.get('status') or 'all'
+        if status == 'lost':
+            rows = {k: r for k, r in rows.items() if r['lost_count']}
+        elif status == 'available':
+            rows = {k: r for k, r in rows.items() if not r['lost_count']}
+
+        # Most requested first, then the products with out-of-stock colors, then by name.
+        sorted_rows = sorted(rows.values(), key=lambda r: (-r['lost'], -r['lost_count'], r['label']))
+        used_keys = {key for row in sorted_rows for key in row['cells']}
+        no_value_label = _("Other") if column_attribute else _("Quantity")
+        ordered_columns = sorted(((k, v) for k, v in columns.items() if k in used_keys),
+                                 key=lambda c: (not c[1], c[1].sequence, c[1].id))
+        column_totals = {}
+        for row in sorted_rows:
+            for key, cell in row['cells'].items():
+                totals = column_totals.setdefault(key, {'stock': 0.0, 'lost': 0.0})
+                totals['stock'] += cell['stock']
+                totals['lost'] += cell['lost']
         return {
-            'columns': [{'key': str(key), 'name': value.name or no_value_label} for key, value in ordered_columns],
-            'rows': sorted_rows,
+            'columns': [{'key': key, 'name': value.name or no_value_label} for key, value in ordered_columns],
+            'rows': sorted_rows[:self._DETAIL_ROW_LIMIT],
+            'row_count': len(sorted_rows),
             'column_totals': column_totals,
-            'total': sum(r['total'] for r in sorted_rows),
+            'stock': sum(r['stock'] for r in sorted_rows),
+            'lost': sum(r['lost'] for r in sorted_rows),
             'amount': sum(r['amount'] for r in sorted_rows),
             'currency_id': self.env.company.currency_id.id,
         }
@@ -178,9 +231,13 @@ class ProductLostSale(models.Model):
             sheet.right_to_left()
         title = workbook.add_format({'bold': True, 'font_size': 14})
         info = workbook.add_format({'font_color': '#555555'})
-        head = workbook.add_format({'bold': True, 'bg_color': '#714B67', 'font_color': 'white',
-                                    'border': 1, 'align': 'center', 'valign': 'vcenter'})
+        head = workbook.add_format({'bold': True, 'bg_color': '#714B67', 'font_color': 'white', 'border': 1,
+                                    'align': 'center', 'valign': 'vcenter', 'text_wrap': True})
         label = workbook.add_format({'border': 1, 'bold': True})
+        stock_ok = workbook.add_format({'border': 1, 'align': 'center', 'num_format': '#,##0.##',
+                                        'font_color': '#198754', 'bold': True})
+        stock_lost = workbook.add_format({'border': 1, 'align': 'center', 'num_format': '#,##0.##',
+                                          'font_color': '#DC3545', 'bold': True, 'bg_color': '#FDECEA'})
         qty = workbook.add_format({'border': 1, 'align': 'center', 'num_format': '#,##0.##'})
         total = workbook.add_format({'border': 1, 'align': 'center', 'bold': True, 'bg_color': '#F2F2F2',
                                      'num_format': '#,##0.##'})
@@ -190,25 +247,44 @@ class ProductLostSale(models.Model):
 
         sheet.write(0, 0, _("Lost Sales - Detailed Report"), title)
         sheet.write(1, 0, self._detail_filters_text(filters), info)
-        header_row = 3
-        headers = [_("Product")] + [c['name'] for c in report['columns']] + [_("Total"), _("Lost Amount")]
+        sheet.write(2, 0, _("Color columns = quantity in stock now (red = lost). "
+                            "Requested = lost sales recorded in the period."), info)
+        header_row = 4
+        columns = report['columns']
+        headers = [_("Product")]
+        for column in columns:
+            headers += [column['name'], _("%s requested", column['name'])]
+        headers += [_("Stock"), _("Requested"), _("Lost Amount")]
         sheet.write_row(header_row, 0, headers, head)
+        sheet.set_row(header_row, 30)
+        end = 1 + 2 * len(columns)
+
         row_index = header_row
         for row in report['rows']:
             row_index += 1
             sheet.write(row_index, 0, row['label'], label)
-            for col, column in enumerate(report['columns'], start=1):
-                sheet.write_number(row_index, col, row['cells'].get(column['key'], 0.0), qty)
-            sheet.write_number(row_index, len(report['columns']) + 1, row['total'], total)
-            sheet.write_number(row_index, len(report['columns']) + 2, row['amount'], money)
+            for i, column in enumerate(columns):
+                cell = row['cells'].get(column['key'])
+                if cell:
+                    sheet.write_number(row_index, 1 + 2 * i, cell['stock'], stock_lost if cell['is_lost'] else stock_ok)
+                    sheet.write_number(row_index, 2 + 2 * i, cell['lost'], qty)
+                else:
+                    sheet.write_blank(row_index, 1 + 2 * i, None, qty)
+                    sheet.write_blank(row_index, 2 + 2 * i, None, qty)
+            sheet.write_number(row_index, end, row['stock'], total)
+            sheet.write_number(row_index, end + 1, row['lost'], total)
+            sheet.write_number(row_index, end + 2, row['amount'], money)
         row_index += 1
         sheet.write(row_index, 0, _("Total"), label)
-        for col, column in enumerate(report['columns'], start=1):
-            sheet.write_number(row_index, col, report['column_totals'].get(column['key'], 0.0), total)
-        sheet.write_number(row_index, len(report['columns']) + 1, report['total'], total)
-        sheet.write_number(row_index, len(report['columns']) + 2, report['amount'], money_total)
+        for i, column in enumerate(columns):
+            totals = report['column_totals'].get(column['key'], {'stock': 0.0, 'lost': 0.0})
+            sheet.write_number(row_index, 1 + 2 * i, totals['stock'], total)
+            sheet.write_number(row_index, 2 + 2 * i, totals['lost'], total)
+        sheet.write_number(row_index, end, report['stock'], total)
+        sheet.write_number(row_index, end + 1, report['lost'], total)
+        sheet.write_number(row_index, end + 2, report['amount'], money_total)
         sheet.set_column(0, 0, 40)
-        sheet.set_column(1, len(headers) - 1, 12)
+        sheet.set_column(1, len(headers) - 1, 11)
         sheet.freeze_panes(header_row + 1, 1)
         workbook.close()
         now = fields.Datetime.context_timestamp(self, fields.Datetime.now())
@@ -228,4 +304,7 @@ class ProductLostSale(models.Model):
         parts.append(self.env['stock.warehouse'].browse(warehouse_id).name if warehouse_id else _("All branches"))
         if filters.get('date_from') or filters.get('date_to'):
             parts.append('%s → %s' % (filters.get('date_from') or '…', filters.get('date_to') or '…'))
+        status = {'lost': _("Lost only"), 'available': _("Available only")}.get(filters.get('status'))
+        if status:
+            parts.append(status)
         return '    '.join(parts)

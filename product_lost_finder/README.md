@@ -14,14 +14,17 @@ The technical name stays `product_lost_finder` so that upgrades keep the recorde
 4. **Lost Sales Report** (list, pivot, graph) lists every recorded lost sale.
 5. Variants can be ticked and exported to **Excel** (number, name, variant,
    barcode, sales price, quantity per branch, total, status in the branch).
-6. **Detailed Report**: lost quantities as a matrix. Filters: product (typed:
-   name, number or barcode, with suggestions from the whole inventory; Enter
-   keeps every product containing the text), each attribute (color, size...
-   with the values used by the inventory's products), branch, period. Rows are the products, columns the values of one attribute (color by
-   default, can be changed). Other attributes such as size are not broken down:
-   choosing a size in the filters only narrows the numbers. Choosing a color
-   shows every product having that color. Products without the column attribute
-   are counted under "Other". Exportable to Excel.
+6. **Detailed Report**: every storable product of the inventory (lost or not) as a
+   matrix. Rows are the products, columns the values of one attribute (color by
+   default, can be changed). Each cell shows the current On Hand quantity (green,
+   or red when zero or less = lost) and, below, the lost sales recorded in the
+   period ("Requested"). Filters: product (typed: name, number or barcode, with
+   suggestions; Enter keeps every product containing the text), each attribute
+   (color, size...), branch, period, status (all / lost only / available only).
+   Sizes are not broken down: choosing a size only narrows the numbers. With "All
+   branches" the stock is the sum of every branch. Products without the column
+   attribute are under "Other". At most 300 rows are shown (most requested first).
+   Exportable to Excel.
 
 Read-only for stock: nothing here changes quantities, moves or accounting. Lost
 sales are follow-up records only.

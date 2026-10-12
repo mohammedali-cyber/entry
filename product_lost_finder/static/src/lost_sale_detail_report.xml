@@ -54,6 +54,15 @@
                             </t>
                         </select>
                     </div>
+                    <div class="o_lsd_filter">
+                        <label for="o_lsd_status">Status</label>
+                        <select id="o_lsd_status" class="form-select form-select-sm"
+                            t-model="state.status" t-on-change="loadReport">
+                            <option value="all">All products</option>
+                            <option value="lost">Lost only</option>
+                            <option value="available">Available only</option>
+                        </select>
+                    </div>
                     <t t-if="state.period === 'custom'">
                         <div class="o_lsd_filter">
                             <label for="o_lsd_from">From</label>
@@ -89,10 +98,16 @@
                 </div>
 
                 <t t-set="report" t-value="state.report"/>
+                <div class="o_lsd_legend text-muted small">
+                    <span><span class="o_lsd_dot o_lsd_dot_ok"/>In stock now</span>
+                    <span><span class="o_lsd_dot o_lsd_dot_lost"/>Lost (no stock)</span>
+                    <span><span class="o_lsd_requested">Requested 3</span> = lost sales recorded in the period</span>
+                </div>
                 <div t-if="report and !report.rows.length" class="alert alert-secondary text-center">
-                    No lost sale matches these filters.
+                    No product matches these filters.
                 </div>
                 <div t-elif="report" class="table-responsive o_lsd_table_wrap">
+                    <div t-if="report.row_count > report.rows.length" class="text-muted small mb-2" t-esc="rowsHint"/>
                     <table class="table table-sm table-bordered align-middle mb-0 o_lsd_table">
                         <thead>
                             <tr>
@@ -100,7 +115,8 @@
                                 <t t-foreach="report.columns" t-as="column" t-key="column.key">
                                     <th t-esc="column.name"/>
                                 </t>
-                                <th>Total</th>
+                                <th>Stock</th>
+                                <th>Requested</th>
                                 <th>Lost Amount</th>
                             </tr>
                         </thead>
@@ -109,11 +125,18 @@
                                 <tr>
                                     <td class="o_lsd_label" t-esc="row.label"/>
                                     <t t-foreach="report.columns" t-as="column" t-key="column.key">
-                                        <t t-set="qty" t-value="row.cells[column.key] or 0"/>
-                                        <td t-att-class="qty ? 'o_lsd_qty' : 'o_lsd_empty'"><bdi dir="ltr" t-esc="formatQty(qty)"/></td>
+                                        <t t-set="cell" t-value="row.cells[column.key]"/>
+                                        <td t-if="!cell" class="o_lsd_empty">—</td>
+                                        <td t-else="" t-att-class="cell.is_lost ? 'o_lsd_cell_lost' : 'o_lsd_cell_ok'">
+                                            <bdi dir="ltr" class="o_lsd_stock" t-esc="formatStock(cell.stock)"/>
+                                            <span t-if="cell.lost" class="o_lsd_requested">
+                                                Requested <bdi dir="ltr" t-esc="formatStock(cell.lost)"/>
+                                            </span>
+                                        </td>
                                     </t>
-                                    <td class="fw-bold"><bdi dir="ltr" t-esc="formatQty(row.total)"/></td>
-                                    <td class="text-nowrap" t-esc="formatAmount(row.amount)"/>
+                                    <td class="fw-bold"><bdi dir="ltr" t-esc="formatStock(row.stock)"/></td>
+                                    <td t-att-class="row.lost ? 'o_lsd_qty' : 'o_lsd_empty'"><bdi dir="ltr" t-esc="formatQty(row.lost)"/></td>
+                                    <td class="text-nowrap" t-esc="row.amount ? formatAmount(row.amount) : '—'"/>
                                 </tr>
                             </t>
                         </tbody>
@@ -121,9 +144,16 @@
                             <tr>
                                 <td class="o_lsd_label">Total</td>
                                 <t t-foreach="report.columns" t-as="column" t-key="column.key">
-                                    <td><bdi dir="ltr" t-esc="formatQty(report.column_totals[column.key] or 0)"/></td>
+                                    <t t-set="totals" t-value="report.column_totals[column.key]"/>
+                                    <td>
+                                        <bdi dir="ltr" t-esc="formatStock(totals ? totals.stock : 0)"/>
+                                        <span t-if="totals and totals.lost" class="o_lsd_requested">
+                                            Requested <bdi dir="ltr" t-esc="formatStock(totals.lost)"/>
+                                        </span>
+                                    </td>
                                 </t>
-                                <td><bdi dir="ltr" t-esc="formatQty(report.total)"/></td>
+                                <td><bdi dir="ltr" t-esc="formatStock(report.stock)"/></td>
+                                <td><bdi dir="ltr" t-esc="formatQty(report.lost)"/></td>
                                 <td class="text-nowrap" t-esc="formatAmount(report.amount)"/>
                             </tr>
                         </tfoot>
