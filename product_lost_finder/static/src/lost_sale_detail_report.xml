@@ -8,13 +8,18 @@
                 <div class="o_lsd_filters">
                     <div class="o_lsd_filter">
                         <label for="o_lsd_product">Product</label>
-                        <select id="o_lsd_product" class="form-select form-select-sm"
-                            t-model.number="state.templateId" t-on-change="loadReport">
-                            <option value="0">All</option>
-                            <t t-foreach="state.options.templates" t-as="template" t-key="template.id">
-                                <option t-att-value="template.id" t-esc="template.name"/>
-                            </t>
-                        </select>
+                        <div class="o_lsd_product">
+                            <AutoComplete id="'o_lsd_product'"
+                                value="state.productLabel"
+                                sources="productSources"
+                                onSelect.bind="onProductSelect"
+                                placeholder.translate="Name, number or barcode"
+                                class="'o_lsd_product_input'"/>
+                            <button t-if="state.productLabel" type="button" class="btn btn-link btn-sm o_lsd_product_clear"
+                                title="Clear" aria-label="Clear" t-on-click="clearProduct">
+                                <i class="fa fa-times"/>
+                            </button>
+                        </div>
                     </div>
                     <t t-foreach="state.options.attributes" t-as="attribute" t-key="attribute.id">
                         <div class="o_lsd_filter">

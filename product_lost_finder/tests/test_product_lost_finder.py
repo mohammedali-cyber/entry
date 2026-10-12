@@ -248,9 +248,27 @@ class TestLostSaleDetailReport(TransactionCase):
         self.assertEqual(attributes['PLF color'], ['WHITE', 'SILVER'])
         self.assertEqual(attributes['PLF size'], ['38', '39'])
         self.assertEqual(options['column_attribute_id'], self.color.id, "Color attribute is the default column")
-        names = [t['name'] for t in options['templates']]
-        self.assertIn('PLF Detail Shoe', names)
-        self.assertIn('PLF Detail Sandal', names)
+
+    def test_options_cover_inventory_without_lost_sales(self):
+        boots = self.env['product.template'].create({
+            'name': 'PLF Detail Boots', 'is_storable': True,
+            'attribute_line_ids': [(0, 0, {'attribute_id': self.color.id, 'value_ids': [(6, 0, self.silver.ids)]})],
+        })
+        black = self.env['product.attribute.value'].create({'name': 'PLF BLACK', 'attribute_id': self.color.id})
+        boots.attribute_line_ids.value_ids |= black
+        options = self.env['product.lost.sale'].with_user(self.employee).get_detail_options()
+        colors = next(a for a in options['attributes'] if a['id'] == self.color.id)
+        self.assertIn('PLF BLACK', [v['name'] for v in colors['values']],
+                      "Values of products without lost sales are offered too")
+        found = self.env['product.lost.finder'].with_user(self.employee).search_templates('PLF Detail Boots')
+        self.assertEqual([t['id'] for t in found['templates']], [boots.id], "Any inventory product can be searched")
+
+    def test_product_text_search(self):
+        report = self._report(self.manager, product_term='Sandal')
+        self.assertEqual(self._matrix(report), {'PLF Detail Sandal': {'WHITE': 2}})
+        report = self._report(self.manager, product_term='PLF Detail')
+        self.assertEqual(set(self._matrix(report)), {'PLF Detail Shoe', 'PLF Detail Sandal'})
+        self.assertFalse(self._report(self.manager, product_term='PLF nothing')['rows'])
 
     def test_product_filter_shows_colors_without_sizes(self):
         report = self._report(self.manager, template_id=self.shoe.id)
@@ -280,7 +298,8 @@ class TestLostSaleDetailReport(TransactionCase):
         self.assertEqual(self._matrix(report), {'PLF Detail Shoe': {'WHITE': 5, 'SILVER': 1}})
         options = self.env['product.lost.sale'].with_user(self.employee).get_detail_options()
         self.assertEqual([w['id'] for w in options['warehouses']], [self.wh_main.id])
-        self.assertNotIn('PLF Detail Sandal', [t['name'] for t in options['templates']])
+        self.assertFalse(self._report(self.employee, product_term='Sandal')['rows'],
+                         "The sandal lost sale belongs to another branch")
 
     def test_export_detail_xlsx(self):
         LostSale = self.env['product.lost.sale'].with_user(self.manager).with_context(lang='en_US')

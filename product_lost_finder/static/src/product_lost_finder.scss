@@ -270,3 +270,27 @@
         }
     }
 }
+
+.o_lost_sale_detail .o_lsd_product {
+    position: relative;
+
+    .o_lsd_product_input input {
+        width: 100%;
+        height: $input-height-sm;
+        font-size: $input-font-size-sm;
+        padding: $input-padding-y-sm $input-padding-x-sm;
+        padding-inline-end: 2rem;
+        border: 1px solid $border-color;
+        border-radius: $border-radius;
+        background-color: $o-view-background-color;
+    }
+
+    .o_lsd_product_clear {
+        position: absolute;
+        top: 50%;
+        inset-inline-end: 4px;
+        transform: translateY(-50%);
+        padding: 0 4px;
+        color: $text-muted;
+    }
+}

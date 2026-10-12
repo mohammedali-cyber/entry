@@ -79,12 +79,14 @@ class ProductLostSale(models.Model):
 
     @api.model
     def get_detail_options(self):
-        """Choices of the detailed report filters, built from the visible lost sales."""
+        """Choices of the detailed report filters: the variant attributes (color, size...)
+        used by the storable products of the inventory. Products are searched by text."""
         Finder = self.env['product.lost.finder']
         Finder._check_user_access()
-        products = self.env['product.product'].union(
-            *(product for [product] in self._read_group([], ['product_id'])))
-        values = self._detail_attribute_values(products)
+        values = self.env['product.attribute.value'].search([
+            ('attribute_id.create_variant', '!=', 'no_variant'),
+            ('pav_attribute_line_ids.product_tmpl_id.is_storable', '=', True),
+        ])
         attributes = values.attribute_id.sorted(lambda a: (a.sequence, a.id))
         column_attribute = attributes.filtered(
             lambda a: any(word in a.name.lower() for word in ('color', 'colour', 'لون')))[:1] or attributes[:1]
@@ -95,8 +97,6 @@ class ProductLostSale(models.Model):
         return {
             'is_manager': is_manager,
             'warehouses': [{'id': w.id, 'name': w.name} for w in warehouses],
-            'templates': [{'id': t.id, 'name': t.name}
-                          for t in products.product_tmpl_id.sorted(lambda t: t.name or '')],
             'attributes': [{
                 'id': attribute.id,
                 'name': attribute.name,
@@ -108,11 +108,14 @@ class ProductLostSale(models.Model):
 
     def _detail_domain(self, filters):
         domain = []
+        Finder = self.env['product.lost.finder']
         if filters.get('template_id'):
             domain.append(('product_tmpl_id', '=', filters['template_id']))
+        elif (filters.get('product_term') or '').strip():
+            # Every product whose name, internal reference or barcode contains the text.
+            domain.append(('product_id', 'any', Finder._product_domain(filters['product_term'].strip())))
         for value_id in filters.get('value_ids') or []:
             domain.append(('product_id.product_template_attribute_value_ids.product_attribute_value_id', '=', value_id))
-        Finder = self.env['product.lost.finder']
         if not Finder._is_manager():
             # Record rules already restrict employees to their branch; keep the filter explicit.
             domain.append(('warehouse_id', '=', self.env.user.lost_finder_warehouse_id.id))
@@ -216,6 +219,8 @@ class ProductLostSale(models.Model):
         parts = []
         if filters.get('template_id'):
             parts.append(self.env['product.template'].browse(filters['template_id']).name)
+        elif (filters.get('product_term') or '').strip():
+            parts.append('"%s"' % filters['product_term'].strip())
         parts += self.env['product.attribute.value'].browse(filters.get('value_ids') or []).mapped(
             lambda v: '%s: %s' % (v.attribute_id.name, v.name))
         warehouse_id = filters.get('warehouse_id') if self.env['product.lost.finder']._is_manager() \

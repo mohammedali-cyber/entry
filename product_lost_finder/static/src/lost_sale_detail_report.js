@@ -1,6 +1,7 @@
 /** @odoo-module **/
 
 import { Component, onWillStart, useState } from "@odoo/owl";
+import { AutoComplete } from "@web/core/autocomplete/autocomplete";
 import { _t } from "@web/core/l10n/translation";
 import { formatCurrency } from "@web/core/currency";
 import { download } from "@web/core/network/download";
@@ -13,6 +14,7 @@ const { DateTime } = luxon;
 
 export class LostSaleDetailReport extends Component {
     static template = "product_lost_finder.DetailReport";
+    static components = { AutoComplete };
     static props = { ...standardActionServiceProps };
 
     setup() {
@@ -28,6 +30,8 @@ export class LostSaleDetailReport extends Component {
         this.state = useState({
             options: null,
             templateId: 0,
+            productTerm: "",
+            productLabel: "",
             valueByAttribute: {},
             warehouseId: 0,
             columnAttributeId: 0,
@@ -51,6 +55,7 @@ export class LostSaleDetailReport extends Component {
         const range = this.dateRange;
         return {
             template_id: this.state.templateId || false,
+            product_term: this.state.templateId ? false : this.state.productTerm || false,
             value_ids: Object.values(this.state.valueByAttribute).filter((id) => id),
             warehouse_id: this.state.warehouseId || false,
             column_attribute_id: this.state.columnAttributeId || false,
@@ -108,6 +113,39 @@ export class LostSaleDetailReport extends Component {
         }
     }
 
+    get productSources() {
+        return [{ options: (term) => this.loadProductOptions(term), placeholder: _t("Searching...") }];
+    }
+
+    async loadProductOptions(term) {
+        if (!term) {
+            return [];
+        }
+        const result = await this.orm.call("product.lost.finder", "search_templates", [term]);
+        // First option (selected by Enter): every product containing the typed text.
+        return [
+            { label: _t('All products containing "%s"', term), term },
+            ...result.templates.map((t) => ({
+                label: t.default_code ? `[${t.default_code}] ${t.name}` : t.name,
+                templateId: t.id,
+            })),
+        ];
+    }
+
+    onProductSelect(option) {
+        Object.assign(this.state, {
+            templateId: option.templateId || 0,
+            productTerm: option.term || "",
+            productLabel: option.templateId ? option.label : option.term,
+        });
+        this.loadReport();
+    }
+
+    clearProduct() {
+        Object.assign(this.state, { templateId: 0, productTerm: "", productLabel: "" });
+        this.loadReport();
+    }
+
     onValueChange(attribute, ev) {
         this.state.valueByAttribute[attribute.id] = parseInt(ev.target.value) || 0;
         this.loadReport();
@@ -116,6 +154,8 @@ export class LostSaleDetailReport extends Component {
     resetFilters() {
         Object.assign(this.state, {
             templateId: 0,
+            productTerm: "",
+            productLabel: "",
             valueByAttribute: {},
             warehouseId: 0,
             period: "this_month",
