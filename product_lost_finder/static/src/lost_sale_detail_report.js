@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
-import { Component, onWillStart, useState } from "@odoo/owl";
-import { AutoComplete } from "@web/core/autocomplete/autocomplete";
+import { Component, onWillStart, useExternalListener, useRef, useState } from "@odoo/owl";
+import { browser } from "@web/core/browser/browser";
 import { _t } from "@web/core/l10n/translation";
 import { formatCurrency } from "@web/core/currency";
 import { download } from "@web/core/network/download";
@@ -15,7 +15,6 @@ const PAGE_SIZE = 50;
 
 export class LostSaleDetailReport extends Component {
     static template = "product_lost_finder.DetailReport";
-    static components = { AutoComplete };
     static props = { ...standardActionServiceProps };
 
     setup() {
@@ -45,6 +44,16 @@ export class LostSaleDetailReport extends Component {
         });
         this.loadSequence = 0;
         this.nextFilterKey = 1;
+        this.state.picker = { open: false, term: "", items: [], itemsTerm: "", loading: false };
+        this.pickerSequence = 0;
+        this.pickerDirty = false;
+        this.pickerRef = useRef("picker");
+        // Close the product list when clicking anywhere else on the page.
+        useExternalListener(window, "mousedown", (ev) => {
+            if (this.state.picker.open && this.pickerRef.el && !this.pickerRef.el.contains(ev.target)) {
+                this.closePicker();
+            }
+        });
 
         onWillStart(async () => {
             const options = await this.orm.call("product.lost.sale", "get_detail_options", []);
@@ -152,35 +161,97 @@ export class LostSaleDetailReport extends Component {
         }
     }
 
-    get productSources() {
-        return [{ options: (term) => this.loadProductOptions(term), placeholder: _t("Searching...") }];
+    // ------------------------------------------------------------------
+    // Product picker: list of every product with checkboxes
+    // ------------------------------------------------------------------
+
+    get selectedTemplateIds() {
+        return new Set(this.state.productFilters.filter((f) => f.templateId).map((f) => f.templateId));
     }
 
-    async loadProductOptions(term) {
-        // Without text: every product, numbered names first (21160003- ... before 22030022- ...).
-        const result = await this.orm.call("product.lost.finder", "list_templates", [term || ""]);
-        const options = result.templates.map((t) => ({
-            label: t.default_code ? `[${t.default_code}] ${t.name}` : t.name,
-            templateId: t.id,
-        }));
-        if (term) {
-            // First option (selected by Enter): every product containing the typed text.
-            options.unshift({ label: _t('All products containing "%s"', term), term });
+    get pickerTermLabel() {
+        return _t('Add every product containing "%s"', this.state.picker.term.trim());
+    }
+
+    get pickerSelectedCount() {
+        return this.state.productFilters.filter((f) => f.templateId).length;
+    }
+
+    async openPicker() {
+        if (!this.state.picker.open) {
+            this.state.picker.open = true;
+            await this.loadPickerItems();
         }
-        return options;
     }
 
-    onProductSelect(option) {
-        const exists = this.state.productFilters.some((f) =>
-            option.templateId ? f.templateId === option.templateId : !f.templateId && f.term === option.term
-        );
-        if (!exists) {
-            this.state.productFilters.push({
-                key: this.nextFilterKey++,
-                templateId: option.templateId || 0,
-                term: option.term || "",
-                label: option.templateId ? option.label : `"${option.term}"`,
-            });
+    onPickerInput(ev) {
+        this.state.picker.term = ev.target.value;
+        this.state.picker.open = true;
+        browser.clearTimeout(this.pickerTimeout);
+        this.pickerTimeout = browser.setTimeout(() => this.loadPickerItems(), 250);
+    }
+
+    async loadPickerItems() {
+        const sequence = ++this.pickerSequence;
+        this.state.picker.loading = true;
+        try {
+            // Every product (numbered names first: 21160003- ... before 22030022- ...).
+            const result = await this.orm.call("product.lost.finder", "list_templates", [
+                this.state.picker.term.trim(),
+            ]);
+            if (sequence === this.pickerSequence) {
+                this.state.picker.itemsTerm = this.state.picker.term.trim();
+                this.state.picker.items = result.templates.map((t) => ({
+                    id: t.id,
+                    label: t.default_code ? `[${t.default_code}] ${t.name}` : t.name,
+                }));
+            }
+        } finally {
+            if (sequence === this.pickerSequence) {
+                this.state.picker.loading = false;
+            }
+        }
+    }
+
+    togglePickerItem(item) {
+        if (this.selectedTemplateIds.has(item.id)) {
+            this.state.productFilters = this.state.productFilters.filter((f) => f.templateId !== item.id);
+        } else {
+            this.state.productFilters.push({ key: this.nextFilterKey++, templateId: item.id, term: "", label: item.label });
+        }
+        // The report is refreshed once, when the list is closed.
+        this.pickerDirty = true;
+    }
+
+    addPickerTerm() {
+        const term = this.state.picker.term.trim();
+        if (term && !this.state.productFilters.some((f) => !f.templateId && f.term === term)) {
+            this.state.productFilters.push({ key: this.nextFilterKey++, templateId: 0, term, label: `"${term}"` });
+            this.pickerDirty = true;
+        }
+        this.closePicker();
+    }
+
+    onPickerKeydown(ev) {
+        if (ev.key === "Enter") {
+            ev.preventDefault();
+            this.state.picker.term.trim() ? this.addPickerTerm() : this.closePicker();
+        } else if (ev.key === "Escape") {
+            this.closePicker();
+        }
+    }
+
+    closePicker() {
+        if (!this.state.picker.open) {
+            return;
+        }
+        Object.assign(this.state.picker, { open: false, term: "" });
+        if (this.state.picker.itemsTerm) {
+            // The list was narrowed by a search: show the full list again next time.
+            Object.assign(this.state.picker, { items: [], itemsTerm: "" });
+        }
+        if (this.pickerDirty) {
+            this.pickerDirty = false;
             this.loadReport();
         }
     }

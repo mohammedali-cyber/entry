@@ -8,14 +8,38 @@
                 <div class="o_lsd_filters">
                     <div class="o_lsd_filter">
                         <label for="o_lsd_product">Product</label>
-                        <div class="o_lsd_product">
-                            <AutoComplete id="'o_lsd_product'"
-                                value="''"
-                                resetOnSelect="true"
-                                sources="productSources"
-                                onSelect.bind="onProductSelect"
-                                placeholder.translate="Add a product..."
-                                class="'o_lsd_product_input'"/>
+                        <div class="o_lsd_product" t-ref="picker">
+                            <input id="o_lsd_product" type="text" class="form-control form-control-sm"
+                                autocomplete="off" placeholder="Add a product..."
+                                t-att-value="state.picker.term"
+                                t-on-focus="openPicker" t-on-click="openPicker"
+                                t-on-input="onPickerInput" t-on-keydown="onPickerKeydown"/>
+                            <div t-if="state.picker.open" class="o_lsd_picker">
+                                <button t-if="state.picker.term.trim()" type="button"
+                                    class="btn btn-link btn-sm o_lsd_picker_term" t-on-click="addPickerTerm">
+                                    <i class="fa fa-search me-1" aria-hidden="true"/>
+                                    <t t-esc="pickerTermLabel"/>
+                                </button>
+                                <div class="o_lsd_picker_list">
+                                    <div t-if="state.picker.loading and !state.picker.items.length" class="text-muted small p-2">
+                                        <i class="fa fa-circle-o-notch fa-spin me-1"/>Searching...
+                                    </div>
+                                    <div t-elif="!state.picker.items.length" class="text-muted small p-2">No product found.</div>
+                                    <t t-set="selectedIds" t-value="selectedTemplateIds"/>
+                                    <t t-foreach="state.picker.items" t-as="item" t-key="item.id">
+                                        <label class="o_lsd_picker_item" t-att-class="{'o_lsd_picker_checked': selectedIds.has(item.id)}">
+                                            <input type="checkbox" class="form-check-input"
+                                                t-att-checked="selectedIds.has(item.id)"
+                                                t-on-change="() => this.togglePickerItem(item)"/>
+                                            <span t-esc="item.label"/>
+                                        </label>
+                                    </t>
+                                </div>
+                                <div class="o_lsd_picker_footer">
+                                    <span class="text-muted small"><t t-esc="pickerSelectedCount"/> selected</span>
+                                    <button type="button" class="btn btn-primary btn-sm" t-on-click="closePicker">Done</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <t t-foreach="state.options.attributes" t-as="attribute" t-key="attribute.id">

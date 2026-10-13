@@ -1,6 +1,6 @@
 {
     'name': 'Lost Sales',
-    'version': '18.0.4.3.0',
+    'version': '18.0.4.4.0',
     'category': 'Inventory/Inventory',
     'summary': 'Product stock per branch, lost sales reports and Excel export',
     'description': """

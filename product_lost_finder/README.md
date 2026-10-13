@@ -18,11 +18,12 @@ The technical name stays `product_lost_finder` so that upgrades keep the recorde
    matrix. Rows are the products, columns the values of one attribute (color by
    default, can be changed). Each cell shows the current On Hand quantity (green,
    or red when zero or less = lost) and, below, the lost sales recorded in the
-   period ("Requested"). Filters: products (clicking the box lists ALL the products,
-   numbered names first in numeric order - "21160003- ..." before "22030022- ..." -
-   then the others A-Z; typing narrows the list by name, number or barcode;
-   several products can be added as tags, Enter adds every product containing the
-   text), each attribute
+   period ("Requested"). Filters: products (clicking the box opens a list of ALL
+   the products with checkboxes, numbered names first in numeric order -
+   "21160003- ..." before "22030022- ..." - then the others A-Z; tick as many as
+   needed, the report refreshes once on "Done" or when clicking outside; typing
+   narrows the list by name, number or barcode and Enter adds every product
+   containing the text; the selection shows as removable tags), each attribute
    (color, size...), branch, period, status (all / lost only / available only).
    Sizes are not broken down: choosing a size only narrows the numbers. With "All
    branches" the stock is the sum of every branch. Products without the column
