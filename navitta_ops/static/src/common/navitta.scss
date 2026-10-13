@@ -644,3 +644,15 @@ td .m,td.m{font-size:12px;color:var(--fg-2)}
 @media print{.o_navitta .no-print{display:none!important}}
 }
 // modals are rendered inside .o_navitta too (position: fixed)
+
+// Odoo makes every action fill the screen with overflow hidden (.o_web_client > .o_action_manager > .o_action),
+// so these screens must scroll themselves (mouse wheel, touch, keyboard), with a visible scrollbar.
+.o_web_client > .o_action_manager > .o_action.o_navitta {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: thin !important;
+  &::-webkit-scrollbar { display: block !important; width: 8px; }
+  &::-webkit-scrollbar-thumb { background: #c4c6cb; border-radius: 8px; }
+}

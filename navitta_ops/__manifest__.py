@@ -6,7 +6,7 @@ Navitta branch operations: visits counter, PIN attendance, breaks, late cases an
 leaves with cover, employee inbox, targets and sales, daily report, branch requests, supplies,
 expenses, lost sales, models file, management dashboard and a nightly PDF summary by email.
 """,
-    "version": "18.0.1.1.0",
+    "version": "18.0.1.1.1",
     "category": "Operations",
     "author": "Navitta",
     "license": "LGPL-3",

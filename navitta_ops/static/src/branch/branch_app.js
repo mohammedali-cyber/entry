@@ -16,7 +16,7 @@ const newDraft = (buy = false) => ({
     buy, exch: false, no: false, reason: "", other: "", note: "", m: null, manual: "", color: "", colorOther: "", size: "", sizeOther: "",
     mfgNote: "", call: false, phone: "", cname: "", req: false, err: "",
 });
-const H = { jn, f0, mmss, clock, longDate, h12, dTxt, days, ago, photoUrl, swatch, icon, dcsText, LOSTL, LOST, LOSTFULL, SUP, EXPICON, RQST, EXST, CASEST, LEAVEST };
+const H = { jn, f0, minuteNow, mmss, clock, longDate, h12, dTxt, days, ago, photoUrl, swatch, icon, dcsText, LOSTL, LOST, LOSTFULL, SUP, EXPICON, RQST, EXST, CASEST, LEAVEST };
 
 // ---------------------------------------------------------------- visit outcome (bought / exchange / didn't buy + lost sale)
 class Outcome extends Component {
