@@ -18,6 +18,7 @@
                     .r{display:flex;gap:10px}.r .b{flex:1}
                     img{width:100%;border-radius:12px;border:1px solid #DCDEE2}
                     .e{color:#A3242B}.s{color:#5C5F65;font-size:13px;text-align:center}
+                    [hidden]{display:none!important}
                 </style>
             </head>
             <body>

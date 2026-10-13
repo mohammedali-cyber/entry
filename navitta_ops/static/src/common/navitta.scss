@@ -6,6 +6,9 @@
   --focus:#36506E; --sheen:linear-gradient(100deg,#8E9299 0%,#E9EBEE 35%,#A9ADB3 55%,#F4F5F6 75%,#9A9EA5 100%);
   --f-display:"El Messiri","IBM Plex Sans Arabic",system-ui,sans-serif; --f-body:"IBM Plex Sans Arabic",system-ui,sans-serif; --r:10px;
   background: var(--bg); color: var(--fg); font-size: 14px; line-height: 1.6; height: 100%; overflow: auto; direction: rtl; text-align: right;
+  display: block !important;
+  > .wrap { width: 100%; }
+  .filters select.ctl, .filters input.ctl { width: auto; }
   *, *::before, *::after { box-sizing: border-box; }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   h1, h2, h3, h4 { color: var(--fg); }

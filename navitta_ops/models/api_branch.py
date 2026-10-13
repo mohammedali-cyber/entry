@@ -505,8 +505,8 @@ class NavittaApi(models.AbstractModel):
             "day": fields.Date.to_string(day),
             "rows": [{"day": fields.Date.to_string(r.day), "target": r.target, "sales": r.sales if r.has_sales else None,
                       "invoices": r.invoices} for r in rows],
-            "log": log and {"by_admin": log.by_admin, "changed_at": iso(log.create_date), "scope": log.scope, "ref": log.ref,
-                            "old_amount": log.old_amount, "new_amount": log.new_amount},
+            "log": {"by_admin": log.by_admin, "changed_at": iso(log.create_date), "scope": log.scope, "ref": log.ref,
+                    "old_amount": log.old_amount, "new_amount": log.new_amount} if log else False,
             "shift_end": hours_to_min(self.env.company.navitta_shift_end),
         }
 
@@ -717,7 +717,7 @@ class NavittaApi(models.AbstractModel):
         return {
             "day": fields.Date.to_string(day),
             "employees": [{"id": e.id, "slot": e.slot, "name": e.name} for e in emps],
-            "report": rep and self._report_dict(rep),
+            "report": self._report_dict(rep) if rep else False,
             "from_visits": {
                 "visitors": len(visits), "invoices": buys, "nonBuy": len(visits) - buys,
                 "lost": [{"model": v.lost_model or "", "color": v.lost_color or "", "size": v.lost_size or ""}

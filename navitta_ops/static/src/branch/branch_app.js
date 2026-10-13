@@ -5,7 +5,7 @@ import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 import {
     CASEST, COLORS, EXPICON, LEAVEST, LOST, LOSTL, NOBUY, LOSTFULL, OUTOF, QBREAK, QLATE, RQST, EXST, SAT, SIZES, SUP, TRIED, TYPES,
-    addDays, api, clock, dTxt, days, f0, h12, longDate, minuteNow, mmss, now, photoUrl, setClock, sizesOf, swatch, today, ago, icon, dcsText,
+    addDays, api, clock, dTxt, days, f0, h12, jn, longDate, minuteNow, mmss, now, photoUrl, setClock, sizesOf, swatch, today, ago, icon, dcsText,
 } from "../common/utils";
 import {
     DailyQuote, ModelPicker, ModelSearch, NvModal, PhotoLink, PhotoPicker, PinPad, SignModal, TargetBar,
@@ -16,7 +16,7 @@ const newDraft = (buy = false) => ({
     buy, exch: false, no: false, reason: "", other: "", note: "", m: null, manual: "", color: "", colorOther: "", size: "", sizeOther: "",
     mfgNote: "", call: false, phone: "", cname: "", req: false, err: "",
 });
-const H = { f0, mmss, clock, longDate, h12, dTxt, days, ago, photoUrl, swatch, icon, dcsText, LOSTL, LOST, LOSTFULL, SUP, EXPICON, RQST, EXST, CASEST, LEAVEST };
+const H = { jn, f0, mmss, clock, longDate, h12, dTxt, days, ago, photoUrl, swatch, icon, dcsText, LOSTL, LOST, LOSTFULL, SUP, EXPICON, RQST, EXST, CASEST, LEAVEST };
 
 // ---------------------------------------------------------------- visit outcome (bought / exchange / didn't buy + lost sale)
 class Outcome extends Component {

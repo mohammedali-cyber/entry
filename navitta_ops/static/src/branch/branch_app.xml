@@ -287,7 +287,7 @@
                     <button type="button" class="nv-btn primary" t-on-click="() => state.leaveForm = !state.leaveForm">🏖️ طلب إجازة</button></div>
                 <div t-if="state.leaveForm" class="lr-form">
                     <div class="shift-set">
-                        <label>نوع الإجازة<select class="ctl" t-model="state.lv.type"><t t-foreach="box.leave_types" t-as="lt" t-key="lt[0]"><option t-att-value="lt[0]" t-esc="lt[1]"/></t></select></label>
+                        <label>نوع الإجازة<select class="ctl" t-model="state.lv.type"><t t-foreach="box.leave_types" t-as="ltp" t-key="ltp[0]"><option t-att-value="ltp[0]" t-esc="ltp[1]"/></t></select></label>
                         <label>من<input type="date" class="ctl num" t-model="state.lv.from"/></label>
                         <label>آخر يوم إجازة<input type="date" class="ctl num" t-model="state.lv.to"/></label>
                     </div>
@@ -475,7 +475,7 @@
                 <p class="sub">عميلات طلبن مقاس أو لون مخلص وتبين نتواصل معهن. لما يوصل، كلميها واضغطي «تواصلت».</p>
                 <div class="visits">
                     <div t-foreach="d.waiting" t-as="w" t-key="w.id" class="it">
-                        <div class="h"><b class="num" t-esc="[w.item_no and '🏷️ ' + w.item_no, w.model, w.color, w.size and 'مقاس ' + w.size].filter(Boolean).join(' · ')"/>
+                        <div class="h"><b class="num" t-esc="jn([w.item_no and '🏷️ ' + w.item_no, w.model, w.color, w.size and 'مقاس ' + w.size], ' · ')"/>
                             <span t-if="w.contacted_at" class="chip good">✓ تواصلت <t t-esc="w.contacted_by"/></span>
                             <span t-else="" class="chip warn">تنتظر من <t t-esc="dTxt(days(w.day, d.day))"/></span></div>
                         <div class="m"><a t-att-href="'tel:' + w.contact_phone" dir="ltr" class="num">📱 <t t-esc="w.contact_phone"/></a><t t-if="w.contact_name"> · <t t-esc="w.contact_name"/></t> · <t t-esc="LOSTL[w.reason] or w.reason"/> · <t t-esc="longDate(w.day)"/></div>
@@ -583,7 +583,7 @@
                     <div class="fld"><span class="lab" t-esc="q[2]"/><div class="opts">
                         <label class="opt"><input type="radio" t-att-checked="!f[q[0]]" t-on-change="() => f[q[0]] = false"/><span>لا</span></label>
                         <label class="opt"><input type="radio" t-att-checked="f[q[0]]" t-on-change="() => f[q[0]] = true"/><span>نعم</span></label></div>
-                        <input t-if="f[q[0]]" class="ctl" t-model="f[q[1]]" t-att-placeholder="q[3]"/></div>
+                        <input t-if="f[q[0]]" class="ctl" t-att-value="f[q[1]]" t-on-input="(e) => f[q[1]] = e.target.value" t-att-placeholder="q[3]"/></div>
                 </t>
             </fieldset>
             <fieldset><legend>الفرع والتشغيل</legend>
@@ -592,7 +592,7 @@
                     <div class="fld"><span class="lab" t-esc="q[2]"/><div class="opts">
                         <label class="opt"><input type="radio" t-att-checked="!f[q[0]]" t-on-change="() => f[q[0]] = false"/><span>لا</span></label>
                         <label class="opt"><input type="radio" t-att-checked="f[q[0]]" t-on-change="() => f[q[0]] = true"/><span>نعم</span></label></div>
-                        <input t-if="f[q[0]]" class="ctl" t-model="f[q[1]]" t-att-placeholder="q[3]"/></div>
+                        <input t-if="f[q[0]]" class="ctl" t-att-value="f[q[1]]" t-on-input="(e) => f[q[1]] = e.target.value" t-att-placeholder="q[3]"/></div>
                 </t>
                 <div class="fld full"><span class="lab">هل حدث طارئ خارج عن السيطرة؟</span><div class="opts"><t t-foreach="d.choices.emergencies" t-as="o" t-key="o[0]"><label class="opt"><input type="radio" t-att-checked="f.emergency === o[0]" t-on-change="() => f.emergency = o[0]"/><span t-esc="o[1]"/></label></t></div></div>
             </fieldset>

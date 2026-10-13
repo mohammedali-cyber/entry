@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="navitta_ops.AdminApp">
+        <div class="o_navitta o_action" dir="rtl" lang="ar">
+            <div class="wrap">
+                <header class="top">
+                    <div class="brand"><span class="nv-mark">NAVITTA</span><h1>إدارة الفروع</h1></div>
+                    <nav class="topnav">
+                        <t t-foreach="tabs" t-as="t" t-key="t[0]">
+                            <a href="#" t-att-class="state.tab === t[0] ? 'on' : ''" t-on-click.prevent="() => state.tab = t[0]" t-esc="t[1]"/>
+                        </t>
+                    </nav>
+                </header>
+                <div class="sheen"/>
+                <Dashboard t-if="state.tab === 'dashboard'"/>
+                <Sales t-if="state.tab === 'sales'"/>
+                <Requests t-if="state.tab === 'requests'"/>
+                <Lost t-if="state.tab === 'lost'"/>
+                <Day t-if="state.tab === 'day'"/>
+            </div>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.BranchSelect">
+        <select class="ctl" aria-label="الفرع" t-on-change="onChange">
+            <option value="0" t-att-selected="!sel">كل الفروع</option>
+            <t t-foreach="branches" t-as="b" t-key="b.id"><option t-att-value="b.id" t-att-selected="sel === b.id" t-esc="b.name"/></t>
+        </select>
+    </t>
+
+    <!-- ============================================================ dashboard -->
+    <t t-name="navitta_ops.AdminDashboard">
+        <div t-if="!state.d" class="empty">جارٍ التحميل…</div>
+        <t t-else="">
+            <t t-set="d" t-value="state.d"/>
+            <t t-set="w" t-value="this.v"/>
+            <DailyQuote admin="true" best="d.best"/>
+            <div class="filters">
+                <t t-call="navitta_ops.BranchSelect"><t t-set="branches" t-value="d.branches"/><t t-set="sel" t-value="state.br"/><t t-set="onChange" t-value="(e) => state.br = +e.target.value"/></t>
+                <div class="seg">
+                    <button type="button" t-att-aria-pressed="state.period === 1 ? 'true' : 'false'" t-on-click="() => this.setPeriod(1)">اليوم</button>
+                    <button type="button" t-att-aria-pressed="state.period === 7 ? 'true' : 'false'" t-on-click="() => this.setPeriod(7)">آخر 7 أيام</button>
+                    <button type="button" t-att-aria-pressed="state.period === 30 ? 'true' : 'false'" t-on-click="() => this.setPeriod(30)">آخر 30 يوم</button>
+                </div>
+                <span class="range-note" t-esc="longDate(d.day)"/>
+            </div>
+
+            <div class="kpis">
+                <div class="kpi"><span class="lbl">إجمالي المبيعات</span><span class="val num"><t t-esc="f0(w.sales)"/><small>ر.س</small></span><span class="small">من التقارير اليومية</span></div>
+                <div class="kpi"><span class="lbl">عدد الفواتير</span><span class="val num" t-esc="f0(w.inv)"/></div>
+                <div class="kpi"><span class="lbl">متوسط الفاتورة</span><span class="val num"><t t-esc="w.inv ? f0(w.sales / w.inv) : 0"/><small>ر.س</small></span></div>
+                <div class="kpi"><span class="lbl">العميلات (العدّاد)</span><span class="val num" t-esc="f0(w.visits)"/></div>
+                <div class="kpi"><span class="lbl">نسبة الشراء</span><span class="val num"><t t-esc="w.buyPct"/>%</span></div>
+                <div class="kpi"><span class="lbl">رضا العملاء</span><span class="val num"><t t-esc="w.sat"/><small>من 5</small></span></div>
+            </div>
+
+            <div class="grid">
+                <EmpBoard from="from" to="d.day" branchId="state.br" branches="d.branches"/>
+
+                <div class="nv-card c12">
+                    <div class="nv-card-h"><div><h2>تنبيهات التأخير وفرص المسامحة</h2><p class="sub"><t t-esc="w.waiting.length"/> بانتظار سبب الموظفة</p></div>
+                        <span t-att-class="'chip ' + (w.review.length ? 'warn' : 'good')" t-esc="w.review.length ? w.review.length + ' بانتظار قرارك' : 'لا توجد قرارات معلقة'"/></div>
+                    <div class="reqs">
+                        <t t-foreach="w.review" t-as="c" t-key="c.id">
+                            <t t-set="u" t-value="used(c.employee_id)"/>
+                            <div class="req pending"><div class="req-main"><span class="chip warn">بانتظار قرارك</span><div style="min-width:0">
+                                <div class="what"><b t-esc="eName(c.employee_id)"/> · <t t-esc="bName(eB(c.employee_id))"/> · <t t-esc="longDate(c.day)"/> · <span class="chip neutral" t-esc="c.kind === 'break' ? '☕ تجاوز استراحة' : 'تأخير حضور'"/></div>
+                                <div class="meta num"><t t-esc="c.kind === 'break' ? 'استراحة ' + c.break_used + ' د · تجاوز ' + c.minutes + ' د' : 'تأخير ' + c.minutes + ' د' + (c.check_in ? ' · حضرت ' + clock(c.check_in) : '')"/> · فرص الشهر <t t-esc="u"/>/<t t-esc="d.settings.chances"/></div>
+                                <div class="meta">السبب: <t t-esc="c.reason"/></div>
+                                <div t-if="c.request === 'edit'" class="meta num"><span class="chip info">طلب تعديل مدة</span> <t t-esc="c.break_used"/> د ← <b><t t-esc="c.requested_minutes"/> د</b></div>
+                            </div></div>
+                                <div class="req-act">
+                                    <input class="ctl" placeholder="ملاحظة للموظفة (اختياري)" t-model="state.notes[c.id]"/>
+                                    <button t-if="c.request === 'edit'" type="button" class="nv-btn primary" t-on-click="() => this.act('admin_decide_case', [c.id, 'edit', note(c.id)], 'تم قبول تعديل المدة')">قبول تعديل المدة</button>
+                                    <button type="button" class="nv-btn" t-att-disabled="u &gt;= d.settings.chances" t-on-click="() => this.act('admin_decide_case', [c.id, 'forgive', note(c.id)], 'احتُسبت فرصة مسامحة')">احتساب فرصة (يبقى <t t-esc="Math.max(0, d.settings.chances - u - 1)"/>)</button>
+                                    <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_case', [c.id, 'reject', note(c.id)], 'رُفض العذر وسُجلت العقوبة حسب الجدول')">رفض وتطبيق العقوبة</button>
+                                </div></div>
+                        </t>
+                        <div t-if="!w.review.length" class="empty">لا توجد أعذار بانتظار قرارك</div>
+                    </div>
+                </div>
+
+                <div class="nv-card c12">
+                    <div class="nv-card-h"><div><h2>🏖️ طلبات الإجازة</h2><p class="sub">تظهر أزرار الموافقة بعد موافقة الزميلة على التغطية</p></div></div>
+                    <div class="reqs">
+                        <div t-foreach="w.lreq" t-as="r" t-key="r.id" t-att-class="'req' + (r.state === 'pending' ? ' pending' : '')"><div class="req-main">
+                            <span t-att-class="'chip ' + (r.state === 'pending' ? 'warn' : r.state === 'cover' ? 'info' : r.state === 'approved' ? 'good' : 'bad')"
+                                  t-esc="LEAVEADM[r.state]"/>
+                            <div><div class="what"><b t-esc="eName(r.employee_id)"/> · <t t-esc="bName(eB(r.employee_id))"/> · إجازة <t t-esc="r.type"/> · <t t-esc="dTxt(days(r.from_day, r.to_day))"/></div>
+                                <div class="meta num">من <t t-esc="longDate(r.from_day)"/> إلى <t t-esc="longDate(r.to_day)"/></div><div class="meta">السبب: <t t-esc="r.reason"/></div>
+                                <div t-if="r.cover_employee_id" class="meta">تغطي الفرع: <b t-esc="eName(r.cover_employee_id)"/><t t-if="r.cover_note"> · <t t-esc="r.cover_note"/></t></div>
+                                <div t-else="" class="meta"><span class="chip warn">بدون تغطية</span></div></div></div>
+                            <div t-if="r.state === 'pending'" class="req-act"><input class="ctl" placeholder="ملاحظة (اختياري)" t-model="state.notes[r.id]"/>
+                                <button type="button" class="nv-btn primary" t-on-click="() => this.act('admin_decide_leave', [r.id, true, note(r.id)], 'تمت الموافقة على الإجازة وسُجلت')">موافقة</button>
+                                <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_leave', [r.id, false, note(r.id)], 'تم رفض الطلب')">رفض</button></div>
+                        </div>
+                        <div t-if="!w.lreq.length" class="empty">لا توجد طلبات</div>
+                    </div>
+                </div>
+
+                <div t-if="w.ereq.length" class="nv-card c12"><h2>طلبات تعديل مدة الزيارة</h2><div class="reqs">
+                    <div t-foreach="w.ereq" t-as="r" t-key="r.id" class="req pending"><div class="req-main"><span class="chip warn">بانتظار ردك</span><div>
+                        <div class="what"><b t-esc="eName(r.employee_id)"/> · <t t-esc="bName(eB(r.employee_id))"/> · زيارة <t t-esc="clock(r.started_at)"/></div>
+                        <div class="req-dur num"><span class="old" t-esc="mmss(r.old_sec)"/> ← <b t-esc="mmss(r.new_sec)"/></div><div class="meta">السبب: <t t-esc="r.reason"/></div></div></div>
+                        <div class="req-act"><input class="ctl" placeholder="رد (اختياري)" t-model="state.notes[r.id]"/>
+                            <button type="button" class="nv-btn primary" t-on-click="() => this.act('admin_decide_visit_edit', [r.id, true, note(r.id)], 'تم قبول التعديل')">قبول</button>
+                            <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_visit_edit', [r.id, false, note(r.id)], 'تم رفض التعديل')">رفض</button></div></div>
+                </div></div>
+
+                <div class="nv-card c12">
+                    <div class="nv-card-h"><div><h2>حضور اليوم بالبصمة</h2><p class="sub">الدوام <t t-esc="h12(d.settings.shift_start)"/> إلى <t t-esc="h12(d.settings.shift_end)"/></p></div></div>
+                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>الفرع</th><th>الموظفة</th><th>الحضور</th><th>الانصراف</th><th>الاستراحة</th><th>الحالة</th></tr></thead><tbody>
+                        <t t-foreach="w.emps" t-as="e" t-key="e.id"><t t-set="ar" t-value="attRow(e)"/>
+                            <tr><td t-esc="bName(e.branch_id)"/><td><b t-esc="e.name"/></td><td class="n" t-esc="ar.a ? clock(ar.a.check_in) : '—'"/><td class="n" t-esc="ar.a and ar.a.check_out ? clock(ar.a.check_out) : '—'"/>
+                                <td><span t-if="ar.onB" class="chip info">☕ في استراحة</span><span t-elif="ar.bm" class="num">☕ <t t-esc="ar.bm"/> د <span t-if="ar.bm &gt; d.settings.break_max" class="chip warn">تجاوز <t t-esc="ar.bm - d.settings.break_max"/> د</span></span><t t-else="">—</t></td>
+                                <td><span t-att-class="'chip ' + ar.st[0]" t-esc="ar.st[1]"/></td></tr>
+                        </t>
+                    </tbody></table></div>
+                </div>
+
+                <div class="nv-card c12">
+                    <h2>مقارنة الفروع (<t t-esc="state.period === 1 ? 'اليوم' : 'آخر ' + state.period + ' أيام'"/>)</h2>
+                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>الفرع</th><th>المبيعات</th><th>الفواتير</th><th>العميلات</th><th>نسبة الشراء</th><th>متوسط الزيارة</th><th>تقرير اليوم</th></tr></thead><tbody>
+                        <tr t-foreach="branchRows()" t-as="x" t-key="x.b.id"><td><b t-esc="x.b.name"/></td><td class="n" t-esc="f0(x.sales)"/><td class="n" t-esc="f0(x.inv)"/>
+                            <td class="n" t-esc="x.visits"/><td class="n"><t t-esc="x.buyPct"/>%</td><td class="n" t-esc="mmss(x.avg)"/>
+                            <td><span t-if="x.sent" class="chip good">✓ أُرسل</span><span t-else="" class="chip warn">لم يُرسل بعد</span></td></tr>
+                    </tbody></table></div>
+                </div>
+
+                <div class="nv-card c12">
+                    <div class="nv-card-h"><div><h2>💬 رسائل الموظفات</h2><p class="sub">رسائل خاصة للإدارة فقط</p></div>
+                        <span t-att-class="'chip ' + (w.threads.some((t) => t.unread) ? 'warn' : 'good')"><t t-esc="w.threads.filter((t) => t.unread).length"/> جديدة</span></div>
+                    <div class="thrs">
+                        <div t-foreach="w.threads" t-as="th" t-key="th.id" t-att-class="'thr' + (th.unread ? ' unread' : '')">
+                            <t t-set="last" t-value="th.messages[th.messages.length - 1]"/>
+                            <button type="button" class="thr-h" t-on-click="() => this.openThread(th)">
+                                <span><i t-if="th.unread" class="dot-new"/><b t-esc="eName(th.employee_id)"/> · <t t-esc="bName(eB(th.employee_id))"/> · <t t-esc="th.topic"/></span>
+                                <span class="meta" t-esc="last ? last.body.slice(0, 70) : ''"/>
+                                <span class="when"><t t-esc="last ? ago(last.created_at) : ''"/> <span t-att-class="'chip ' + (th.state === 'open' ? 'warn' : 'good')" t-esc="th.state === 'open' ? 'مفتوحة' : 'تم الحل'"/></span>
+                            </button>
+                            <div t-if="state.openT === th.id" class="thr-b">
+                                <div class="thread"><t t-foreach="th.messages" t-as="m" t-key="m.id">
+                                    <div t-att-class="'bub ' + (m.sender === 'admin' ? 'mine' : 'theirs')"><div t-esc="m.body"/><span><t t-esc="m.sender === 'admin' ? 'الإدارة' : eName(th.employee_id)"/> · <t t-esc="ago(m.created_at)"/></span></div>
+                                </t></div>
+                                <div class="vrow"><textarea class="ctl" rows="2" style="flex:1 1 220px" t-model="state.reply" placeholder="اكتب ردك"/>
+                                    <button type="button" class="nv-btn primary" t-on-click="() => this.sendReply(th)">إرسال الرد</button>
+                                    <button type="button" class="nv-btn" t-on-click="() => this.toggleThread(th)" t-esc="th.state === 'open' ? 'تم الحل وإغلاق' : 'إعادة فتح'"/></div>
+                            </div>
+                        </div>
+                        <div t-if="!w.threads.length" class="empty">لا توجد رسائل</div>
+                    </div>
+                </div>
+
+                <div class="nv-card c12">
+                    <h2>📧 آخر إشعارات الموظفات بالإيميل</h2>
+                    <div class="nv-alerts">
+                        <div t-foreach="d.notifications" t-as="n" t-key="n.id" class="nv-alert">
+                            <span t-att-class="'chip ' + NOTIF[n.state][0]" t-esc="NOTIF[n.state][1]"/>
+                            <div style="min-width:0"><div class="what"><b t-esc="n.subject"/></div><div class="meta">إلى <t t-esc="n.employee_id ? eName(n.employee_id) : 'الإدارة'"/><t t-if="n.to_email"> · <t t-esc="n.to_email"/></t><t t-if="n.error"> · <t t-esc="n.error"/></t></div></div>
+                            <span class="when" t-esc="ago(n.created_at)"/>
+                        </div>
+                        <div t-if="!d.notifications.length" class="empty">لا توجد إشعارات بعد</div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </t>
+
+    <!-- ============================================================ sales -->
+    <t t-name="navitta_ops.AdminSales">
+        <div t-if="!state.d" class="empty">جارٍ التحميل…</div>
+        <t t-else="">
+            <t t-set="d" t-value="state.d"/>
+            <t t-set="rg" t-value="range"/>
+            <div class="filters">
+                <t t-call="navitta_ops.BranchSelect"><t t-set="branches" t-value="d.branches"/><t t-set="sel" t-value="state.br"/><t t-set="onChange" t-value="(e) => this.setBr(e.target.value)"/></t>
+                <select class="ctl" aria-label="الفترة" t-on-change="(e) => this.setPer(e.target.value)">
+                    <option value="ytd" t-att-selected="state.per === 'ytd'">من بداية <t t-esc="year"/> إلى اليوم</option>
+                    <t t-foreach="MONTHS" t-as="mn" t-key="mn_index"><option t-att-value="'' + (mn_index + 1)" t-att-selected="state.per === '' + (mn_index + 1)"><t t-esc="mn"/> <t t-esc="year"/></option></t>
+                    <option value="custom" t-att-selected="state.per === 'custom'">📅 فترة مخصصة</option>
+                </select>
+                <label class="dr">من <input type="date" class="ctl" t-att-value="rg.from" t-att-max="rg.to" t-on-change="(e) => this.setFrom(e.target.value)"/></label>
+                <label class="dr">إلى <input type="date" class="ctl" t-att-value="rg.to" t-att-min="rg.from" t-on-change="(e) => this.setTo(e.target.value)"/></label>
+                <button t-if="state.br" type="button" class="nv-btn" t-on-click="() => this.openEdit(state.br)">✏️ تعديل التارقت</button>
+            </div>
+            <t t-set="T" t-value="tot('target_to_date')"/><t t-set="S" t-value="tot('sales')"/><t t-set="I" t-value="tot('invoices')"/><t t-set="IT" t-value="tot('items')"/><t t-set="R" t-value="tot('returns')"/>
+            <div class="kpis k7">
+                <div class="kpi"><span class="lbl">التارقت حتى اليوم</span><span class="val num"><t t-esc="f0(T)"/><small>ر.س</small></span><span class="small">تارقت الفترة كاملة <t t-esc="f0(tot('target'))"/></span></div>
+                <div class="kpi"><span class="lbl">المبيعات الفعلية</span><span class="val num"><t t-esc="f0(S)"/><small>ر.س</small></span><span class="small">نسبة التحقق <t t-esc="pc(S, T)"/>%</span></div>
+                <div class="kpi"><span class="lbl">الضريبة <t t-esc="d.settings.vat_rate"/>%</span><span class="val num"><t t-esc="f0(vat(S))"/><small>ر.س</small></span></div>
+                <div class="kpi"><span class="lbl">💵 الصافي بعد الضريبة</span><span class="val num"><t t-esc="f0(S - vat(S))"/><small>ر.س</small></span><span class="small">المبيعات ناقص الضريبة</span></div>
+                <div class="kpi"><span class="lbl">الفواتير</span><span class="val num" t-esc="f0(I)"/></div>
+                <div class="kpi"><span class="lbl">🧾 متوسط الفاتورة</span><span class="val num"><t t-esc="f0(I ? S / I : 0)"/><small>ر.س</small></span><span class="small"><t t-esc="f0(IT)"/> قطعة في <t t-esc="f0(I)"/> فاتورة</span></div>
+                <div class="kpi"><span class="lbl">🛍️ القطع المباعة</span><span class="val num" t-esc="f0(IT)"/></div>
+                <div class="kpi"><span class="lbl">🔄 المرتجع</span><span class="val num" t-esc="f0(R)"/><span class="small"><t t-esc="IT ? (R / IT * 100).toFixed(1) : 0"/>% من القطع</span></div>
+            </div>
+            <div class="grid">
+                <div t-if="!state.br" class="nv-card c12"><h2>مقارنة الفروع</h2><div class="tscroll"><table class="nv-tbl"><thead><tr>
+                    <th>الفرع</th><th>التارقت</th><th>المبيعات</th><th>الصافي بعد الضريبة</th><th>التحقق</th><th>الفواتير</th><th>متوسط الفاتورة</th><th>القطع</th><th>المرتجع</th><th/></tr></thead><tbody>
+                    <t t-foreach="d.branches" t-as="b" t-key="b.id">
+                        <t t-set="r" t-value="d.summary.find((x) => x.branch_id === b.id) or {}"/>
+                        <t t-set="tg" t-value="+r.target_to_date or 0"/><t t-set="sl" t-value="+r.sales or 0"/>
+                        <tr><td><b t-esc="b.name"/></td><td class="n" t-esc="f0(tg)"/><td class="n"><b t-esc="f0(sl)"/></td><td class="n" t-esc="f0(sl - vat(sl))"/>
+                            <td><div class="pc"><div class="pbar"><i t-att-style="'width:' + Math.min(100, pc(sl, tg)) + '%'"/></div><span class="num"><t t-esc="pc(sl, tg)"/>%</span></div></td>
+                            <td class="n" t-esc="f0(r.invoices)"/><td class="n" t-esc="f0(r.invoices ? sl / r.invoices : 0)"/><td class="n" t-esc="f0(r.items)"/><td class="n" t-esc="f0(r.returns)"/>
+                            <td><button type="button" class="del" t-on-click="() => this.openEdit(b.id)">✏️ التارقت</button></td></tr>
+                    </t>
+                </tbody></table></div></div>
+
+                <div class="nv-card c12">
+                    <div class="nv-card-h"><div><h2><t t-esc="state.br ? bName(state.br) : 'كل الفروع'"/>: التارقت مقابل المبيعات شهريًا · <t t-esc="year"/></h2><p class="sub">مرّر على أي شهر لعرض الأرقام</p></div>
+                        <div class="lg"><span><i class="sw"/>المبيعات الفعلية</span><span><i class="tk"/>التارقت</span></div></div>
+                    <div class="bars" role="img" aria-label="التارقت مقابل المبيعات شهريًا">
+                        <t t-foreach="MONTHS" t-as="mn" t-key="mn_index">
+                            <t t-set="x" t-value="month(mn_index)"/><t t-set="ref" t-value="mn_index + 1 === rg.curM ? +x.target_to_date : +x.target"/>
+                            <div class="bcol">
+                                <span class="tip num"><t t-esc="mn"/>: <t t-esc="f0(x.sales)"/> / <t t-esc="f0(x.target)"/> ر.س</span>
+                                <div t-if="+x.sales &gt; 0" class="bpct num"><t t-esc="pc(+x.sales, ref)"/>%</div>
+                                <div class="bar" t-att-style="'height:' + (x.sales / mx * 200) + 'px'"/>
+                                <div t-if="+x.target &gt; 0" class="tick" t-att-style="'bottom:' + (x.target / mx * 200 + 22) + 'px'"/>
+                                <div class="blab" t-esc="mn"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+
+                <div class="nv-card c12"><h2><t t-esc="state.br ? bName(state.br) : 'كل الفروع'"/>: <t t-esc="rg.custom ? 'من ' + dmy(state.cf) + ' إلى ' + dmy(state.ct) : MONTHS[rg.m - 1]"/> يوم بيوم</h2>
+                    <div class="tscroll"><table class="nv-tbl dt"><thead><tr><th>التاريخ</th><th>اليوم</th><th>التارقت</th><th>المبيعات</th><th>التحقق</th><th>الفواتير</th><th>متوسط الفاتورة</th><th>القطع</th><th>المرتجع</th><th>نقدي</th><th>شبكة</th><th>الضريبة</th><th>الصافي</th><th t-if="state.br">سكّرت</th></tr></thead><tbody>
+                        <t t-foreach="dayRows" t-as="x" t-key="x.day"><t t-set="p2" t-value="pc(x.sales, x.target)"/>
+                            <tr><td class="num" t-esc="x.day.slice(5)"/><td t-esc="weekday(x.day)"/><td class="n" t-esc="f0(x.target)"/>
+                                <td class="n"><b t-if="x.has" t-esc="f0(x.sales)"/><t t-else="">—</t></td>
+                                <td><span t-if="x.has and x.target" t-att-class="'chip ' + (p2 &gt;= 100 ? 'good' : p2 &gt;= 50 ? 'neutral' : 'warn')"><t t-esc="p2"/>%</span><t t-else="">—</t></td>
+                                <td class="n" t-esc="x.has ? x.invoices : '—'"/><td class="n" t-esc="x.has and x.invoices ? f0(x.sales / x.invoices) : '—'"/>
+                                <td class="n" t-esc="x.has ? x.items : '—'"/><td class="n" t-esc="x.has ? x.returns : '—'"/><td class="n" t-esc="x.has ? f0(x.cash) : '—'"/>
+                                <td class="n" t-esc="x.has ? f0(x.card) : '—'"/><td class="n" t-esc="x.has ? f0(vat(x.sales)) : '—'"/><td class="n"><b t-if="x.has" t-esc="f0(x.sales - vat(x.sales))"/><t t-else="">—</t></td>
+                                <td t-if="state.br" t-esc="x.closed_by or '—'"/></tr>
+                        </t>
+                        <tr t-if="!dayRows.length"><td colspan="14" class="empty" t-esc="rg.custom ? 'لا توجد بيانات لهذه الفترة' : 'لا توجد بيانات لهذا الشهر'"/></tr>
+                    </tbody></table></div></div>
+
+                <EmpBoard from="rg.from" to="rg.to" branchId="state.br" branches="d.branches"/>
+            </div>
+            <TargetEditor t-if="state.edit" branchId="state.edit.id" branchName="state.edit.name" admin="true" rows="state.editRows" onClose="() => state.edit = null" onSaved="() => this.saved()"/>
+        </t>
+    </t>
+
+    <!-- ============================================================ requests -->
+    <t t-name="navitta_ops.AdminRequests">
+        <div t-if="!state.d" class="empty">جارٍ التحميل…</div>
+        <t t-else="">
+            <t t-set="d" t-value="state.d"/>
+            <t t-set="w" t-value="this.v"/>
+            <div class="filters">
+                <t t-call="navitta_ops.BranchSelect"><t t-set="branches" t-value="d.branches"/><t t-set="sel" t-value="state.br"/><t t-set="onChange" t-value="(e) => state.br = +e.target.value"/></t>
+                <div class="seg"><t t-foreach="[['all', 'الكل'], ['goods', 'نواقص بضاعة'], ['supply', 'مستلزمات'], ['expense', 'مصروفات']]" t-as="k" t-key="k[0]">
+                    <button type="button" t-att-aria-pressed="state.kind === k[0] ? 'true' : 'false'" t-on-click="() => state.kind = k[0]" t-esc="k[1]"/></t></div>
+            </div>
+            <div class="kpis">
+                <div class="kpi"><span class="lbl">طلبات جديدة</span><span class="val num" t-esc="w.reqs.filter((r) => r.state === 'pending').length"/></div>
+                <div class="kpi"><span class="lbl">بانتظار الشحن</span><span class="val num" t-esc="w.reqs.filter((r) => r.state === 'approved').length"/></div>
+                <div class="kpi"><span class="lbl">مصروفات بانتظار اعتمادك</span><span class="val num"><t t-esc="w.pendX.length"/><small>· <t t-esc="f0(w.pendX.reduce((s, x) => s + +x.amount, 0))"/> ر.س</small></span></div>
+                <div class="kpi"><span class="lbl">فروع مستلزماتها قليلة</span><span class="val num" t-att-style="w.lowB.length ? 'color:var(--bad)' : ''" t-esc="w.lowB.length"/><span class="small" t-esc="w.lowB.map((b) => b.name).join(' · ')"/></div>
+            </div>
+            <div class="grid">
+                <div t-if="w.showReq" class="nv-card c12"><h2>طلبات تحتاج متابعتك</h2><div class="reqs">
+                    <div t-foreach="w.live" t-as="r" t-key="r.id" t-att-class="'req' + (r.state === 'pending' ? ' pending' : '')">
+                        <div class="req-main"><span t-att-class="'chip ' + RQST[r.state][0]"><t t-esc="r.kind === 'goods' ? '👠 نواقص' : '🧾 مستلزمات'"/> · <t t-esc="RQST[r.state][1]"/></span>
+                            <div><div class="what"><b class="num" t-esc="r.what"/> · <t t-esc="bName(r.branch_id)"/><t t-if="r.urgent"> · <span class="chip bad">عاجل</span></t></div>
+                                <div class="meta"><t t-esc="r.employee or '—'"/> · <t t-esc="longDate(r.created_at)"/><t t-if="r.reason"> · <t t-esc="r.reason"/></t><t t-if="r.note"> · <t t-esc="r.note"/></t>
+                                    <t t-if="r.kind === 'supply' and r.supply !== 'other'"> · الرصيد <t t-esc="bal(r.branch_id, r.supply)"/></t>
+                                    <PhotoLink t-if="r.photo_id" id="r.photo_id" label="'صورة القطعة'"/></div></div></div>
+                        <div class="req-act">
+                            <input class="ctl" placeholder="ملاحظة (اختياري)" t-model="state.notes[r.id]"/>
+                            <button t-if="r.state === 'pending'" type="button" class="nv-btn primary" t-on-click="() => this.act('admin_request_set', [r.id, 'approved', note(r.id)], 'تمت الموافقة')">موافقة</button>
+                            <button t-if="r.state !== 'shipped'" type="button" class="nv-btn" t-on-click="() => this.act('admin_request_set', [r.id, 'shipped', note(r.id)], 'تم: انشحن')">🚚 انشحن</button>
+                            <button type="button" class="nv-btn" t-on-click="() => this.act('admin_request_set', [r.id, 'rejected', note(r.id)], 'تم رفض الطلب')">رفض</button>
+                        </div>
+                    </div>
+                    <div t-if="!w.live.length" class="empty">لا توجد طلبات مفتوحة</div>
+                </div></div>
+
+                <div t-if="w.showExp" class="nv-card c12"><h2>💸 مصروفات بانتظار اعتمادك</h2><div class="reqs">
+                    <div t-foreach="w.pendX" t-as="x" t-key="x.id" class="req pending">
+                        <div class="req-main"><span class="chip info"><t t-esc="EXPICON[x.category] or '📦'"/> <t t-esc="x.category_label"/></span>
+                            <div><div class="what"><b class="num"><t t-esc="f0(x.amount)"/> ر.س</b> · <t t-esc="bName(x.branch_id)"/></div>
+                                <div class="meta"><t t-esc="x.employee or '—'"/> · <t t-esc="longDate(x.day)"/> · <t t-esc="x.details"/> ·
+                                    <PhotoLink t-if="x.receipt_id" id="x.receipt_id"/><span t-else="" class="chip warn">⚠️ بدون إيصال</span></div></div></div>
+                        <div class="req-act">
+                            <input class="ctl" placeholder="ملاحظة (اختياري)" t-model="state.notes[x.id]"/>
+                            <button type="button" class="nv-btn primary" t-on-click="() => this.act('admin_expense_decide', [x.id, true, note(x.id)], 'تم اعتماد المصروف')">اعتماد</button>
+                            <button type="button" class="nv-btn" t-on-click="() => this.act('admin_expense_decide', [x.id, false, note(x.id)], 'تم رفض المصروف')">رفض</button>
+                        </div>
+                    </div>
+                    <div t-if="!w.pendX.length" class="empty">لا توجد مصروفات بانتظارك</div>
+                </div></div>
+
+                <div class="nv-card c12"><h2>📦 المستلزمات ورصيد الصندوق لكل فرع</h2><div class="tscroll"><table class="nv-tbl"><thead><tr>
+                    <th>الفرع</th><th t-esc="SUP.roll_invoice"/><th t-esc="SUP.roll_card"/><th t-esc="SUP.bags"/><th>💰 رصيد الصندوق</th><th>مصروفات هذا الشهر</th></tr></thead><tbody>
+                    <t t-foreach="d.branches.filter((b) => !state.br or b.id === state.br)" t-as="b" t-key="b.id">
+                        <t t-set="bx" t-value="branchExp(b)"/>
+                        <tr><td><b t-esc="b.name"/></td>
+                            <t t-foreach="Object.keys(mins)" t-as="k" t-key="k"><td class="n"><t t-esc="bal(b.id, k)"/> <span t-if="bal(b.id, k) &lt; mins[k]" t-att-class="'chip ' + (k === 'bags' ? 'bad' : 'warn')">تحت الحد</span></td></t>
+                            <td class="n"><t t-esc="f0(bx.cash.balance)"/> ر.س</td>
+                            <td class="n"><b><t t-esc="f0(bx.total)"/> ر.س</b><button t-if="bx.mine.length" type="button" t-att-class="'more' + (state.open === b.id ? ' on' : '')" t-on-click="() => state.open = (state.open === b.id ? null : b.id)" t-esc="state.open === b.id ? 'إخفاء ▴' : 'المزيد ▾'"/></td></tr>
+                        <tr t-if="state.open === b.id" class="exp-open"><td colspan="6"><div class="ex-wrap">
+                            <div><b style="display:block;margin-bottom:8px">💸 مصروفات <t t-esc="b.name"/> · هذا الشهر</b>
+                                <div class="tscroll"><table class="nv-tbl dt"><thead><tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>الموظفة</th><th>المبلغ</th><th>الحالة</th><th>الإيصال</th></tr></thead><tbody>
+                                    <tr t-foreach="bx.mine" t-as="x" t-key="x.id"><td class="num" t-esc="x.day.slice(5)"/><td><t t-esc="EXPICON[x.category] or '📦'"/> <t t-esc="x.category_label"/></td><td style="white-space:normal" t-esc="x.details"/><td t-esc="x.employee"/>
+                                        <td class="n"><b t-esc="f0(x.amount)"/></td><td><span t-att-class="'chip ' + EXST[x.state][0]" t-esc="EXST[x.state][1]"/></td><td><PhotoLink t-if="x.receipt_id" id="x.receipt_id" label="'عرض'"/><t t-else="">—</t></td></tr>
+                                </tbody></table></div>
+                                <p class="note">الإجمالي بدون المرفوض: <t t-esc="f0(bx.total)"/> ر.س</p></div>
+                            <div class="cat"><b>حسب النوع</b>
+                                <div t-foreach="bx.cats" t-as="c" t-key="c[0]"><div class="r"><span><t t-esc="EXPICON[c[0]] or '📦'"/> <t t-esc="c[1].label"/></span><b class="num"><t t-esc="f0(c[1].v)"/> ر.س · <t t-esc="pc(c[1].v, bx.total)"/>%</b></div>
+                                    <div class="pbar"><i t-att-style="'width:' + pc(c[1].v, bx.total) + '%'"/></div></div>
+                                <div class="r note"><span>الشهر اللي قبله</span><span class="num"><t t-esc="f0(bx.prevT)"/> ر.س</span></div>
+                                <button type="button" class="nv-btn" t-on-click="() => this.csv(b)">⬇️ تحميل Excel (CSV)</button>
+                            </div>
+                        </div></td></tr>
+                    </t>
+                </tbody></table></div><p class="sub">الحد الأدنى للمستلزمات من الإعدادات، ورصيد الصندوق الافتتاحي من بطاقة الفرع.</p></div>
+
+                <div t-if="w.showReq and w.done.length" class="nv-card c12"><h2>آخر الطلبات المنتهية</h2><div class="reqs">
+                    <div t-foreach="w.done" t-as="r" t-key="r.id" class="req"><div class="req-main"><span t-att-class="'chip ' + RQST[r.state][0]" t-esc="RQST[r.state][1]"/>
+                        <div><div class="what"><b class="num" t-esc="r.what"/> · <t t-esc="bName(r.branch_id)"/></div><div class="meta"><t t-esc="r.employee or '—'"/> · <t t-esc="longDate(r.created_at)"/><t t-if="r.received_by"> · استلمته <t t-esc="r.received_by"/></t><t t-if="r.admin_note"> · «<t t-esc="r.admin_note"/>»</t></div></div></div></div>
+                </div></div>
+            </div>
+        </t>
+    </t>
+
+    <!-- ============================================================ lost sales -->
+    <t t-name="navitta_ops.AdminLost">
+        <div t-if="!state.d" class="empty">جارٍ التحميل…</div>
+        <t t-else="">
+            <t t-set="d" t-value="state.d"/>
+            <t t-set="w" t-value="this.v"/>
+            <div class="filters">
+                <t t-call="navitta_ops.BranchSelect"><t t-set="branches" t-value="d.branches"/><t t-set="sel" t-value="state.br"/><t t-set="onChange" t-value="(e) => this.set('br', e.target.value)"/></t>
+                <label class="dr">من <input type="date" class="ctl" t-att-value="state.from" t-att-max="state.to" t-on-change="(e) => this.set('from', e.target.value)"/></label>
+                <label class="dr">إلى <input type="date" class="ctl" t-att-value="state.to" t-att-min="state.from" t-on-change="(e) => this.set('to', e.target.value)"/></label>
+                <button type="button" class="nv-btn" t-on-click="last90">آخر 3 شهور</button>
+            </div>
+            <div class="kpis">
+                <div class="kpi"><span class="lbl">💸 مبيعات ضائعة</span><span class="val num" t-esc="f0(w.lost.length)"/><span class="small">زيارة ما اشترت فيها العميلة</span></div>
+                <div class="kpi"><span class="lbl">قيمتها التقريبية</span><span class="val num"><t t-esc="f0(w.value)"/><small>ر.س</small></span><span class="small">حسب سعر الموديل في الملف</span></div>
+                <div class="kpi"><span class="lbl">📏🎨 مقاس أو لون مخلص</span><span class="val num" t-esc="f0(w.oos)"/></div>
+                <div class="kpi"><span class="lbl">🏭 يحتاج تصنيع</span><span class="val num" t-esc="f0(w.mfg.length)"/></div>
+                <div class="kpi"><span class="lbl">📞 عميلات ينتظرن</span><span class="val num" t-esc="f0(d.waiting.length)"/></div>
+            </div>
+            <div class="grid">
+                <div class="nv-card c6"><h2>الأسباب</h2><div class="tscroll"><table class="nv-tbl"><tbody>
+                    <tr t-foreach="w.reasons" t-as="x" t-key="x.r"><td t-esc="LOSTL[x.r]"/><td class="n"><b t-esc="x.n"/></td>
+                        <td><div class="pc"><div class="pbar"><i t-att-style="'width:' + pc(x.n, w.rows.length) + '%'"/></div><span class="num"><t t-esc="pc(x.n, w.rows.length)"/>%</span></div></td></tr>
+                    <tr t-if="!w.rows.length"><td class="empty">لا توجد مبيعات ضائعة في هذه الفترة</td></tr>
+                </tbody></table></div></div>
+
+                <div class="nv-card c6"><h2>📞 عميلات ينتظرن</h2><div class="visits">
+                    <div t-foreach="d.waiting.slice(0, 30)" t-as="x" t-key="x.id" class="it">
+                        <div class="h"><b class="num" t-esc="jn([x.item_no and '🏷️ ' + x.item_no, x.color, x.size and 'مقاس ' + x.size], ' · ')"/><span class="chip warn">من <t t-esc="dTxt(days(x.day, d.day))"/></span></div>
+                        <div class="m"><t t-esc="bName(x.branch_id)"/> · <a t-att-href="'tel:' + x.contact_phone" dir="ltr" class="num" t-esc="x.contact_phone"/><t t-if="x.contact_name"> · <t t-esc="x.contact_name"/></t></div>
+                        <button type="button" class="nv-btn" t-on-click="() => this.contacted(x)">✓ تواصلنا</button>
+                    </div>
+                    <div t-if="!d.waiting.length" class="empty">ما فيه عميلات ينتظرن</div>
+                </div></div>
+
+                <div class="nv-card c12">
+                    <div class="nv-card-h"><div><h2>📋 للطلبية الجاية</h2><p class="sub">ألوان ومقاسات طلبتها العميلات وما نوفرها أساسًا. احسب حسابها لما تطلب بضاعة.</p></div>
+                        <button t-if="w.next.length" type="button" class="nv-btn" t-on-click="() => this.dlNext(w)">⬇️ تنزيل Excel</button></div>
+                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>الموديل</th><th>المطلوب</th><th>كم مرة</th><th>الفروع</th><th>شرح الموظفات</th></tr></thead><tbody>
+                        <tr t-foreach="w.next" t-as="x" t-key="x.k"><td class="num"><b t-if="x.item_no">🏷️ <t t-esc="x.item_no"/></b><div class="m" t-esc="x.model"/></td>
+                            <td class="num" t-esc="jn([x.color, x.size and 'مقاس ' + x.size], ' · ')"/><td class="n"><b t-esc="x.n"/></td><td t-esc="brs(x.br)"/><td class="m" t-esc="x.notes.join(' · ')"/></tr>
+                        <tr t-if="!w.next.length"><td colspan="5" class="empty">ما فيه طلبات تصنيع في هذه الفترة</td></tr>
+                    </tbody></table></div>
+                </div>
+
+                <div class="nv-card c12"><h2>🔥 أكثر الموديلات المطلوبة (مقاس أو لون مخلص)</h2>
+                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>الموديل</th><th>كم مرة</th><th>قيمتها</th><th>أكثر المقاسات</th><th>أكثر الألوان</th><th>الفروع</th></tr></thead><tbody>
+                        <tr t-foreach="w.top" t-as="x" t-key="x.k"><td class="num"><b t-esc="x.item_no ? '🏷️ ' + x.item_no : x.model"/><div t-if="x.item_no" class="m" t-esc="x.model"/></td>
+                            <td class="n"><b t-esc="x.n"/></td><td class="n" t-esc="f0(x.value)"/><td class="num" t-esc="tops(x.sizes) or '—'"/><td class="num" t-esc="tops(x.colors) or '—'"/><td t-esc="brs(x.br)"/></tr>
+                        <tr t-if="!w.top.length"><td colspan="6" class="empty">لا توجد بيانات</td></tr>
+                    </tbody></table></div></div>
+
+                <div class="nv-card c12">
+                    <div class="nv-card-h"><h2>كل المبيعات الضائعة</h2><button t-if="w.rows.length" type="button" class="nv-btn" t-on-click="() => this.dlAll(w)">⬇️ تنزيل Excel</button></div>
+                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>التاريخ</th><th>الفرع</th><th>الموظفة</th><th>السبب</th><th>المطلوب</th><th>السعر</th></tr></thead><tbody>
+                        <tr t-foreach="w.rows.slice(0, 100)" t-as="r" t-key="r.id"><td class="num" t-esc="longDate(r.day)"/><td t-esc="bName(r.branch_id)"/><td t-esc="r.employee or '—'"/><td t-esc="LOSTL[r.reason] or r.reason"/>
+                            <td class="num"><t t-esc="jn([r.item_no and '🏷️ ' + r.item_no, r.model, r.color, r.size], ' · ') or '—'"/><div t-if="r.note" class="m" t-esc="r.note"/></td>
+                            <td class="n" t-esc="r.price ? f0(r.price) : '—'"/></tr>
+                        <tr t-if="!w.rows.length"><td colspan="6" class="empty">لا توجد مبيعات ضائعة في هذه الفترة</td></tr>
+                    </tbody></table></div>
+                    <p t-if="w.rows.length &gt; 100" class="hint">يظهر آخر 100. نزّل الملف لكل البيانات.</p>
+                </div>
+            </div>
+        </t>
+    </t>
+
+    <!-- ============================================================ day log -->
+    <t t-name="navitta_ops.AdminDay">
+        <div t-if="!state.d" class="empty">جارٍ التحميل…</div>
+        <t t-else="">
+            <t t-set="d" t-value="state.d"/>
+            <div class="filters">
+                <t t-call="navitta_ops.BranchSelect"><t t-set="branches" t-value="d.branches"/><t t-set="sel" t-value="state.br"/><t t-set="onChange" t-value="(e) => state.br = +e.target.value"/></t>
+                <div class="seg"><button type="button" t-on-click="() => this.setDay(addDays(state.day, -1))">→ السابق</button>
+                    <input type="date" class="ctl num" t-att-value="state.day" t-att-max="d.today" t-on-change="(e) => this.setDay(e.target.value)"/>
+                    <button type="button" t-att-disabled="state.day &gt;= d.today" t-on-click="() => this.setDay(addDays(state.day, 1))">التالي ←</button></div>
+                <span class="range-note"><t t-esc="longDate(state.day)"/> · كل يوم محفوظ بأحداثه ولا يُمسح</span>
+            </div>
+            <div class="grid">
+                <t t-foreach="shownBranches" t-as="b" t-key="b.id">
+                    <t t-set="k" t-value="block(b)"/>
+                    <div class="nv-card c12">
+                        <div class="nv-card-h"><h2 t-esc="b.name"/><span t-if="k.r" class="chip good">تقرير <t t-esc="k.r.employee_name"/></span><span t-else="" class="chip warn">لم يُرسل تقرير</span></div>
+                        <div class="kpis mini">
+                            <div class="kpi"><span class="lbl">المبيعات</span><span class="val num" t-esc="k.r ? f0(k.r.sales) + ' ر.س' : '—'"/></div>
+                            <div class="kpi"><span class="lbl">الفواتير</span><span class="val num" t-esc="k.r ? k.r.invoices : '—'"/></div>
+                            <div class="kpi"><span class="lbl">العميلات</span><span class="val num" t-esc="k.vs.length"/></div>
+                            <div class="kpi"><span class="lbl">اشترت</span><span class="val num" t-esc="k.buyPct"/></div>
+                            <div class="kpi"><span class="lbl">متوسط الزيارة</span><span class="val num" t-esc="k.avg"/></div>
+                            <div class="kpi"><span class="lbl">الرضا</span><span class="val num" t-esc="k.r ? k.r.sat + ' / 5' : '—'"/></div>
+                        </div>
+                        <div class="tscroll"><table class="nv-tbl"><thead><tr><th>الموظفة</th><th>الحضور</th><th>الانصراف</th><th>الاستراحة</th><th>الحالة</th></tr></thead><tbody>
+                            <tr t-foreach="k.rows" t-as="x" t-key="x.e.id"><td><b t-esc="x.e.name"/></td><td class="n" t-esc="x.a ? clock(x.a.check_in) : '—'"/><td class="n" t-esc="x.a and x.a.check_out ? clock(x.a.check_out) : '—'"/>
+                                <td class="n" t-esc="x.bm ? x.bm + ' د' : '—'"/><td><span t-att-class="'chip ' + x.st[0]" t-esc="x.st[1]"/></td></tr>
+                        </tbody></table></div>
+                        <h3>أهم الأحداث</h3>
+                        <div class="nv-alerts">
+                            <div t-foreach="k.ev" t-as="e" t-key="e_index" class="nv-alert"><span t-att-class="'chip ' + e[0]" t-esc="e[0] === 'bad' ? 'مهم' : e[0] === 'warn' ? 'تنبيه' : 'حدث'"/><div class="what" t-esc="e[1]"/><span/></div>
+                            <div t-if="!k.ev.length" class="empty">لا توجد أحداث مسجلة</div>
+                        </div>
+                        <div t-if="k.r and (k.r.improve or k.r.suggest or k.r.phrase)" class="rep">
+                            <p t-if="k.r.phrase">العبارة المتكررة: «<t t-esc="k.r.phrase"/>» (<t t-esc="k.r.tone === 'negative' ? 'سلبية' : 'إيجابية'"/>)</p>
+                            <p t-if="k.r.improve">لتحسين المبيعات: <t t-esc="k.r.improve"/></p>
+                            <p t-if="k.r.suggest">اقتراح: <t t-esc="k.r.suggest"/></p>
+                        </div>
+                    </div>
+                </t>
+            </div>
+        </t>
+    </t>
+</templates>

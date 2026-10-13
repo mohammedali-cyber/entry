@@ -231,7 +231,7 @@
 
     <t t-name="navitta_ops.Waiting">
         <t t-foreach="state.w" t-as="x" t-key="x.id">
-            <div class="wait9">📞 <b>عميلة تنتظر</b> هذا الموديل: <b class="num" t-esc="[x.color, x.size and ('مقاس ' + x.size)].filter(Boolean).join(' · ')"/> · <t t-esc="ago(x.created_at)"/></div>
+            <div class="wait9">📞 <b>عميلة تنتظر</b> هذا الموديل: <b class="num" t-esc="jn([x.color, x.size and ('مقاس ' + x.size)], ' · ')"/> · <t t-esc="ago(x.created_at)"/></div>
         </t>
     </t>
 

@@ -54,7 +54,13 @@ class NavittaApiAdmin(models.AbstractModel):
         threads = S["navitta.thread"].sudo().search([], limit=30)
         notif = S["navitta.notification"].sudo().search([], limit=15)
         leaves = S["navitta.leave"].sudo().search([("from_day", "<=", day), ("to_day", ">=", day)])
+        best = None
+        for r in S["navitta.daily.sales"].sudo().search([("day", "=", day - timedelta(days=1)), ("target", ">", 0), ("has_sales", "=", True)]):
+            p = round(r.sales * 100.0 / r.target)
+            if not best or p > best["p"]:
+                best = {"name": r.branch_id.name, "p": p}
         return {
+            "best": best,
             "day": fields.Date.to_string(day), "settings": self._settings(), "branches": self._branches(),
             "employees": self._employees(), "off": {e.id: e._is_off(day) for e in emps},
             "reports": [{"branch_id": r.branch_id.id, "day": fields.Date.to_string(r.day), "employee_name": r.employee_name,

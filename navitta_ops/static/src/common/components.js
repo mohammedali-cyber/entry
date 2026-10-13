@@ -2,7 +2,7 @@
 import { Component, onMounted, onWillStart, onWillUnmount, onWillUpdateProps, useExternalListener, useRef, useState } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import {
-    api, addDays, ago, barcodeUrl, compress, dcsText, f0, hourNow, icon, isBag, longDate, minuteNow, mmss, monthEnd, monthName,
+    api, addDays, ago, barcodeUrl, compress, dcsText, f0, hourNow, icon, isBag, jn, longDate, minuteNow, mmss, monthEnd, monthName,
     monthStart, photoUrl, pc, sizesOf, swatch, today,
 } from "./utils";
 
@@ -392,6 +392,7 @@ export class Waiting extends Component {
         this.orm = useService("orm");
         this.state = useState({ w: [] });
         this.ago = ago;
+        this.jn = jn;
         onWillStart(() => this.load(this.props.nos));
         onWillUpdateProps((np) => np.nos.join() !== this.props.nos.join() && this.load(np.nos));
     }

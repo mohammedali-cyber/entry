@@ -48,6 +48,8 @@ export function setClock(tz, serverNowIso) {
 }
 export const now = () => Date.now() + OFFSET;
 
+/** Joins the non-empty values (templates can't use Boolean). */
+export const jn = (arr, sep = " · ") => arr.filter((x) => x).join(sep);
 export const f0 = (n) => new Intl.NumberFormat("en-US").format(Math.round(+n || 0));
 export const pc = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 export const mmss = (s) => {
