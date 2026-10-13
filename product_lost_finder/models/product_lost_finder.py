@@ -18,7 +18,6 @@ class ProductLostFinder(models.AbstractModel):
     _description = 'Lost Sales Product Finder'
 
     _CHOICE_LIMIT = 20
-    _LIST_LIMIT = 50
 
     # ------------------------------------------------------------------
     # Access and branches
@@ -119,11 +118,18 @@ class ProductLostFinder(models.AbstractModel):
 
     @api.model
     def list_templates(self, term=''):
-        """Product list of the detailed report search box: every storable product when
-        nothing is typed, sorted with the numbered names first."""
+        """Product list of the detailed report search box: ALL the storable products
+        (or all those matching the text), numbered names first. One light query
+        (id, name, reference) so that long lists stay fast."""
         self._check_user_access()
-        templates, total = self._sorted_templates(term, self._LIST_LIMIT)
-        return {'templates': self._template_choices(templates), 'total': total}
+        domain = [('is_storable', '=', True)]
+        term = (term or '').strip()
+        if term:
+            domain = [('product_variant_ids', 'any', self._product_domain(term))]
+        rows = self.env['product.template'].search_read(domain, ['name', 'default_code'])
+        rows.sort(key=lambda row: self._natural_key(row['name']))
+        templates = [{'id': r['id'], 'name': r['name'], 'default_code': r['default_code'] or ''} for r in rows]
+        return {'templates': templates, 'total': len(templates)}
 
     def _variant_name(self, product):
         return product.product_template_attribute_value_ids._get_combination_name() or product.display_name

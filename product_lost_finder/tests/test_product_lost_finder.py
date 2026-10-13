@@ -367,10 +367,11 @@ class TestProductListOrder(TransactionCase):
     def test_list_without_text(self):
         Finder = self.env['product.lost.finder'].with_user(self.user)
         result = Finder.list_templates('')
-        self.assertLessEqual(len(result['templates']), Finder._LIST_LIMIT)
-        self.assertGreaterEqual(result['total'], 6)
+        storable = self.env['product.template'].search_count([('is_storable', '=', True)])
+        self.assertEqual(len(result['templates']), storable, "Every storable product is listed")
         names = [t['name'] for t in result['templates']]
         self.assertEqual(names, sorted(names, key=Finder._natural_key))
+        self.assertTrue(set(self.expected) <= set(names))
 
     def test_report_sorted_by_product_number(self):
         report = self.env['product.lost.sale'].with_user(self.user).get_detail_report(

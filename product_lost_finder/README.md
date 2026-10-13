@@ -18,7 +18,7 @@ The technical name stays `product_lost_finder` so that upgrades keep the recorde
    matrix. Rows are the products, columns the values of one attribute (color by
    default, can be changed). Each cell shows the current On Hand quantity (green,
    or red when zero or less = lost) and, below, the lost sales recorded in the
-   period ("Requested"). Filters: products (clicking the box lists the products,
+   period ("Requested"). Filters: products (clicking the box lists ALL the products,
    numbered names first in numeric order - "21160003- ..." before "22030022- ..." -
    then the others A-Z; typing narrows the list by name, number or barcode;
    several products can be added as tags, Enter adds every product containing the

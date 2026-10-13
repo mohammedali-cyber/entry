@@ -157,21 +157,12 @@ export class LostSaleDetailReport extends Component {
     }
 
     async loadProductOptions(term) {
-        // Without text: the product list, numbered names first (21160003- ... before 22030022- ...).
+        // Without text: every product, numbered names first (21160003- ... before 22030022- ...).
         const result = await this.orm.call("product.lost.finder", "list_templates", [term || ""]);
         const options = result.templates.map((t) => ({
             label: t.default_code ? `[${t.default_code}] ${t.name}` : t.name,
             templateId: t.id,
         }));
-        if (result.total > result.templates.length) {
-            options.push({
-                label: _t("%(count)s of %(total)s products shown, type to narrow the list", {
-                    count: result.templates.length,
-                    total: result.total,
-                }),
-                unselectable: true,
-            });
-        }
         if (term) {
             // First option (selected by Enter): every product containing the typed text.
             options.unshift({ label: _t('All products containing "%s"', term), term });
