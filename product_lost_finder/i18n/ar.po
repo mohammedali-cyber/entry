@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-12 13:44+0000\n"
-"PO-Revision-Date: 2026-10-12 13:44+0000\n"
+"POT-Creation-Date: 2026-10-13 09:19+0000\n"
+"PO-Revision-Date: 2026-10-13 09:19+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ar\n"
@@ -15,6 +15,12 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5;\n"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.js:0
+msgid "%(count)s of %(total)s products shown, type to narrow the list"
+msgstr "يتم عرض %(count)s من أصل %(total)s منتج، اكتب لتضييق القائمة"
 
 #. module: product_lost_finder
 #. odoo-python
@@ -375,6 +381,12 @@ msgid "Lost sale recorded."
 msgstr "تم تسجيل البيعة الضائعة."
 
 #. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Most requested"
+msgstr "الأكثر طلبًا"
+
+#. module: product_lost_finder
 #: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
 msgid "My Lost Sales"
 msgstr "مبيعاتي الضائعة"
@@ -464,6 +476,12 @@ msgstr "البحث عن منتج"
 #: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__product_tmpl_id
 msgid "Product Template"
 msgstr "قالب المنتج"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Product number"
+msgstr "رقم المنتج"
 
 #. module: product_lost_finder
 #. odoo-javascript
@@ -596,6 +614,12 @@ msgstr "عرض المزيد"
 #: code:addons/product_lost_finder/static/src/lost_sale_detail_report.js:0
 msgid "Showing %(count)s of %(total)s products"
 msgstr "يتم عرض %(count)s من أصل %(total)s منتج"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Sort by:"
+msgstr "الترتيب:"
 
 #. module: product_lost_finder
 #. odoo-javascript

@@ -361,3 +361,9 @@
         }
     }
 }
+
+.o_lost_sale_detail .o_lsd_product_input .o-autocomplete--dropdown-menu {
+    max-height: 360px;
+    overflow-y: auto;
+    min-width: 280px;
+}

@@ -18,14 +18,16 @@ The technical name stays `product_lost_finder` so that upgrades keep the recorde
    matrix. Rows are the products, columns the values of one attribute (color by
    default, can be changed). Each cell shows the current On Hand quantity (green,
    or red when zero or less = lost) and, below, the lost sales recorded in the
-   period ("Requested"). Filters: products (typed: name, number or barcode, with
-   suggestions; several products can be added as tags, Enter adds every product
-   containing the text), each attribute
+   period ("Requested"). Filters: products (clicking the box lists the products,
+   numbered names first in numeric order - "21160003- ..." before "22030022- ..." -
+   then the others A-Z; typing narrows the list by name, number or barcode;
+   several products can be added as tags, Enter adds every product containing the
+   text), each attribute
    (color, size...), branch, period, status (all / lost only / available only).
    Sizes are not broken down: choosing a size only narrows the numbers. With "All
    branches" the stock is the sum of every branch. Products without the column
-   attribute are under "Other". Rows are loaded 50 at a time (most requested
-   first) with a "Show more" button; totals and the Excel export cover every row.
+   attribute are under "Other". Rows are sorted by most requested or by product
+   number, and loaded 50 at a time with a "Show more" button; totals and the Excel export cover every row.
    Stock is read with one grouped query on the quants for speed.
 
 Read-only for stock: nothing here changes quantities, moves or accounting. Lost

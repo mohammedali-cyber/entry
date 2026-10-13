@@ -233,8 +233,14 @@ class ProductLostSale(models.Model):
         elif status == 'available':
             rows = {k: r for k, r in rows.items() if not r['lost_count']}
 
-        # Most requested first, then the products with out-of-stock colors, then by name.
-        sorted_rows = sorted(rows.values(), key=lambda r: (-r['lost'], -r['lost_count'], r['label']))
+        natural_key = self.env['product.lost.finder']._natural_key
+        if filters.get('order') == 'name':
+            # Product number / name order: numbered names first, in numeric order.
+            sorted_rows = sorted(rows.values(), key=lambda r: natural_key(r['label']))
+        else:
+            # Most requested first, then the products with out-of-stock colors, then by name.
+            sorted_rows = sorted(rows.values(),
+                                 key=lambda r: (-r['lost'], -r['lost_count'], natural_key(r['label'])))
         used_keys = {key for row in sorted_rows for key in row['cells']}
         no_value_label = _("Other") if column_attribute else _("Quantity")
         ordered_columns = sorted(((k, v) for k, v in columns.items() if k in used_keys),

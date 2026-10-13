@@ -36,6 +36,7 @@ export class LostSaleDetailReport extends Component {
             columnAttributeId: 0,
             period: "this_month",
             status: "all",
+            order: "requested",
             dateFrom: "",
             dateTo: "",
             report: null,
@@ -63,6 +64,7 @@ export class LostSaleDetailReport extends Component {
             warehouse_id: this.state.warehouseId || false,
             column_attribute_id: this.state.columnAttributeId || false,
             status: this.state.status,
+            order: this.state.order,
             date_from: range.from,
             date_to: range.to,
         };
@@ -155,18 +157,26 @@ export class LostSaleDetailReport extends Component {
     }
 
     async loadProductOptions(term) {
-        if (!term) {
-            return [];
+        // Without text: the product list, numbered names first (21160003- ... before 22030022- ...).
+        const result = await this.orm.call("product.lost.finder", "list_templates", [term || ""]);
+        const options = result.templates.map((t) => ({
+            label: t.default_code ? `[${t.default_code}] ${t.name}` : t.name,
+            templateId: t.id,
+        }));
+        if (result.total > result.templates.length) {
+            options.push({
+                label: _t("%(count)s of %(total)s products shown, type to narrow the list", {
+                    count: result.templates.length,
+                    total: result.total,
+                }),
+                unselectable: true,
+            });
         }
-        const result = await this.orm.call("product.lost.finder", "search_templates", [term]);
-        // First option (selected by Enter): every product containing the typed text.
-        return [
-            { label: _t('All products containing "%s"', term), term },
-            ...result.templates.map((t) => ({
-                label: t.default_code ? `[${t.default_code}] ${t.name}` : t.name,
-                templateId: t.id,
-            })),
-        ];
+        if (term) {
+            // First option (selected by Enter): every product containing the typed text.
+            options.unshift({ label: _t('All products containing "%s"', term), term });
+        }
+        return options;
     }
 
     onProductSelect(option) {

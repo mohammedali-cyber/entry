@@ -6,14 +6,20 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-12 13:44+0000\n"
-"PO-Revision-Date: 2026-10-12 13:44+0000\n"
+"POT-Creation-Date: 2026-10-13 09:19+0000\n"
+"PO-Revision-Date: 2026-10-13 09:19+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
 "Plural-Forms: \n"
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.js:0
+msgid "%(count)s of %(total)s products shown, type to narrow the list"
+msgstr ""
 
 #. module: product_lost_finder
 #. odoo-python
@@ -367,6 +373,12 @@ msgid "Lost sale recorded."
 msgstr ""
 
 #. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Most requested"
+msgstr ""
+
+#. module: product_lost_finder
 #: model_terms:ir.ui.view,arch_db:product_lost_finder.product_lost_sale_view_search
 msgid "My Lost Sales"
 msgstr ""
@@ -455,6 +467,12 @@ msgstr ""
 #. module: product_lost_finder
 #: model:ir.model.fields,field_description:product_lost_finder.field_product_lost_sale__product_tmpl_id
 msgid "Product Template"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Product number"
 msgstr ""
 
 #. module: product_lost_finder
@@ -586,6 +604,12 @@ msgstr ""
 #. odoo-javascript
 #: code:addons/product_lost_finder/static/src/lost_sale_detail_report.js:0
 msgid "Showing %(count)s of %(total)s products"
+msgstr ""
+
+#. module: product_lost_finder
+#. odoo-javascript
+#: code:addons/product_lost_finder/static/src/lost_sale_detail_report.xml:0
+msgid "Sort by:"
 msgstr ""
 
 #. module: product_lost_finder

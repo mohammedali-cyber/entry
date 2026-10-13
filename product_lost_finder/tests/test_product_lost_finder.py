@@ -341,3 +341,38 @@ class TestLostSaleDetailReport(TransactionCase):
                                    'Stock', 'Requested', 'Lost Amount'))
         self.assertEqual(rows[1], ('PLF Detail Shoe', 0, 5, 3, 1, 3, 6, 60))
         self.assertEqual(rows[-1], ('Total', 0, 5, 3, 1, 3, 6, 60))
+
+
+@tagged('post_install', '-at_install')
+class TestProductListOrder(TransactionCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        names = ['22030022- PLFO حذاء نسائي', 'PLFO Zeta', '21210001- PLFO شنطة',
+                 '9- PLFO small', '21160003- PLFO حذاء نسائي', 'PLFO Alpha']
+        cls.templates = cls.env['product.template'].create(
+            [{'name': name, 'is_storable': True} for name in names])
+        cls.env['product.template'].create({'name': 'PLFO Service', 'type': 'service'})
+        cls.user = new_test_user(cls.env, login='plfo_manager',
+                                 groups='product_lost_finder.group_lost_finder_manager')
+        cls.expected = ['9- PLFO small', '21160003- PLFO حذاء نسائي', '21210001- PLFO شنطة',
+                        '22030022- PLFO حذاء نسائي', 'PLFO Alpha', 'PLFO Zeta']
+
+    def test_list_numbers_first(self):
+        result = self.env['product.lost.finder'].with_user(self.user).list_templates('PLFO')
+        self.assertEqual([t['name'] for t in result['templates']], self.expected)
+        self.assertEqual(result['total'], 6, "Services are not listed")
+
+    def test_list_without_text(self):
+        Finder = self.env['product.lost.finder'].with_user(self.user)
+        result = Finder.list_templates('')
+        self.assertLessEqual(len(result['templates']), Finder._LIST_LIMIT)
+        self.assertGreaterEqual(result['total'], 6)
+        names = [t['name'] for t in result['templates']]
+        self.assertEqual(names, sorted(names, key=Finder._natural_key))
+
+    def test_report_sorted_by_product_number(self):
+        report = self.env['product.lost.sale'].with_user(self.user).get_detail_report(
+            {'product_term': 'PLFO', 'order': 'name'})
+        self.assertEqual([r['label'] for r in report['rows']], self.expected)

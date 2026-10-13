@@ -1,4 +1,5 @@
 import io
+import re
 
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError
@@ -17,6 +18,7 @@ class ProductLostFinder(models.AbstractModel):
     _description = 'Lost Sales Product Finder'
 
     _CHOICE_LIMIT = 20
+    _LIST_LIMIT = 50
 
     # ------------------------------------------------------------------
     # Access and branches
@@ -77,25 +79,51 @@ class ProductLostFinder(models.AbstractModel):
             ('barcode', 'ilike', term),
         ]
 
+    @staticmethod
+    def _natural_key(name):
+        """Sort key putting names that start with a number first, in numeric order
+        ("21160003- ..." < "21210001- ..." < "22030022- ..."), then the others A-Z."""
+        name = (name or '').strip()
+        match = re.match(r'(\d+)', name)
+        if match:
+            return (0, int(match.group(1)), name.lower())
+        return (1, 0, name.lower())
+
+    def _sorted_templates(self, term, limit):
+        """Storable product templates matching the text (all of them when empty),
+        in natural order: returns (first `limit` templates, total count)."""
+        domain = [('is_storable', '=', True)]
+        term = (term or '').strip()
+        if term:
+            domain = [('product_variant_ids', 'any', self._product_domain(term))]
+        rows = self.env['product.template'].search_read(domain, ['name'])
+        rows.sort(key=lambda row: self._natural_key(row['name']))
+        return self.env['product.template'].browse([row['id'] for row in rows[:limit]]), len(rows)
+
+    def _template_choices(self, templates):
+        return [{
+            'id': t.id,
+            'name': t.name,
+            'default_code': t.default_code or '',
+            'variant_count': t.product_variant_count,
+        } for t in templates]
+
     @api.model
     def search_templates(self, term):
         """Products (templates) matching a name, internal reference or barcode."""
         self._check_user_access()
-        term = (term or '').strip()
-        if not term:
+        if not (term or '').strip():
             return {'templates': [], 'total': 0}
-        Template = self.env['product.template']
-        domain = [('product_variant_ids', 'any', self._product_domain(term))]
-        templates = Template.search(domain, limit=self._CHOICE_LIMIT)
-        return {
-            'templates': [{
-                'id': t.id,
-                'name': t.name,
-                'default_code': t.default_code or '',
-                'variant_count': t.product_variant_count,
-            } for t in templates],
-            'total': Template.search_count(domain),
-        }
+        templates, total = self._sorted_templates(term, self._CHOICE_LIMIT)
+        return {'templates': self._template_choices(templates), 'total': total}
+
+    @api.model
+    def list_templates(self, term=''):
+        """Product list of the detailed report search box: every storable product when
+        nothing is typed, sorted with the numbered names first."""
+        self._check_user_access()
+        templates, total = self._sorted_templates(term, self._LIST_LIMIT)
+        return {'templates': self._template_choices(templates), 'total': total}
 
     def _variant_name(self, product):
         return product.product_template_attribute_value_ids._get_combination_name() or product.display_name
