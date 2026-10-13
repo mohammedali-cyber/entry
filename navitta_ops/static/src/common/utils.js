@@ -142,10 +142,13 @@ export async function compress(src, max = 1280, quality = 0.7) {
     return c.toDataURL("image/jpeg", quality).split(",")[1];
 }
 
+/** Branch picked by management on the branch screen (device accounts always work on their own branch). */
+export const CTX = { branch: 0 };
+
 /** Calls navitta.api; returns the result, or {error, message} for business errors. */
 export async function api(orm, method, ...args) {
     try {
-        return await orm.call("navitta.api", method, args);
+        return await orm.call("navitta.api", method, args, CTX.branch ? { context: { navitta_branch: CTX.branch } } : {});
     } catch (e) {
         const msg = (e && e.data && e.data.message) || (e && e.message) || "حدث خطأ، حاولي مرة ثانية";
         return { error: "server", message: msg };

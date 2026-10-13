@@ -37,6 +37,7 @@ class NavittaEmployee(models.Model):
             self.env.cr.execute("CREATE UNIQUE INDEX navitta_employee_branch_slot_active "
                                 "ON navitta_employee (branch_id, slot) WHERE active")
 
+    @api.depends("pin_hash")
     def _compute_has_pin(self):
         for e in self:
             e.has_pin = bool(e.sudo().pin_hash)

@@ -5,7 +5,7 @@ import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 import {
     CASEST, COLORS, EXPICON, LEAVEST, LOST, LOSTL, NOBUY, LOSTFULL, OUTOF, QBREAK, QLATE, RQST, EXST, SAT, SIZES, SUP, TRIED, TYPES,
-    addDays, api, clock, dTxt, days, f0, h12, jn, longDate, minuteNow, mmss, now, photoUrl, setClock, sizesOf, swatch, today, ago, icon, dcsText,
+    CTX, addDays, api, clock, dTxt, days, f0, h12, jn, longDate, minuteNow, mmss, now, photoUrl, setClock, sizesOf, swatch, today, ago, icon, dcsText,
 } from "../common/utils";
 import {
     DailyQuote, ModelPicker, ModelSearch, NvModal, PhotoLink, PhotoPicker, PinPad, SignModal, TargetBar,
@@ -637,13 +637,45 @@ export class BranchApp extends Component {
     static components = { Counter, Inbox, Requests, Report, ModelSearch };
     static props = { ...standardActionServiceProps };
     setup() {
-        this.state = useState({ tab: "counter", inboxOpen: "", inboxEmp: null, reqTab: "", branch: "", key: 1 });
+        this.state = useState({ tab: "counter", inboxOpen: "", inboxEmp: null, reqTab: "", branch: "", key: 1, branches: null, bid: 0 });
         this.orm = useService("orm");
         onWillStart(async () => {
-            const d = await api(this.orm, "branch_state");
-            this.state.branch = d.error ? "" : d.branch.name;
-            this.error = d.error ? d.message : "";
+            const a = await api(this.orm, "branch_access");
+            if (a.error) {
+                this.error = a.message;
+                return;
+            }
+            if (a.device) {
+                CTX.branch = 0;
+                this.state.branch = a.branch.name;
+                return;
+            }
+            // management: works on the branch picked here (remembered on this browser)
+            this.state.branches = a.branches;
+            let saved = 0;
+            try {
+                saved = +localStorage.getItem("navitta_admin_branch") || 0;
+            } catch {
+                saved = 0;
+            }
+            if (a.branches.some((b) => b.id === saved)) {
+                this.pick(saved);
+            }
         });
+        onWillUnmount(() => (CTX.branch = 0));
+    }
+    pick(id) {
+        id = +id || 0;
+        const b = (this.state.branches || []).find((x) => x.id === id);
+        CTX.branch = b ? b.id : 0;
+        this.state.bid = CTX.branch;
+        this.state.branch = b ? b.name : "";
+        try {
+            localStorage.setItem("navitta_admin_branch", String(CTX.branch));
+        } catch {
+            // private mode: the pick is just not remembered
+        }
+        this.state.key++;
     }
     go(tab, opts = {}) {
         Object.assign(this.state, { tab, inboxOpen: opts.open || "", inboxEmp: opts.emp || null, reqTab: opts.reqTab || "" });

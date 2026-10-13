@@ -393,7 +393,7 @@ html,
 .topnav a.on{background:var(--fg);color:var(--bg)}
 
 .nv-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;z-index:70;padding:16px}
-.nv-modal{background:var(--surface);border-radius:14px;max-width:420px;width:100%;padding:8px}
+.nv-modal{background:var(--surface);color:var(--fg);border-radius:14px;max-width:420px;width:100%;padding:8px}
 .row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .small{font-size:12.5px;color:var(--muted)}
 .spin{opacity:.6;pointer-events:none}
@@ -624,5 +624,23 @@ td .m,td.m{font-size:12px;color:var(--fg-2)}
 .qod .hi{display:block;font-size:13px;font-weight:600;color:var(--good);margin-top:4px}
 @media (max-width:640px){.qod .qd{display:none}.qod .qq{font-size:16px}}
 
+/* management on the branch screen, first-time setup */
+.admin-mode{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px;padding:10px 14px;border:1px dashed var(--line);border-radius:12px;background:var(--surface);font-size:13px}
+.admin-mode .ctl{width:auto;min-width:160px}
+.admin-mode .note{color:var(--muted)}
+.pick-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.pick-grid .nv-btn{min-width:140px;padding:14px 18px;font-size:15px}
+.setup{border-color:#e8c46a}
+.setup .steps{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:10px}
+.setup .step{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.setup .step.done{opacity:.6}
+.setup .step .ic{font-size:18px;line-height:1.2}
+.setup .step b{display:block;font-size:14px}
+.setup .step span{display:block;font-size:12px;color:var(--muted);margin:2px 0 6px}
+.setup .step .nv-btn{padding:6px 12px;font-size:12px}
+.setup .top-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.once-tbl td,.once-tbl th{font-size:14px}
+.once-tbl .code{font-family:ui-monospace,monospace;font-size:18px;font-weight:700;letter-spacing:.15em;direction:ltr;unicode-bidi:isolate}
+@media print{.o_navitta .no-print{display:none!important}}
 }
 // modals are rendered inside .o_navitta too (position: fixed)

@@ -14,7 +14,25 @@
                     </nav>
                 </header>
                 <div class="sheen"/>
+                <div t-if="state.branches" class="admin-mode">
+                    <span class="chip info">وضع الإدارة</span>
+                    <span>تشغّل شاشة فرع:</span>
+                    <select class="ctl" aria-label="الفرع" t-on-change="(e) => this.pick(e.target.value)">
+                        <option value="0" t-att-selected="!state.bid">— اختر الفرع —</option>
+                        <t t-foreach="state.branches" t-as="b" t-key="b.id"><option t-att-value="b.id" t-att-selected="state.bid === b.id" t-esc="b.name"/></t>
+                    </select>
+                    <span class="note">كل ما تسوينه هنا يُسجَّل على هذا الفرع كأنه من جهازه.</span>
+                </div>
                 <div t-if="error" class="nv-card"><p class="hint err" style="margin:0" t-esc="error"/></div>
+                <div t-elif="state.branches and !state.bid" class="nv-card pick-branch">
+                    <h2>اختر الفرع</h2>
+                    <p class="sub">شاشة الفرع تشتغل على فرع واحد. أجهزة الفروع تفتح على فرعها مباشرة، وأنت كإدارة تختار الفرع:</p>
+                    <div class="pick-grid">
+                        <t t-foreach="state.branches" t-as="b" t-key="b.id">
+                            <button type="button" class="nv-btn primary" t-on-click="() => this.pick(b.id)" t-esc="b.name"/>
+                        </t>
+                    </div>
+                </div>
                 <t t-else="">
                     <Counter t-if="state.tab === 'counter'" t-key="state.key" goto="(tab, opts) => this.go(tab, opts)"/>
                     <Inbox t-if="state.tab === 'inbox'" t-key="state.key" open="state.inboxOpen" empId="state.inboxEmp"/>

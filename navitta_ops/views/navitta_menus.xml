@@ -3,7 +3,7 @@
     <menuitem id="menu_root" name="فروع نافيتا" web_icon="navitta_ops,static/description/icon.png" sequence="30"
               groups="group_navitta_branch,group_navitta_admin"/>
 
-    <menuitem id="menu_branch_app" name="شاشة الفرع" parent="menu_root" action="action_branch_app" sequence="1" groups="group_navitta_branch"/>
+    <menuitem id="menu_branch_app" name="شاشة الفرع" parent="menu_root" action="action_branch_app" sequence="10" groups="group_navitta_branch,group_navitta_admin"/>
 
     <menuitem id="menu_admin_dashboard" name="لوحة الإدارة" parent="menu_root" action="action_admin_dashboard" sequence="2" groups="group_navitta_admin"/>
     <menuitem id="menu_admin_sales" name="المبيعات والتارقت" parent="menu_root" action="action_admin_sales" sequence="3" groups="group_navitta_admin"/>

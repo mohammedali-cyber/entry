@@ -7,7 +7,7 @@ import {
     EXPICON, EXST, LOST, LOSTL, MONTHS, OUTOF, RQST, SUP, WD, addDays, ago, api, clock, dTxt, days, dmy, downloadCsv, f0, h12, longDate,
     mmss, now, pc, setClock, today, weekday, jn,
 } from "../common/utils";
-import { DailyQuote, EmpBoard, PhotoLink, TargetEditor } from "../common/components";
+import { DailyQuote, EmpBoard, NvModal, PhotoLink, TargetEditor } from "../common/components";
 
 const LEAVEADM = { pending: "بانتظار موافقتك", cover: "بانتظار الزميلة", cover_no: "اعتذرت الزميلة", approved: "تمت الموافقة", rejected: "مرفوضة" };
 const NOTIF = { sent: ["good", "أُرسل"], no_email: ["bad", "لا يوجد إيميل"], exception: ["bad", "فشل الإرسال"], outgoing: ["info", "بانتظار الإرسال"] };
@@ -41,22 +41,56 @@ class AdminBase extends Component {
 // ---------------------------------------------------------------- dashboard
 class Dashboard extends AdminBase {
     static template = "navitta_ops.AdminDashboard";
-    static components = { DailyQuote, EmpBoard };
+    static components = { DailyQuote, EmpBoard, NvModal };
     setup() {
         super.setup();
-        this.state = useState({ d: null, br: 0, period: 7, notes: {}, openT: null, reply: "" });
+        this.state = useState({ d: null, br: 0, period: 7, notes: {}, openT: null, reply: "", setup: null, once: null, busy: false });
+        this.action = useService("action");
         onWillStart(() => this.load());
         onMounted(() => (this.timer = setInterval(() => this.load(), 60000)));
         onWillUnmount(() => clearInterval(this.timer));
     }
     async load() {
-        const d = await api(this.orm, "admin_dashboard", this.state.period);
+        const [d, setup] = await Promise.all([api(this.orm, "admin_dashboard", this.state.period), api(this.orm, "admin_setup")]);
+        if (!setup.error) {
+            this.state.setup = setup;
+        }
         if (d.error) {
             return;
         }
         setClock(d.settings.tz);
         d.E = Object.fromEntries(d.employees.map((e) => [e.id, e]));
         this.state.d = d;
+    }
+    /** First-time setup buttons. PINs and device passwords are shown once (state.once), then only their hashes stay. */
+    async setupDo(key) {
+        const reload = { onClose: () => this.load() };
+        if (key === "pins" || key === "devices") {
+            if (this.state.busy) {
+                return;
+            }
+            this.state.busy = true;
+            const r = await api(this.orm, key === "pins" ? "admin_setup_pins" : "admin_setup_devices");
+            this.state.busy = false;
+            if (r.error) {
+                return this.toast(r.message, "danger");
+            }
+            this.state.once = { kind: key, rows: r.rows };
+            return this.load();
+        }
+        if (key === "admin_pw") {
+            return this.action.doAction({ type: "ir.actions.act_window", res_model: "navitta.admin.password.wizard", views: [[false, "form"]], target: "new", name: "كلمة سر الإدارة" }, reload);
+        }
+        const xmlid = { email: "navitta_ops.action_navitta_settings", mail_server: "base.action_ir_mail_server_list",
+            catalog: "navitta_ops.action_catalog_import", branch: "navitta_ops.action_branch_app", employees: "navitta_ops.action_employees" }[key];
+        return this.action.doAction(xmlid, reload);
+    }
+    saveOnce() {
+        const o = this.state.once;
+        const rows = o.kind === "pins"
+            ? [["الفرع", "الموظفة", "الرمز السري"], ...o.rows.map((r) => [r.branch, r.name, r.pin])]
+            : [["الفرع", "اسم الدخول", "كلمة المرور"], ...o.rows.map((r) => [r.branch, r.login, r.password])];
+        downloadCsv(o.kind === "pins" ? "navitta-pins.csv" : "navitta-devices.csv", rows);
     }
     async setPeriod(n) {
         this.state.period = n;

@@ -35,6 +35,56 @@
         <t t-else="">
             <t t-set="d" t-value="state.d"/>
             <t t-set="w" t-value="this.v"/>
+            <div t-if="state.setup and !state.setup.done" class="nv-card setup">
+                <h2>🚀 خطوات التشغيل</h2>
+                <p class="sub">هذه الخطوات لازمة عشان تشتغل شاشات الفروع. كل خطوة تختفي علامتها لما تكتمل.</p>
+                <div class="steps">
+                    <t t-foreach="state.setup.items" t-as="it" t-key="it.key">
+                        <div t-att-class="'step' + (it.done ? ' done' : '')">
+                            <span class="ic" t-esc="it.done ? '✅' : '⚠️'"/>
+                            <div>
+                                <b t-esc="it.title"/>
+                                <span t-esc="it.text"/>
+                                <t t-if="!it.done">
+                                    <button t-if="it.key === 'pins'" type="button" class="nv-btn primary" t-att-disabled="state.busy" t-on-click="() => this.setupDo('pins')">توليد الرموز الآن</button>
+                                    <button t-elif="it.key === 'devices'" type="button" class="nv-btn primary" t-att-disabled="state.busy" t-on-click="() => this.setupDo('devices')">إنشاء حسابات الأجهزة</button>
+                                    <button t-elif="it.key === 'admin_pw'" type="button" class="nv-btn" t-on-click="() => this.setupDo('admin_pw')">تحديد كلمة السر</button>
+                                    <button t-elif="it.key === 'email'" type="button" class="nv-btn" t-on-click="() => this.setupDo('email')">فتح الإعدادات</button>
+                                    <button t-elif="it.key === 'mail_server'" type="button" class="nv-btn" t-on-click="() => this.setupDo('mail_server')">إعداد البريد</button>
+                                    <button t-elif="it.key === 'catalog'" type="button" class="nv-btn" t-on-click="() => this.setupDo('catalog')">رفع الملف</button>
+                                </t>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+                <div class="top-act">
+                    <button type="button" class="nv-btn" t-on-click="() => this.setupDo('branch')">📱 افتح شاشة الفرع وجرّب</button>
+                    <button type="button" class="nv-btn" t-on-click="() => this.setupDo('employees')">👩 الموظفات (الإيميل والإجازة الأسبوعية)</button>
+                </div>
+            </div>
+            <NvModal t-if="state.once" onClose="() => state.once = null" wide="true">
+                <h2 t-esc="state.once.kind === 'pins' ? '🔑 الرموز السرية الجديدة' : '📱 حسابات أجهزة الفروع'"/>
+                <p class="hint err">تظهر مرة وحدة فقط. انسخها أو نزّلها الآن قبل الإغلاق.</p>
+                <p t-if="!state.once.rows.length" class="empty">ما فيه شيء جديد، كل شيء جاهز مسبقًا.</p>
+                <div t-else="" class="tscroll">
+                    <table class="nv-tbl once-tbl">
+                        <thead t-if="state.once.kind === 'pins'"><tr><th>الفرع</th><th>الموظفة</th><th>الرمز السري</th></tr></thead>
+                        <thead t-else=""><tr><th>الفرع</th><th>اسم الدخول</th><th>كلمة المرور</th></tr></thead>
+                        <tbody>
+                            <t t-foreach="state.once.rows" t-as="r" t-key="r_index">
+                                <tr t-if="state.once.kind === 'pins'"><td t-esc="r.branch"/><td t-esc="r.name"/><td class="code" t-esc="r.pin"/></tr>
+                                <tr t-else=""><td t-esc="r.branch"/><td class="code" style="font-size:15px;letter-spacing:0" t-esc="r.login"/><td class="code" t-esc="r.password"/></tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+                <p t-if="state.once.kind === 'devices' and state.once.rows.length" class="sub">على آيباد كل فرع: افتح رابط Odoo وسجّل دخول بحساب الفرع، وتفتح شاشة الفرع مباشرة. بعدها «إضافة إلى الشاشة الرئيسية».</p>
+                <p t-if="state.once.kind === 'pins' and state.once.rows.length" class="sub">أعطِ كل موظفة رمزها. تقدر تغيّر رمز أي موظفة لاحقًا من الإعدادات ← الموظفات ← «رمز جديد».</p>
+                <div class="top-act" style="display:flex;gap:8px;margin-top:12px">
+                    <button t-if="state.once.rows.length" type="button" class="nv-btn" t-on-click="() => this.saveOnce()">⬇️ تنزيل (Excel)</button>
+                    <button type="button" class="nv-btn primary" t-on-click="() => state.once = null">تم، أغلق</button>
+                </div>
+            </NvModal>
             <DailyQuote admin="true" best="d.best"/>
             <div class="filters">
                 <t t-call="navitta_ops.BranchSelect"><t t-set="branches" t-value="d.branches"/><t t-set="sel" t-value="state.br"/><t t-set="onChange" t-value="(e) => state.br = +e.target.value"/></t>

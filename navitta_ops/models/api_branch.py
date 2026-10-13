@@ -75,11 +75,32 @@ class NavittaApi(models.AbstractModel):
         return {"error": code, "message": self._err_text(code)}
 
     @api.model
-    def _branch(self):
+    def _is_device(self):
         user = self.env.user
-        if not user.has_group("navitta_ops.group_navitta_branch") or not user.navitta_branch_id:
-            raise AccessError(_("هذه الشاشة لأجهزة الفروع فقط. اربط حساب الجهاز بفرع من الإعدادات."))
-        return user.navitta_branch_id.sudo()
+        return bool(user.navitta_branch_id) and user.has_group("navitta_ops.group_navitta_branch")
+
+    @api.model
+    def _branch(self):
+        """The branch the screen works on: a device account's own branch (always), or for management the branch
+        picked on the screen (context key navitta_branch)."""
+        if self._is_device():
+            return self.env.user.navitta_branch_id.sudo()
+        if self.env.user.has_group("navitta_ops.group_navitta_admin"):
+            b = self.env["navitta.branch"].sudo().browse(int(self.env.context.get("navitta_branch") or 0)).exists()
+            if b:
+                return b
+            raise AccessError(_("اختر الفرع أولًا"))
+        raise AccessError(_("هذه الشاشة لأجهزة الفروع فقط. اربط حساب الجهاز بفرع من الإعدادات."))
+
+    @api.model
+    def branch_access(self):
+        """How the branch screen opens: a device account gets its branch; management gets the branch list to pick from."""
+        if self._is_device():
+            b = self.env.user.navitta_branch_id
+            return {"device": True, "branch": {"id": b.id, "name": b.name}}
+        if self.env.user.has_group("navitta_ops.group_navitta_admin"):
+            return {"device": False, "branches": [{"id": b.id, "name": b.name} for b in self.env["navitta.branch"].sudo().search([])]}
+        return self._err("forbidden")
 
     @api.model
     def _emp(self, branch, emp_id):

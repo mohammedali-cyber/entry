@@ -333,6 +333,49 @@ class NavittaCase(TransactionCase):
                 self.env["ir.actions.report"].with_user(self.dev)._render_qweb_html(
                     "navitta_ops.report_daily_summary", [], data={"day": "2026-10-13"})
 
+    def test_admin_uses_branch_screen(self):
+        """Management can run any branch's screen by picking it; a device always stays on its own branch."""
+        with freeze_time(utc(15, 20)):
+            self.assertEqual(self.admin().branch_access()["device"], False)
+            self.assertEqual(len(self.admin().branch_access()["branches"]), 5)
+            self.assertEqual(self.api().branch_access()["branch"]["id"], self.dwd.id)
+            self.assertEqual(self.api(self.plain).branch_access()["error"], "forbidden")
+            with self.assertRaises(AccessError):  # no branch picked
+                self.admin().branch_state()
+            boss_dwd = self.admin().with_context(navitta_branch=self.dwd.id)
+            self.assertEqual(boss_dwd.branch_state()["branch"]["id"], self.dwd.id)
+            self.assertTrue(boss_dwd.check_in(self.reem.id, "2468")["ok"])
+            with self.assertRaises(AccessError):  # employee of another branch than the picked one
+                boss_dwd.check_in(self.hubour.id, "2468")
+            # a device can't switch branch through the context
+            with self.assertRaises(AccessError):
+                self.api().with_context(navitta_branch=self.qsm.id).check_in(self.hubour.id, "2468")
+            with self.assertRaises(AccessError):
+                self.api(self.plain).with_context(navitta_branch=self.dwd.id).branch_state()
+
+    def test_first_setup(self):
+        a = self.admin()
+        steps = {i["key"]: i["done"] for i in a.admin_setup()["items"]}
+        self.assertEqual((steps["pins"], steps["devices"], steps["admin_pw"], steps["email"]), (False, False, True, True))
+        rows = a.admin_setup_pins()["rows"]
+        self.assertEqual(len(rows), 7)  # 10 employees, 3 already had a PIN
+        emp = self.env["navitta.employee"].search([("name", "=", rows[0]["name"])], limit=1)
+        self.assertIsNone(emp._check_pin(rows[0]["pin"]))
+        self.assertEqual(a.admin_setup_pins()["rows"], [])
+        devs = a.admin_setup_devices()["rows"]
+        self.assertEqual(sorted(r["branch"] for r in devs), sorted(self.env["navitta.branch"].search([("id", "not in", (self.dwd | self.qsm).ids)]).mapped("name")))
+        u = self.env["res.users"].search([("login", "=", devs[0]["login"])])
+        self.assertTrue(u.has_group("navitta_ops.group_navitta_branch"))
+        self.assertFalse(u.has_group("navitta_ops.group_navitta_admin"))
+        self.assertEqual(u.action_id.id, self.env.ref("navitta_ops.action_branch_app").id)
+        self.assertEqual(self.env["navitta.api"].with_user(u).branch_access()["branch"]["name"], devs[0]["branch"])
+        self.assertEqual(a.admin_setup_devices()["rows"], [])
+        self.assertTrue(all(i["done"] for i in a.admin_setup()["items"] if i["key"] in ("pins", "devices")))
+        with self.assertRaises(AccessError):
+            self.api().admin_setup_pins()
+        with self.assertRaises(AccessError):
+            self.api().admin_setup_devices()
+
     # ------------------------------------------------------------------ models file import and nightly summary
     def test_catalog_import_wizard(self):
         import io
