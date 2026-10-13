@@ -282,6 +282,7 @@ class Requests extends AdminBase {
             reqs, live: reqs.filter((r) => ["pending", "approved", "shipped"].includes(r.state)),
             done: reqs.filter((r) => ["received", "rejected"].includes(r.state)).slice(0, 15),
             pendX: d.expenses.filter((x) => x.state === "pending" && this.inB(x.branch_id)),
+            pendTotal: d.expenses.filter((x) => x.state === "pending" && this.inB(x.branch_id)).reduce((s, x) => s + Number(x.amount), 0),
             lowB: d.branches.filter((b) => Object.keys(this.mins).some((k) => this.bal(b.id, k) < this.mins[k])),
             showReq: ["all", "goods", "supply"].includes(s.kind), showExp: ["all", "expense"].includes(s.kind),
         };

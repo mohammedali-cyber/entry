@@ -72,9 +72,9 @@
                             </div></div>
                                 <div class="req-act">
                                     <input class="ctl" placeholder="ملاحظة للموظفة (اختياري)" t-model="state.notes[c.id]"/>
-                                    <button t-if="c.request === 'edit'" type="button" class="nv-btn primary" t-on-click="() => this.act('admin_decide_case', [c.id, 'edit', note(c.id)], 'تم قبول تعديل المدة')">قبول تعديل المدة</button>
-                                    <button type="button" class="nv-btn" t-att-disabled="u &gt;= d.settings.chances" t-on-click="() => this.act('admin_decide_case', [c.id, 'forgive', note(c.id)], 'احتُسبت فرصة مسامحة')">احتساب فرصة (يبقى <t t-esc="Math.max(0, d.settings.chances - u - 1)"/>)</button>
-                                    <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_case', [c.id, 'reject', note(c.id)], 'رُفض العذر وسُجلت العقوبة حسب الجدول')">رفض وتطبيق العقوبة</button>
+                                    <button t-if="c.request === 'edit'" type="button" class="nv-btn primary" t-on-click="() => this.act('admin_decide_case', [c.id, 'edit', this.note(c.id)], 'تم قبول تعديل المدة')">قبول تعديل المدة</button>
+                                    <button type="button" class="nv-btn" t-att-disabled="u &gt;= d.settings.chances" t-on-click="() => this.act('admin_decide_case', [c.id, 'forgive', this.note(c.id)], 'احتُسبت فرصة مسامحة')">احتساب فرصة (يبقى <t t-esc="Math.max(0, d.settings.chances - u - 1)"/>)</button>
+                                    <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_case', [c.id, 'reject', this.note(c.id)], 'رُفض العذر وسُجلت العقوبة حسب الجدول')">رفض وتطبيق العقوبة</button>
                                 </div></div>
                         </t>
                         <div t-if="!w.review.length" class="empty">لا توجد أعذار بانتظار قرارك</div>
@@ -92,8 +92,8 @@
                                 <div t-if="r.cover_employee_id" class="meta">تغطي الفرع: <b t-esc="eName(r.cover_employee_id)"/><t t-if="r.cover_note"> · <t t-esc="r.cover_note"/></t></div>
                                 <div t-else="" class="meta"><span class="chip warn">بدون تغطية</span></div></div></div>
                             <div t-if="r.state === 'pending'" class="req-act"><input class="ctl" placeholder="ملاحظة (اختياري)" t-model="state.notes[r.id]"/>
-                                <button type="button" class="nv-btn primary" t-on-click="() => this.act('admin_decide_leave', [r.id, true, note(r.id)], 'تمت الموافقة على الإجازة وسُجلت')">موافقة</button>
-                                <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_leave', [r.id, false, note(r.id)], 'تم رفض الطلب')">رفض</button></div>
+                                <button type="button" class="nv-btn primary" t-on-click="() => this.act('admin_decide_leave', [r.id, true, this.note(r.id)], 'تمت الموافقة على الإجازة وسُجلت')">موافقة</button>
+                                <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_leave', [r.id, false, this.note(r.id)], 'تم رفض الطلب')">رفض</button></div>
                         </div>
                         <div t-if="!w.lreq.length" class="empty">لا توجد طلبات</div>
                     </div>
@@ -104,8 +104,8 @@
                         <div class="what"><b t-esc="eName(r.employee_id)"/> · <t t-esc="bName(eB(r.employee_id))"/> · زيارة <t t-esc="clock(r.started_at)"/></div>
                         <div class="req-dur num"><span class="old" t-esc="mmss(r.old_sec)"/> ← <b t-esc="mmss(r.new_sec)"/></div><div class="meta">السبب: <t t-esc="r.reason"/></div></div></div>
                         <div class="req-act"><input class="ctl" placeholder="رد (اختياري)" t-model="state.notes[r.id]"/>
-                            <button type="button" class="nv-btn primary" t-on-click="() => this.act('admin_decide_visit_edit', [r.id, true, note(r.id)], 'تم قبول التعديل')">قبول</button>
-                            <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_visit_edit', [r.id, false, note(r.id)], 'تم رفض التعديل')">رفض</button></div></div>
+                            <button type="button" class="nv-btn primary" t-on-click="() => this.act('admin_decide_visit_edit', [r.id, true, this.note(r.id)], 'تم قبول التعديل')">قبول</button>
+                            <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_visit_edit', [r.id, false, this.note(r.id)], 'تم رفض التعديل')">رفض</button></div></div>
                 </div></div>
 
                 <div class="nv-card c12">
@@ -259,7 +259,7 @@
             <div class="kpis">
                 <div class="kpi"><span class="lbl">طلبات جديدة</span><span class="val num" t-esc="w.reqs.filter((r) => r.state === 'pending').length"/></div>
                 <div class="kpi"><span class="lbl">بانتظار الشحن</span><span class="val num" t-esc="w.reqs.filter((r) => r.state === 'approved').length"/></div>
-                <div class="kpi"><span class="lbl">مصروفات بانتظار اعتمادك</span><span class="val num"><t t-esc="w.pendX.length"/><small>· <t t-esc="f0(w.pendX.reduce((s, x) => s + +x.amount, 0))"/> ر.س</small></span></div>
+                <div class="kpi"><span class="lbl">مصروفات بانتظار اعتمادك</span><span class="val num"><t t-esc="w.pendX.length"/><small>· <t t-esc="f0(w.pendTotal)"/> ر.س</small></span></div>
                 <div class="kpi"><span class="lbl">فروع مستلزماتها قليلة</span><span class="val num" t-att-style="w.lowB.length ? 'color:var(--bad)' : ''" t-esc="w.lowB.length"/><span class="small" t-esc="w.lowB.map((b) => b.name).join(' · ')"/></div>
             </div>
             <div class="grid">
@@ -272,9 +272,9 @@
                                     <PhotoLink t-if="r.photo_id" id="r.photo_id" label="'صورة القطعة'"/></div></div></div>
                         <div class="req-act">
                             <input class="ctl" placeholder="ملاحظة (اختياري)" t-model="state.notes[r.id]"/>
-                            <button t-if="r.state === 'pending'" type="button" class="nv-btn primary" t-on-click="() => this.act('admin_request_set', [r.id, 'approved', note(r.id)], 'تمت الموافقة')">موافقة</button>
-                            <button t-if="r.state !== 'shipped'" type="button" class="nv-btn" t-on-click="() => this.act('admin_request_set', [r.id, 'shipped', note(r.id)], 'تم: انشحن')">🚚 انشحن</button>
-                            <button type="button" class="nv-btn" t-on-click="() => this.act('admin_request_set', [r.id, 'rejected', note(r.id)], 'تم رفض الطلب')">رفض</button>
+                            <button t-if="r.state === 'pending'" type="button" class="nv-btn primary" t-on-click="() => this.act('admin_request_set', [r.id, 'approved', this.note(r.id)], 'تمت الموافقة')">موافقة</button>
+                            <button t-if="r.state !== 'shipped'" type="button" class="nv-btn" t-on-click="() => this.act('admin_request_set', [r.id, 'shipped', this.note(r.id)], 'تم: انشحن')">🚚 انشحن</button>
+                            <button type="button" class="nv-btn" t-on-click="() => this.act('admin_request_set', [r.id, 'rejected', this.note(r.id)], 'تم رفض الطلب')">رفض</button>
                         </div>
                     </div>
                     <div t-if="!w.live.length" class="empty">لا توجد طلبات مفتوحة</div>
@@ -288,8 +288,8 @@
                                     <PhotoLink t-if="x.receipt_id" id="x.receipt_id"/><span t-else="" class="chip warn">⚠️ بدون إيصال</span></div></div></div>
                         <div class="req-act">
                             <input class="ctl" placeholder="ملاحظة (اختياري)" t-model="state.notes[x.id]"/>
-                            <button type="button" class="nv-btn primary" t-on-click="() => this.act('admin_expense_decide', [x.id, true, note(x.id)], 'تم اعتماد المصروف')">اعتماد</button>
-                            <button type="button" class="nv-btn" t-on-click="() => this.act('admin_expense_decide', [x.id, false, note(x.id)], 'تم رفض المصروف')">رفض</button>
+                            <button type="button" class="nv-btn primary" t-on-click="() => this.act('admin_expense_decide', [x.id, true, this.note(x.id)], 'تم اعتماد المصروف')">اعتماد</button>
+                            <button type="button" class="nv-btn" t-on-click="() => this.act('admin_expense_decide', [x.id, false, this.note(x.id)], 'تم رفض المصروف')">رفض</button>
                         </div>
                     </div>
                     <div t-if="!w.pendX.length" class="empty">لا توجد مصروفات بانتظارك</div>

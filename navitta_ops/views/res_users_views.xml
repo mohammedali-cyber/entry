@@ -9,6 +9,7 @@
                 <page string="فروع نافيتا" name="navitta" groups="navitta_ops.group_navitta_admin">
                     <group>
                         <field name="navitta_branch_id"/>
+                        <field name="action_id" string="الشاشة الرئيسية" help="لأجهزة الفروع اختر «شاشة الفرع» لتفتح مباشرة بعد تسجيل الدخول"/>
                     </group>
                     <div class="text-muted">لحساب جهاز الفرع: اختر الفرع، وأعطه مجموعة «فروع نافيتا / جهاز فرع» من تبويب الصلاحيات، واجعل «الإجراء الرئيسي» شاشة الفرع.</div>
                 </page>

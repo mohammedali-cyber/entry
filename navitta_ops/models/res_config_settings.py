@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class ResConfigSettings(models.TransientModel):
@@ -17,6 +17,7 @@ class ResConfigSettings(models.TransientModel):
     navitta_vat_rate = fields.Float(related="company_id.navitta_vat_rate", readonly=False)
     navitta_admin_pw_set = fields.Boolean(compute="_compute_navitta_admin_pw_set")
 
+    @api.depends("company_id")
     def _compute_navitta_admin_pw_set(self):
         for s in self:
             s.navitta_admin_pw_set = s.company_id._navitta_admin_password_is_set()

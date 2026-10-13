@@ -1,9 +1,10 @@
 import base64
+import json
 from datetime import date, datetime
 
 from odoo.exceptions import AccessError
 from odoo.tests import tagged
-from odoo.tests.common import TransactionCase, freeze_time
+from odoo.tests.common import HttpCase, TransactionCase, freeze_time
 
 # 2026-10-13 is a Tuesday; Riyadh is UTC+3. The shift starts 15:30 (12:30 UTC), grace 5 min.
 DAY = date(2026, 10, 13)
@@ -331,3 +332,56 @@ class NavittaCase(TransactionCase):
             with self.assertRaises(AccessError):
                 self.env["ir.actions.report"].with_user(self.dev)._render_qweb_html(
                     "navitta_ops.report_daily_summary", [], data={"day": "2026-10-13"})
+
+    # ------------------------------------------------------------------ models file import and nightly summary
+    def test_catalog_import_wizard(self):
+        import io
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append(["Navitta models"])                      # a title row before the header
+        ws.append(["ALU", "Desc4", "Desc1", "Attr", "Size", "Price WT", "DCS", "heel", "material"])
+        ws.append(["000100001", "SANDY", 12345678, "BLACK", 38, 299.0, "LADSANCHU", "5cm", "PU"])
+        ws.append(["000100002", "SANDY", 12345678, "BLACK", 39, 299.0, "LADSANCHU", "5cm", "PU"])
+        ws.append([None, "EMPTY", None, None, None, None, None, None, None])   # skipped
+        buf = io.BytesIO()
+        wb.save(buf)
+        Item = self.env["navitta.catalog.item"]
+        Item.create({"alu": "999", "item_no": "1", "model": "OLD", "color": "X"})
+        wiz = self.env["navitta.catalog.import.wizard"].with_user(self.boss).create({"file": base64.b64encode(buf.getvalue())})
+        wiz.action_import()
+        self.assertEqual(Item.search([]).mapped("alu"), ["100001", "100002"])     # replaced, zeros stripped
+        self.assertEqual(Item.search([], limit=1).item_no, "12345678")
+        self.assertEqual(Item.search([], limit=1).size, "38")
+
+    def test_daily_summary_email(self):
+        with freeze_time(utc(23, 45)):
+            self.env["navitta.api"]._cron_daily_summary()
+        n = self.env["navitta.notification"].search([("to_email", "=", "boss@example.com")], limit=1)
+        self.assertIn("ملخص الفروع اليومي", n.subject)
+        self.assertEqual(len(n.mail_id.attachment_ids), 1)
+
+    def test_notification_without_email(self):
+        n = self.env["navitta.notification"]._notify_employee(self.shima, "x", "y")
+        self.assertEqual((n.state, n.mail_id.id), ("no_email", False))
+
+
+@tagged("post_install", "-at_install", "navitta")
+class NavittaHttp(HttpCase):
+
+    def test_phone_upload(self):
+        dwd = self.env.ref("navitta_ops.branch_dwd")
+        tok = self.env["navitta.upload.token"]._new(dwd)
+        page = self.url_open("/navitta/r?t=%s" % tok.token)
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("فرع الدوادمي", page.text)
+        self.assertIn("انتهى الكود", self.url_open("/navitta/r?t=wrong").text)
+        jpeg = base64.b64encode(b"\xff\xd8\xff" + b"0" * 200).decode()
+        r = self.url_open("/navitta/r/upload", data=json.dumps({"jsonrpc": "2.0", "method": "call",
+                          "params": {"token": "wrong", "data": jpeg}}), headers={"Content-Type": "application/json"})
+        self.assertEqual(r.json()["result"]["error"], "expired")
+        r = self.url_open("/navitta/r/upload", data=json.dumps({"jsonrpc": "2.0", "method": "call",
+                          "params": {"token": tok.token, "data": jpeg}}), headers={"Content-Type": "application/json"})
+        self.assertTrue(r.json()["result"]["ok"])
+        tok.invalidate_recordset()
+        self.assertEqual(tok.photo_id.branch_id, dwd)
