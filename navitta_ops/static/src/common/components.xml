@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="navitta_ops.NvModal">
+        <div class="nv-modal-bg" t-on-click="onBg">
+            <div t-att-class="'nv-modal' + (props.wide ? ' wide2' : '')"><t t-slot="default"/></div>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.PinPad">
+        <div t-att-class="'nv-card pinbox' + (state.busy ? ' spin' : '')">
+            <div class="pin-lock" aria-hidden="true">🔒</div>
+            <h2 t-esc="props.title"/>
+            <p class="sub" t-esc="props.sub or 'اكتبي رمزك السري'"/>
+            <div class="pin-dots" t-att-aria-label="state.buf.length + ' من 4'">
+                <t t-foreach="[0, 1, 2, 3]" t-as="i" t-key="i"><i t-att-class="i &lt; state.buf.length ? 'on' : ''"/></t>
+            </div>
+            <p class="hint err" role="alert" t-esc="state.err"/>
+            <div class="pin-keys">
+                <t t-foreach="['1','2','3','4','5','6','7','8','9']" t-as="n" t-key="n">
+                    <button type="button" t-on-click="() => this.press(n)" t-esc="n"/>
+                </t>
+                <span/>
+                <button type="button" t-on-click="() => this.press('0')">0</button>
+                <button type="button" aria-label="مسح" t-on-click="() => this.press('del')">⌫</button>
+            </div>
+            <button t-if="props.onCancel" type="button" class="nv-btn" t-on-click="() => props.onCancel()">إلغاء</button>
+            <p class="hint">الرمز خاص فيك. نسيتيه؟ اطلبيه من الإدارة</p>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.SignModal">
+        <NvModal onClose="props.onClose">
+            <div t-if="!state.emp" class="nv-card pinbox">
+                <h2 t-esc="props.title"/>
+                <p class="sub">مين أنتِ؟</p>
+                <div class="who" style="width:100%">
+                    <t t-foreach="props.emps" t-as="e" t-key="e.id">
+                        <button type="button" class="who-b" t-on-click="() => state.emp = e"><b t-esc="e.name"/></button>
+                    </t>
+                </div>
+                <button type="button" class="nv-btn" t-on-click="() => props.onClose()">إلغاء</button>
+            </div>
+            <PinPad t-else="" title="props.title + ' · ' + state.emp.name" onCancel="props.onClose" onDone="(pin) => props.onSign(state.emp, pin)"/>
+        </NvModal>
+    </t>
+
+    <t t-name="navitta_ops.PhotoLink">
+        <button type="button" class="linkbtn" t-on-click="() => state.open = true">📎 <t t-esc="props.label or 'عرض الإيصال'"/></button>
+        <NvModal t-if="state.open" onClose="() => state.open = false">
+            <div class="qrm">
+                <img t-att-src="photoUrl(props.id)" alt="" style="width:100%;height:auto;max-height:75vh;object-fit:contain"/>
+                <button type="button" class="nv-btn" t-on-click="() => state.open = false">إغلاق</button>
+            </div>
+        </NvModal>
+    </t>
+
+    <t t-name="navitta_ops.PhotoPicker">
+        <div class="pick">
+            <span class="pick-t" t-esc="props.label"/>
+            <div t-if="props.value" class="got">
+                <img t-att-src="photoUrl(props.value)" alt=""/>
+                <div><b>✓ تم إرفاق الصورة</b>
+                    <div class="vrow" style="margin-top:6px">
+                        <button type="button" class="nv-btn" t-on-click="view">👁️ عرض</button>
+                        <button type="button" class="nv-btn" t-on-click="() => props.onChange(null)">🔄 تغيير</button>
+                    </div>
+                </div>
+            </div>
+            <div t-else="" class="pick-opts">
+                <button type="button" class="pick-o rec" t-on-click="openQr">📱 صوّري بالجوال<small>امسحي كود QR بجوالك</small></button>
+                <button type="button" class="pick-o" t-att-disabled="state.busy" t-on-click="() => fileRef.el.click()">📁 <t t-esc="state.busy ? 'جارٍ الرفع…' : 'اختيار ملف'"/><small>صورة من هذا الجهاز</small></button>
+                <button type="button" class="pick-o" t-on-click="openCam">🎥 كاميرا الجهاز<small>إذا فيه كاميرا</small></button>
+                <input t-ref="file" type="file" accept="image/*" capture="environment" hidden="1" t-on-change="fromFile"/>
+            </div>
+            <NvModal t-if="state.mode === 'qr'" onClose="() => this.close()">
+                <div class="qrm">
+                    <h2>📱 صوّري بجوالك</h2>
+                    <img t-if="state.qr" t-att-src="state.qr" alt="QR"/>
+                    <div t-else="" class="empty" t-esc="state.err or 'جارٍ التحميل…'"/>
+                    <ol><li>افتحي كاميرا جوالك ووجهيها على الكود</li><li>اضغطي الرابط اللي يطلع</li><li>صوّري واضغطي «إرسال»</li></ol>
+                    <div class="wait"><span class="dot"/>
+                        <t t-if="state.left &gt; 0">بانتظار الصورة من الجوال… الكود ينتهي بعد <b class="num" t-esc="mmss(state.left)"/></t>
+                        <t t-else="">انتهى الكود، سكري النافذة وجربي مرة ثانية</t>
+                    </div>
+                    <button type="button" class="nv-btn" t-on-click="() => this.close()">إلغاء</button>
+                </div>
+            </NvModal>
+            <NvModal t-if="state.mode === 'cam'" onClose="() => this.close()">
+                <div class="qrm">
+                    <h2>🎥 كاميرا الجهاز</h2>
+                    <p t-if="state.camErr" class="hint err" t-esc="state.camErr"/>
+                    <video t-else="" t-ref="video" playsinline="1" muted="1" style="width:100%;border-radius:10px;background:#000"/>
+                    <div class="vrow">
+                        <button t-if="!state.camErr" type="button" class="nv-btn primary" t-on-click="shot">📸 التقاط</button>
+                        <button type="button" class="nv-btn" t-on-click="() => this.close()">إلغاء</button>
+                    </div>
+                </div>
+            </NvModal>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.TargetBar">
+        <div t-if="state.d" class="tgt">
+            <t t-set="tv" t-value="this.v"/>
+            <button type="button" class="tgt-edit" t-on-click="() => state.edit = true">✏️ تعديل التارقت</button>
+            <div>
+                <div class="l">🎯 تارقت اليوم<t t-if="props.branchName"> · <t t-esc="props.branchName"/></t></div>
+                <div t-if="tv.tgt" class="v num"><t t-esc="f0(tv.tgt)"/><small>ر.س</small></div>
+                <div t-else="" class="v" style="font-size:22px">لم يُحدد</div>
+            </div>
+            <div>
+                <div class="row"><span>المحقق حتى الآن <b class="num"><t t-esc="f0(tv.got)"/> ر.س</b></span><span t-if="tv.tgt" class="pct num"><t t-esc="tv.pct"/>%</span></div>
+                <div class="bar"><i t-att-style="'width:' + Math.min(100, tv.pct) + '%'"/></div>
+                <div class="row sub">
+                    <span>
+                        <t t-if="!tv.tgt">المبيعات تتحدث من التقرير اليومي</t>
+                        <t t-elif="tv.left">باقي <b class="num"><t t-esc="f0(tv.left)"/> ر.س</b><t t-if="tv.invLeft"> · تقريبًا <t t-esc="tv.invLeft"/> فواتير</t></t>
+                        <b t-else="">🎉 تحقق تارقت اليوم</b>
+                    </span>
+                    <span t-if="!props.admin and tv.hrs &gt; 0">باقي على نهاية الدوام <b class="num" t-esc="mmss(tv.hrs)"/></span>
+                </div>
+            </div>
+            <div class="m">
+                <div class="l">📅 تارقت <t t-esc="tv.month"/></div>
+                <div class="mv num"><b t-esc="f0(tv.mS)"/> من <t t-esc="f0(tv.mT)"/> ر.س</div>
+                <div class="bar thin"><i t-att-style="'width:' + Math.min(100, tv.mP) + '%'"/></div>
+                <div class="sub"><t t-esc="tv.mP"/>%<t t-if="tv.mT &gt; tv.mS"> · المطلوب يوميًا لباقي الشهر <b class="num"><t t-esc="f0((tv.mT - tv.mS) / tv.daysLeft)"/> ر.س</b></t></div>
+            </div>
+            <TargetEditor t-if="state.edit" branchId="props.branchId" branchName="props.branchName" admin="props.admin" rows="state.d.rows" log="state.d.log"
+                          onClose="() => state.edit = false" onSaved="() => this.onSaved()"/>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.TargetEditor">
+        <NvModal onClose="props.onClose">
+            <div t-if="state.pw === null" class="tm-modal">
+                <div class="lk">🔒</div>
+                <h2 class="c">تعديل التارقت</h2>
+                <p class="sub c">هذا الخيار للإدارة فقط. اكتبي كلمة سر الإدارة</p>
+                <label class="lr-l">كلمة السر<input class="ctl" type="password" dir="ltr" t-model="state.pwIn" t-on-keydown="(e) => e.key === 'Enter' and this.check()"/></label>
+                <div class="vrow"><button type="button" class="nv-btn primary" style="flex:1" t-on-click="check">دخول</button><button type="button" class="nv-btn" t-on-click="() => props.onClose()">إلغاء</button></div>
+                <p class="hint err c" role="alert" t-esc="state.err"/>
+            </div>
+            <div t-else="" class="tm-modal">
+                <h2>✏️ تعديل تارقت <t t-esc="props.branchName or ''"/></h2>
+                <fieldset><legend>🎯 التارقت اليومي</legend>
+                    <div class="two"><label>اليوم<input class="ctl num" type="date" t-att-value="state.d" t-on-change="(e) => this.setDay(e.target.value)"/></label>
+                        <label>المبلغ (ر.س)<input class="ctl num" type="number" min="0" t-model="state.amt"/></label></div>
+                    <label class="chk"><input type="checkbox" t-model="state.week"/> طبّقيه على 7 أيام من هذا اليوم</label>
+                    <button type="button" class="nv-btn primary" t-on-click="saveDay">حفظ التارقت اليومي</button>
+                </fieldset>
+                <fieldset><legend>📅 التارقت الشهري</legend>
+                    <div class="two"><label>الشهر<select class="ctl" t-model="state.mon"><t t-foreach="months" t-as="m" t-key="m"><option t-att-value="m" t-esc="monthName(m)"/></t></select></label>
+                        <label>المبلغ (ر.س)<input class="ctl num" type="number" min="0" t-model="state.mAmt"/></label></div>
+                    <p class="note">الفرق يتوزع بالتساوي على أيام الشهر الباقية من اليوم.</p>
+                    <button type="button" class="nv-btn primary" t-on-click="saveMonth">حفظ التارقت الشهري</button>
+                </fieldset>
+                <p t-if="props.log" class="note">🕓 آخر تعديل: <t t-esc="props.log.by_admin ? 'الإدارة' : 'الفرع'"/> · <t t-esc="longDate(props.log.changed_at)"/> ·
+                    <t t-esc="props.log.scope === 'month' ? 'الشهر' : props.log.ref"/> · <t t-if="props.log.old_amount !== false and props.log.old_amount !== null"><t t-esc="f0(props.log.old_amount)"/> → </t><t t-esc="f0(props.log.new_amount)"/></p>
+                <p class="hint err" role="alert" t-esc="state.err"/>
+                <button type="button" class="nv-btn" t-on-click="() => props.onClose()">إغلاق</button>
+            </div>
+        </NvModal>
+    </t>
+
+    <t t-name="navitta_ops.DailyQuote">
+        <t t-set="dq" t-value="this.q"/>
+        <div t-att-class="'qod' + (props.admin ? ' adm' : '')">
+            <span class="qi" aria-hidden="true" t-esc="props.admin ? '💡' : '✨'"/>
+            <div>
+                <div class="qt"><t t-esc="dq.am ? 'صباح الخير ☀️' : 'مساء الخير 🌙'"/> · عبارة اليوم</div>
+                <div class="qq" t-esc="dq.text"/>
+                <span t-if="props.admin and props.best" class="hi"><t t-esc="props.best.p &gt;= 100 ? '🎉' : '🏆'"/> الأفضل أمس: <t t-esc="props.best.name"/> حقق <t t-esc="props.best.p"/>% من التارقت</span>
+            </div>
+            <span class="qd" t-esc="dq.date"/>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.ModelSearchBox">
+        <div t-att-class="props.big ? 'ms-in' + (state.done ? ' ok' : '') : 'mpick'">
+            <span t-if="props.big" aria-hidden="true">📟</span>
+            <input t-ref="inp" t-att-class="props.big ? 'num' : 'ctl num'" t-att-value="state.q" t-on-input="onInput" t-on-keydown="onKey"
+                   t-att-placeholder="props.placeholder or 'رقم المؤسسة (8 أرقام) أو امسحي الباركود'" aria-label="بحث موديل"/>
+            <span t-if="state.busy" class="hint">جارٍ البحث…</span>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.CartonLabel">
+        <div class="carton">
+            <div class="brand">NAVITTA <small t-esc="props.item.dcs"/></div>
+            <table><tbody>
+                <tr t-foreach="rows" t-as="r" t-key="r[0]"><td t-esc="r[0]"/><td><b t-esc="r[1] or '—'"/></td></tr>
+            </tbody></table>
+            <div class="price"><span>PRICE (incl. VAT)</span><span><t t-esc="price"/> SAR</span></div>
+            <img t-att-src="barcode" alt="barcode" style="display:block;margin:6px auto 0;max-width:100%"/>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.ModelHead">
+        <div class="ms-h">
+            <div t-att-class="'ms-ic' + (small ? ' sm' : '')" t-esc="icon(m.dcs)"/>
+            <div style="min-width:0"><h3 class="num">🏷️ <t t-esc="m.item_no"/></h3><div class="ct9">موديل <b class="num" t-esc="m.model"/><t t-if="dcsText(m.dcs)"> · <t t-esc="dcsText(m.dcs)"/></t></div></div>
+            <div t-if="m.price" class="ms-price num"><t t-esc="f0(m.price)"/><small>ر.س شامل الضريبة</small></div>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.ModelCard">
+        <div class="ms-card">
+            <t t-call="navitta_ops.ModelHead"><t t-set="m" t-value="props.m"/><t t-set="small" t-value="false"/></t>
+            <div class="ms-tags">
+                <span t-if="props.m.heel" class="chip neutral">👠 <t t-esc="props.m.heel"/></span>
+                <span t-if="props.m.material" class="chip neutral">🧵 <t t-esc="props.m.material"/></span>
+                <span class="chip neutral">🎨 <t t-esc="props.m.colors.length"/> لون</span>
+                <span class="chip neutral num">📏 <t t-esc="sizes.length ? (sizes.length &gt; 1 ? sizes[0] + '–' + sizes[sizes.length - 1] : sizes[0]) : 'بدون مقاس'"/></span>
+                <span t-if="props.m.dcs" class="chip neutral num" t-esc="props.m.dcs"/>
+            </div>
+            <div t-if="bag" class="cc">
+                <t t-foreach="props.m.colors" t-as="c" t-key="c.color"><span t-att-class="'num' + (props.hi and props.hi.color === c.color ? ' on' : '')"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/></span></t>
+            </div>
+            <div t-else="" class="ms-col">
+                <div t-foreach="cols" t-as="c" t-key="c.color" class="ms-row">
+                    <div class="ms-cn num"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/></div>
+                    <div class="ms-sz num"><t t-foreach="c.sizes" t-as="s" t-key="s"><span t-att-class="props.hi and props.hi.color === c.color and props.hi.size === s ? 'on' : ''" t-esc="s"/></t></div>
+                </div>
+            </div>
+            <button t-if="!bag and props.m.colors.length &gt; 8" type="button" class="ms-more" t-on-click="() => state.more = !state.more"
+                    t-esc="state.more ? 'عرض أقل ▴' : '+ ' + (props.m.colors.length - 8) + ' لون ثاني ▾'"/>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.Waiting">
+        <t t-foreach="state.w" t-as="x" t-key="x.id">
+            <div class="wait9">📞 <b>عميلة تنتظر</b> هذا الموديل: <b class="num" t-esc="[x.color, x.size and ('مقاس ' + x.size)].filter(Boolean).join(' · ')"/> · <t t-esc="ago(x.created_at)"/></div>
+        </t>
+    </t>
+
+    <t t-name="navitta_ops.ModelSearch">
+        <NvModal onClose="props.onClose" wide="true">
+            <div class="msw">
+                <h2>🔎 بحث موديل</h2>
+                <ModelSearchBox big="true" onResult="(r, q) => this.onResult(r, q)"/>
+                <div t-if="state.res and !state.res.models.length" class="empty">ما لقينا هذا الرقم في ملف الموديلات</div>
+                <t t-if="item and m0">
+                    <div class="scan2">
+                        <CartonLabel item="item"/>
+                        <div class="scan-side">
+                            <t t-call="navitta_ops.ModelHead"><t t-set="m" t-value="m0"/><t t-set="small" t-value="true"/></t>
+                            <t t-if="item.size"><h4>المقاسات في نفس اللون (<t t-esc="item.color"/>)</h4>
+                                <div class="szb num"><t t-foreach="itemSizes" t-as="s" t-key="s"><span t-att-class="s === item.size ? 'on' : ''" t-esc="s"/></t></div></t>
+                            <h4>ألوان الموديل</h4>
+                            <div class="cc"><t t-foreach="m0.colors" t-as="c" t-key="c.color"><span t-att-class="'num' + (c.color === item.color ? ' on' : '')"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/></span></t></div>
+                            <Waiting nos="[m0.item_no]"/>
+                        </div>
+                    </div>
+                </t>
+                <t t-elif="state.res">
+                    <t t-foreach="state.res.models" t-as="m" t-key="m.item_no"><ModelCard m="m"/></t>
+                    <Waiting t-if="state.res.models.length" nos="state.res.models.map((m) => m.item_no)"/>
+                </t>
+                <span class="hint">💡 اكتبي رقم المؤسسة (8 أرقام) يطلع الموديل كامل · امسحي باركود القطعة يطلع لك اللون والمقاس نفسه</span>
+                <button type="button" class="nv-btn" t-on-click="() => props.onClose()">إغلاق</button>
+            </div>
+        </NvModal>
+    </t>
+
+    <t t-name="navitta_ops.ModelPicker">
+        <div class="mpick">
+            <ModelSearchBox placeholder="'رقم المؤسسة أو الموديل أو امسحي الباركود'" onResult="(r, q) => this.onResult(r, q)"/>
+            <span t-if="state.res and !state.res.models.length" class="hint">ما لقينا هذا الرقم في ملف الموديلات ·
+                <button type="button" class="linkbtn" t-on-click="() => props.onManual(state.q)">استخدمي «<t t-esc="state.q"/>» كموديل</button></span>
+            <t t-if="state.res and !state.res.item">
+                <t t-foreach="state.res.models" t-as="m" t-key="m.item_no">
+                    <button type="button" class="pick1" t-on-click="() => props.onPick(m)">
+                        <div class="ms-ic sm" t-esc="icon(m.dcs)"/>
+                        <div><b class="num">🏷️ <t t-esc="m.item_no"/></b><small>موديل <bdi t-esc="m.model"/><t t-if="dcsText(m.dcs)"> · <t t-esc="dcsText(m.dcs)"/></t><t t-if="m.price"> · <bdi><t t-esc="f0(m.price)"/> ر.س</bdi></t></small></div>
+                    </button>
+                </t>
+            </t>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.EmpBoard">
+        <div t-if="state.rows" class="nv-card c12">
+            <div class="nv-card-h"><div><h2>🏆 <t t-esc="props.title or 'مبيعات الموظفات'"/></h2><p class="sub">مرتبة من الأعلى · من التقرير اليومي</p></div></div>
+            <div class="tscroll"><table class="nv-tbl"><thead><tr><th>#</th><th>الموظفة</th><th>الفرع</th><th>الفواتير</th><th>🛍️ القطع المباعة</th><th>🔄 القطع المستبدلة</th><th>المبيعات</th><th>متوسط الفاتورة</th><th>من تارقت الفرع</th></tr></thead><tbody>
+                <tr t-foreach="state.rows" t-as="r" t-key="r.branch_id + '-' + r.employee_id">
+                    <td><span t-att-class="'rk' + (r_index &lt; 3 and r.amount &gt; 0 ? ' g' + (r_index + 1) : '')" t-esc="r_index + 1"/></td>
+                    <td><b t-esc="r.name"/></td><td t-esc="bName(r.branch_id)"/><td class="n" t-esc="f0(r.invoices)"/>
+                    <td class="n"><b t-esc="f0(r.items)"/></td><td class="n"><span t-if="r.exchanged" class="chip warn" t-esc="r.exchanged"/><t t-else="">0</t></td>
+                    <td class="n"><b t-esc="f0(r.amount)"/> ر.س</td>
+                    <td class="n" t-esc="r.invoices and r.amount_inv ? f0(r.amount_inv / r.invoices) + ' ر.س' : '—'"/>
+                    <td><div class="pc"><div class="pbar"><i t-att-style="'width:' + Math.min(100, pct(r)) + '%'"/></div><span class="num" t-esc="pct(r) + '%'"/></div></td>
+                </tr>
+                <tr t-if="!state.rows.length"><td colspan="9" class="empty">لا توجد مبيعات مسجلة للموظفات في هذه الفترة</td></tr>
+            </tbody></table></div>
+        </div>
+    </t>
+</templates>
