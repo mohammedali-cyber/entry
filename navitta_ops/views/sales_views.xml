@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- daily sales and targets -->
+    <record id="view_daily_sales_list" model="ir.ui.view">
+        <field name="name">navitta.daily.sales.list</field>
+        <field name="model">navitta.daily.sales</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="day"/>
+                <field name="branch_id"/>
+                <field name="target" sum="الإجمالي"/>
+                <field name="sales" sum="الإجمالي"/>
+                <field name="invoices" sum="الإجمالي"/>
+                <field name="items" sum="الإجمالي"/>
+                <field name="returns" sum="الإجمالي"/>
+                <field name="cash" sum="الإجمالي" optional="show"/>
+                <field name="card" sum="الإجمالي" optional="show"/>
+                <field name="deposit" sum="الإجمالي" optional="hide"/>
+                <field name="vat_amount" sum="الإجمالي" optional="hide"/>
+                <field name="net_sales" sum="الإجمالي" optional="show"/>
+                <field name="closed_by" optional="hide"/>
+                <field name="source" readonly="1"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_daily_sales_search" model="ir.ui.view">
+        <field name="name">navitta.daily.sales.search</field>
+        <field name="model">navitta.daily.sales</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="branch_id"/>
+                <filter name="with_sales" string="فيه مبيعات" domain="[('has_sales', '=', True)]"/>
+                <filter name="f_day" string="اليوم" date="day"/>
+                <group>
+                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_month" string="الشهر" context="{'group_by': 'day:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="view_daily_sales_pivot" model="ir.ui.view">
+        <field name="name">navitta.daily.sales.pivot</field>
+        <field name="model">navitta.daily.sales</field>
+        <field name="arch" type="xml">
+            <pivot string="التارقت والمبيعات">
+                <field name="branch_id" type="row"/>
+                <field name="day" interval="month" type="col"/>
+                <field name="target" type="measure"/>
+                <field name="sales" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+    <record id="view_daily_sales_graph" model="ir.ui.view">
+        <field name="name">navitta.daily.sales.graph</field>
+        <field name="model">navitta.daily.sales</field>
+        <field name="arch" type="xml">
+            <graph string="التارقت مقابل المبيعات" type="bar">
+                <field name="day" interval="month"/>
+                <field name="sales" type="measure"/>
+                <field name="target" type="measure"/>
+            </graph>
+        </field>
+    </record>
+    <record id="action_daily_sales" model="ir.actions.act_window">
+        <field name="name">التارقت والمبيعات اليومية</field>
+        <field name="res_model">navitta.daily.sales</field>
+        <field name="view_mode">list,pivot,graph</field>
+    </record>
+
+    <record id="view_target_log_list" model="ir.ui.view">
+        <field name="name">navitta.target.log.list</field>
+        <field name="model">navitta.target.log</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0">
+                <field name="create_date" string="الوقت"/>
+                <field name="branch_id"/>
+                <field name="scope"/>
+                <field name="ref"/>
+                <field name="old_amount"/>
+                <field name="new_amount"/>
+                <field name="by_admin"/>
+                <field name="user_id"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_target_log" model="ir.actions.act_window">
+        <field name="name">سجل تعديل التارقت</field>
+        <field name="res_model">navitta.target.log</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <!-- daily reports -->
+    <record id="view_daily_report_list" model="ir.ui.view">
+        <field name="name">navitta.daily.report.list</field>
+        <field name="model">navitta.daily.report</field>
+        <field name="arch" type="xml">
+            <list create="0">
+                <field name="day"/>
+                <field name="branch_id"/>
+                <field name="employee_name"/>
+                <field name="sales" sum="الإجمالي"/>
+                <field name="invoices" sum="الإجمالي"/>
+                <field name="visitors" sum="الإجمالي"/>
+                <field name="sat" avg="المتوسط"/>
+                <field name="complaint" optional="show"/>
+                <field name="emergency" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_daily_report_form" model="ir.ui.view">
+        <field name="name">navitta.daily.report.form</field>
+        <field name="model">navitta.daily.report</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <sheet>
+                    <div class="oe_title"><h2><field name="branch_id" readonly="1"/> · <field name="day" readonly="1"/></h2></div>
+                    <group>
+                        <group string="المبيعات"><field name="employee_name"/><field name="sales"/><field name="invoices"/><field name="items"/>
+                            <field name="cash"/><field name="card"/><field name="deposit"/></group>
+                        <group string="العملاء"><field name="visitors"/><field name="non_buy"/>
+                            <field name="product_type"/><field name="top_color"/><field name="top_size"/><field name="tried_model"/><field name="tried_reason"/></group>
+                    </group>
+                    <notebook>
+                        <page string="مبيعات الموظفات">
+                            <field name="employee_line_ids"><list editable="bottom"><field name="employee_id"/><field name="amount" sum="الإجمالي"/>
+                                <field name="invoices" sum="الإجمالي"/><field name="items" sum="الإجمالي"/><field name="exchanged" sum="الإجمالي"/></list></field>
+                        </page>
+                        <page string="الاستبدالات">
+                            <field name="exchange_ids"><list editable="bottom"><field name="reason"/><field name="detail"/><field name="sold_by"/><field name="exchanged_by"/></list></field>
+                        </page>
+                        <page string="المبيعات الضائعة">
+                            <field name="lost_ids"><list editable="bottom"><field name="model"/><field name="color"/><field name="size"/></list></field>
+                        </page>
+                        <page string="تجربة العملاء والتشغيل">
+                            <group>
+                                <group><field name="sat"/><field name="phrase"/><field name="tone"/><field name="complaint"/><field name="complaint_text" invisible="not complaint"/>
+                                    <field name="influ"/><field name="influ_text" invisible="not influ"/></group>
+                                <group><field name="shelf"/><field name="short"/><field name="short_text" invisible="not short"/><field name="damage"/>
+                                    <field name="damage_text" invisible="not damage"/><field name="emergency"/>
+                                    <field name="used_roll_invoice"/><field name="used_roll_card"/><field name="used_bags"/></group>
+                            </group>
+                            <group><field name="improve"/><field name="suggest"/></group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_daily_report_search" model="ir.ui.view">
+        <field name="name">navitta.daily.report.search</field>
+        <field name="model">navitta.daily.report</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="branch_id"/>
+                <filter name="complaint" string="فيه شكوى" domain="[('complaint', '=', True)]"/>
+                <filter name="f_day" string="اليوم" date="day"/>
+                <group><filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="action_daily_reports" model="ir.actions.act_window">
+        <field name="name">التقارير اليومية</field>
+        <field name="res_model">navitta.daily.report</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- employee sales -->
+    <record id="view_report_employee_list" model="ir.ui.view">
+        <field name="name">navitta.daily.report.employee.list</field>
+        <field name="model">navitta.daily.report.employee</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0">
+                <field name="day"/>
+                <field name="branch_id"/>
+                <field name="employee_id"/>
+                <field name="amount" sum="الإجمالي"/>
+                <field name="invoices" sum="الإجمالي"/>
+                <field name="items" sum="الإجمالي"/>
+                <field name="exchanged" sum="الإجمالي"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_report_employee_pivot" model="ir.ui.view">
+        <field name="name">navitta.daily.report.employee.pivot</field>
+        <field name="model">navitta.daily.report.employee</field>
+        <field name="arch" type="xml">
+            <pivot string="مبيعات الموظفات">
+                <field name="employee_id" type="row"/>
+                <field name="day" interval="month" type="col"/>
+                <field name="amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+    <record id="view_report_employee_search" model="ir.ui.view">
+        <field name="name">navitta.daily.report.employee.search</field>
+        <field name="model">navitta.daily.report.employee</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="branch_id"/>
+                <filter name="f_day" string="اليوم" date="day"/>
+            </search>
+        </field>
+    </record>
+    <record id="action_employee_sales" model="ir.actions.act_window">
+        <field name="name">مبيعات الموظفات</field>
+        <field name="res_model">navitta.daily.report.employee</field>
+        <field name="view_mode">pivot,list</field>
+    </record>
+</odoo>

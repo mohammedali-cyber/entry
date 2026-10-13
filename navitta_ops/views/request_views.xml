@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_branch_request_list" model="ir.ui.view">
+        <field name="name">navitta.branch.request.list</field>
+        <field name="model">navitta.branch.request</field>
+        <field name="arch" type="xml">
+            <list create="0" decoration-warning="state == 'pending'" decoration-info="state in ('approved', 'shipped')" decoration-muted="state in ('received', 'rejected')">
+                <field name="create_date" string="الوقت"/>
+                <field name="branch_id"/>
+                <field name="kind"/>
+                <field name="supply"/>
+                <field name="model"/>
+                <field name="color" optional="show"/>
+                <field name="size" optional="show"/>
+                <field name="qty"/>
+                <field name="urgent"/>
+                <field name="employee_id"/>
+                <field name="state"/>
+                <button name="action_approve" type="object" string="موافقة" icon="fa-check" invisible="state != 'pending'"/>
+                <button name="action_ship" type="object" string="انشحن" icon="fa-truck" invisible="state not in ('pending', 'approved')"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_branch_request_form" model="ir.ui.view">
+        <field name="name">navitta.branch.request.form</field>
+        <field name="model">navitta.branch.request</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <header>
+                    <button name="action_approve" type="object" string="موافقة" class="btn-primary" invisible="state != 'pending'"/>
+                    <button name="action_ship" type="object" string="انشحن 🚚" invisible="state not in ('pending', 'approved')"/>
+                    <button name="action_reject" type="object" string="رفض" invisible="state in ('received', 'rejected')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="pending,approved,shipped,received"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group><field name="branch_id" readonly="1"/><field name="kind" readonly="1"/><field name="supply" readonly="1" invisible="kind != 'supply'"/>
+                            <field name="model" readonly="1"/><field name="color" readonly="1"/><field name="size" readonly="1"/><field name="qty" readonly="1"/></group>
+                        <group><field name="employee_id" readonly="1"/><field name="reason" readonly="1"/><field name="urgent" readonly="1"/><field name="note" readonly="1"/>
+                            <field name="received_by" readonly="1"/><field name="received_at" readonly="1"/></group>
+                    </group>
+                    <field name="photo" widget="image" readonly="1" invisible="not photo_id" options="{'size': [0, 320]}"/>
+                    <field name="photo_id" invisible="1"/>
+                    <group><field name="admin_note" placeholder="ملاحظة للفرع (تُرسل مع التحديث)"/></group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_branch_request_search" model="ir.ui.view">
+        <field name="name">navitta.branch.request.search</field>
+        <field name="model">navitta.branch.request</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="model"/>
+                <field name="branch_id"/>
+                <filter name="open" string="تحتاج متابعة" domain="[('state', 'in', ('pending', 'approved', 'shipped'))]"/>
+                <filter name="goods" string="نواقص بضاعة" domain="[('kind', '=', 'goods')]"/>
+                <filter name="supply" string="مستلزمات" domain="[('kind', '=', 'supply')]"/>
+                <group><filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="action_branch_requests" model="ir.actions.act_window">
+        <field name="name">سجل طلبات الفروع</field>
+        <field name="res_model">navitta.branch.request</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_supply_move_list" model="ir.ui.view">
+        <field name="name">navitta.supply.move.list</field>
+        <field name="model">navitta.supply.move</field>
+        <field name="arch" type="xml">
+            <list editable="top">
+                <field name="day"/>
+                <field name="branch_id"/>
+                <field name="supply"/>
+                <field name="kind"/>
+                <field name="qty" sum="الرصيد"/>
+                <field name="request_id" readonly="1"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_supply_move_search" model="ir.ui.view">
+        <field name="name">navitta.supply.move.search</field>
+        <field name="model">navitta.supply.move</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="branch_id"/>
+                <group>
+                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_supply" string="المستلزم" context="{'group_by': 'supply'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_supply_moves" model="ir.actions.act_window">
+        <field name="name">حركة المستلزمات</field>
+        <field name="res_model">navitta.supply.move</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'search_default_g_branch': 1, 'search_default_g_supply': 1}</field>
+        <field name="help" type="html"><p>الرصيد = مجموع الحركات. لتسجيل رصيد البداية أضف حركة «افتتاحي».</p></field>
+    </record>
+
+    <record id="view_expense_list" model="ir.ui.view">
+        <field name="name">navitta.expense.list</field>
+        <field name="model">navitta.expense</field>
+        <field name="arch" type="xml">
+            <list create="0" decoration-warning="state == 'pending'" decoration-muted="state == 'rejected'">
+                <field name="day"/>
+                <field name="branch_id"/>
+                <field name="category"/>
+                <field name="details"/>
+                <field name="employee_id"/>
+                <field name="amount" sum="الإجمالي"/>
+                <field name="has_receipt"/>
+                <field name="state"/>
+                <button name="action_approve" type="object" string="اعتماد" icon="fa-check" invisible="state != 'pending'"/>
+                <button name="action_reject" type="object" string="رفض" icon="fa-times" invisible="state != 'pending'"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_expense_form" model="ir.ui.view">
+        <field name="name">navitta.expense.form</field>
+        <field name="model">navitta.expense</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <header>
+                    <button name="action_approve" type="object" string="اعتماد" class="btn-primary" invisible="state != 'pending'"/>
+                    <button name="action_reject" type="object" string="رفض" invisible="state != 'pending'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group><field name="branch_id" readonly="1"/><field name="day" readonly="1"/><field name="employee_id" readonly="1"/></group>
+                        <group><field name="amount" readonly="1"/><field name="category" readonly="1"/><field name="details" readonly="1"/></group>
+                    </group>
+                    <field name="receipt" widget="image" readonly="1" invisible="not receipt_id" options="{'size': [0, 420]}"/>
+                    <field name="receipt_id" invisible="1"/>
+                    <div invisible="receipt_id" class="alert alert-warning" role="status">⚠️ بدون إيصال</div>
+                    <group><field name="admin_note" placeholder="ملاحظة للموظفة"/></group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_expense_search" model="ir.ui.view">
+        <field name="name">navitta.expense.search</field>
+        <field name="model">navitta.expense</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="branch_id"/>
+                <filter name="pending" string="بانتظار اعتمادي" domain="[('state', '=', 'pending')]"/>
+                <filter name="no_receipt" string="بدون إيصال" domain="[('has_receipt', '=', False)]"/>
+                <filter name="f_day" string="اليوم" date="day"/>
+                <group>
+                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_cat" string="النوع" context="{'group_by': 'category'}"/>
+                    <filter name="g_month" string="الشهر" context="{'group_by': 'day:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="view_expense_pivot" model="ir.ui.view">
+        <field name="name">navitta.expense.pivot</field>
+        <field name="model">navitta.expense</field>
+        <field name="arch" type="xml">
+            <pivot string="المصروفات">
+                <field name="category" type="row"/>
+                <field name="branch_id" type="col"/>
+                <field name="amount" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+    <record id="action_expenses" model="ir.actions.act_window">
+        <field name="name">المصروفات</field>
+        <field name="res_model">navitta.expense</field>
+        <field name="view_mode">list,pivot,form</field>
+    </record>
+</odoo>

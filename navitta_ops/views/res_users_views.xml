@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_users_form_navitta" model="ir.ui.view">
+        <field name="name">res.users.form.navitta</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="فروع نافيتا" name="navitta" groups="navitta_ops.group_navitta_admin">
+                    <group>
+                        <field name="navitta_branch_id"/>
+                    </group>
+                    <div class="text-muted">لحساب جهاز الفرع: اختر الفرع، وأعطه مجموعة «فروع نافيتا / جهاز فرع» من تبويب الصلاحيات، واجعل «الإجراء الرئيسي» شاشة الفرع.</div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_branch_users" model="ir.actions.act_window">
+        <field name="name">حسابات أجهزة الفروع</field>
+        <field name="res_model">res.users</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('navitta_branch_id', '!=', False)]</field>
+        <field name="context">{'search_default_filter_no_share': 1}</field>
+    </record>
+</odoo>

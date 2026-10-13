@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- attendance -->
+    <record id="view_attendance_list" model="ir.ui.view">
+        <field name="name">navitta.attendance.list</field>
+        <field name="model">navitta.attendance</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="day"/>
+                <field name="branch_id"/>
+                <field name="employee_id"/>
+                <field name="check_in"/>
+                <field name="check_out"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_attendance_search" model="ir.ui.view">
+        <field name="name">navitta.attendance.search</field>
+        <field name="model">navitta.attendance</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="branch_id"/>
+                <filter name="today" string="اليوم" domain="[('day', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="no_out" string="لم تسجل انصراف" domain="[('check_out', '=', False)]"/>
+                <filter name="f_day" string="اليوم" date="day"/>
+                <group>
+                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_emp" string="الموظفة" context="{'group_by': 'employee_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_attendance" model="ir.actions.act_window">
+        <field name="name">الحضور والانصراف</field>
+        <field name="res_model">navitta.attendance</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- breaks -->
+    <record id="view_break_list" model="ir.ui.view">
+        <field name="name">navitta.break.list</field>
+        <field name="model">navitta.break</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="day"/>
+                <field name="branch_id"/>
+                <field name="employee_id"/>
+                <field name="started_at"/>
+                <field name="ended_at"/>
+                <field name="duration_min" sum="الإجمالي"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_break_search" model="ir.ui.view">
+        <field name="name">navitta.break.search</field>
+        <field name="model">navitta.break</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="branch_id"/>
+                <filter name="f_day" string="اليوم" date="day"/>
+                <group><filter name="g_emp" string="الموظفة" context="{'group_by': 'employee_id'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="action_breaks" model="ir.actions.act_window">
+        <field name="name">الاستراحات</field>
+        <field name="res_model">navitta.break</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- late / break cases -->
+    <record id="view_late_case_list" model="ir.ui.view">
+        <field name="name">navitta.late.case.list</field>
+        <field name="model">navitta.late.case</field>
+        <field name="arch" type="xml">
+            <list decoration-warning="state == 'review'" decoration-danger="state == 'rejected'" decoration-success="state in ('forgiven', 'edited')">
+                <field name="day"/>
+                <field name="branch_id"/>
+                <field name="employee_id"/>
+                <field name="kind"/>
+                <field name="minutes"/>
+                <field name="request"/>
+                <field name="reason"/>
+                <field name="state"/>
+                <field name="penalty"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_late_case_form" model="ir.ui.view">
+        <field name="name">navitta.late.case.form</field>
+        <field name="model">navitta.late.case</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_accept_edit" type="object" string="قبول تعديل المدة" class="btn-primary"
+                            invisible="state != 'review' or request != 'edit'"/>
+                    <button name="action_forgive" type="object" string="احتساب فرصة مسامحة" invisible="state != 'review'"/>
+                    <button name="action_reject" type="object" string="رفض وتطبيق العقوبة" invisible="state != 'review'"
+                            confirm="رفض العذر وتسجيل العقوبة حسب الجدول؟"/>
+                    <field name="state" widget="statusbar" statusbar_visible="reply,review"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="employee_id" readonly="1"/>
+                            <field name="branch_id"/>
+                            <field name="day" readonly="1"/>
+                            <field name="kind" readonly="1"/>
+                            <field name="minutes" readonly="1"/>
+                            <field name="check_in" readonly="1" invisible="kind != 'late'"/>
+                            <field name="break_used" readonly="1" invisible="kind != 'break'"/>
+                            <field name="old_break_used" readonly="1" invisible="not old_break_used"/>
+                        </group>
+                        <group>
+                            <field name="request" readonly="1"/>
+                            <field name="requested_minutes" readonly="1" invisible="request != 'edit'"/>
+                            <field name="reason" readonly="1"/>
+                            <field name="penalty" readonly="1" invisible="state != 'rejected'"/>
+                            <field name="penalty_occ" readonly="1" invisible="state != 'rejected'"/>
+                            <field name="decided_at" readonly="1"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="ملاحظة للموظفة (تُرسل مع القرار)" readonly="state not in ('reply', 'review')"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_late_case_search" model="ir.ui.view">
+        <field name="name">navitta.late.case.search</field>
+        <field name="model">navitta.late.case</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="branch_id"/>
+                <filter name="review" string="بانتظار قراري" domain="[('state', '=', 'review')]"/>
+                <filter name="reply" string="بانتظار سبب الموظفة" domain="[('state', '=', 'reply')]"/>
+                <filter name="rejected" string="مرفوضة" domain="[('state', '=', 'rejected')]"/>
+                <separator/>
+                <filter name="late" string="تأخير حضور" domain="[('kind', '=', 'late')]"/>
+                <filter name="brk" string="تجاوز استراحة" domain="[('kind', '=', 'break')]"/>
+                <filter name="f_day" string="اليوم" date="day"/>
+                <group>
+                    <filter name="g_emp" string="الموظفة" context="{'group_by': 'employee_id'}"/>
+                    <filter name="g_state" string="الحالة" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_late_cases" model="ir.actions.act_window">
+        <field name="name">التأخير والعقوبات</field>
+        <field name="res_model">navitta.late.case</field>
+        <field name="view_mode">list,form,pivot</field>
+        <field name="context">{'search_default_review': 1}</field>
+    </record>
+
+    <!-- penalty table -->
+    <record id="view_penalty_tier_list" model="ir.ui.view">
+        <field name="name">navitta.penalty.tier.list</field>
+        <field name="model">navitta.penalty.tier</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="max_min"/>
+                <field name="label"/>
+                <field name="p1"/>
+                <field name="p2"/>
+                <field name="p3"/>
+                <field name="p4"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_penalty_tiers" model="ir.actions.act_window">
+        <field name="name">جدول المخالفات</field>
+        <field name="res_model">navitta.penalty.tier</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html"><p>المرة الأولى إلى الرابعة لكل شريحة تأخير. راجعه مع لائحة الجزاءات المعتمدة لديكم.</p></field>
+    </record>
+</odoo>

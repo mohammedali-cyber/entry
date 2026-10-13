@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_catalog_list" model="ir.ui.view">
+        <field name="name">navitta.catalog.item.list</field>
+        <field name="model">navitta.catalog.item</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="item_no"/>
+                <field name="model"/>
+                <field name="color"/>
+                <field name="size"/>
+                <field name="price"/>
+                <field name="alu"/>
+                <field name="dcs" optional="show"/>
+                <field name="heel" optional="hide"/>
+                <field name="material" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_catalog_search" model="ir.ui.view">
+        <field name="name">navitta.catalog.item.search</field>
+        <field name="model">navitta.catalog.item</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="item_no"/>
+                <field name="model"/>
+                <field name="alu"/>
+                <field name="color"/>
+                <group><filter name="g_item" string="الموديل" context="{'group_by': 'item_no'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="action_catalog" model="ir.actions.act_window">
+        <field name="name">ملف الموديلات</field>
+        <field name="res_model">navitta.catalog.item</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html"><p>ارفع ملف Excel الموديلات من «رفع ملف الموديلات». كل رفع يستبدل الملف القديم كامل.</p></field>
+    </record>
+</odoo>

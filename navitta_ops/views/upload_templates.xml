@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="phone_upload_page" name="Navitta phone upload">
+        <html lang="ar" dir="rtl">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta name="robots" content="noindex"/>
+                <title>NAVITTA · رفع صورة</title>
+                <style>
+                    body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#F6F6F7;color:#0B0B0C}
+                    .w{max-width:460px;margin:0 auto;padding:22px 16px;display:flex;flex-direction:column;gap:14px}
+                    .mk{letter-spacing:.42em;color:#5C5F65;font-size:12px;font-family:Georgia,serif}
+                    h2{margin:0;font-size:24px}
+                    .c{background:#fff;border:1px solid #DCDEE2;border-radius:12px;padding:14px}
+                    .b{display:block;width:100%;padding:16px;border-radius:12px;border:1px solid #0B0B0C;background:#fff;font-size:17px;font-weight:600;font-family:inherit;cursor:pointer}
+                    .p{background:#0B0B0C;color:#fff}
+                    .r{display:flex;gap:10px}.r .b{flex:1}
+                    img{width:100%;border-radius:12px;border:1px solid #DCDEE2}
+                    .e{color:#A3242B}.s{color:#5C5F65;font-size:13px;text-align:center}
+                </style>
+            </head>
+            <body>
+                <div class="w" id="app" t-att-data-token="token">
+                    <span class="mk">NAVITTA</span>
+                    <h2>🧾 رفع صورة</h2>
+                    <t t-if="not token">
+                        <div class="c"><p class="e" style="margin:0">انتهى الكود، اطلبي كود جديد من جهاز الفرع</p></div>
+                    </t>
+                    <t t-elif="done">
+                        <div class="c" style="text-align:center"><div style="font-size:44px">✅</div><h3 style="margin:0">وصلت الصورة</h3></div>
+                    </t>
+                    <t t-else="">
+                        <div class="c">الفرع: <b t-esc="branch"/></div>
+                        <img id="pv" hidden="1" alt=""/>
+                        <button id="cam" type="button" class="b p">📷 صوّري الآن</button>
+                        <div id="two" class="r" hidden="1">
+                            <button id="again" type="button" class="b">🔄 إعادة التصوير</button>
+                            <button id="send" type="button" class="b p">✓ إرسال</button>
+                        </div>
+                        <div id="ok" class="c" style="text-align:center" hidden="1"><div style="font-size:44px">✅</div><h3 style="margin:0">وصلت الصورة</h3><p class="s">ارجعي لجهاز الفرع وكمّلي التسجيل. تقدرين تسكرين هذي الصفحة.</p></div>
+                        <p id="err" class="e"></p>
+                        <input id="file" type="file" accept="image/*" capture="environment" hidden="1"/>
+                    </t>
+                    <p class="s">🔒 هذي الصفحة لرفع الصورة بس، وتنتهي بعد 10 دقائق</p>
+                </div>
+                <script>
+                (function () {
+                    var app = document.getElementById("app"), token = app.dataset.token, img = null;
+                    var $ = function (id) { return document.getElementById(id); };
+                    if (!token || !$("cam")) return;
+                    function compress(file, cb) {
+                        var url = URL.createObjectURL(file), im = new Image();
+                        im.onload = function () {
+                            var k = Math.min(1, 1280 / Math.max(im.width, im.height)), c = document.createElement("canvas");
+                            c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+                            c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+                            URL.revokeObjectURL(url);
+                            cb(c.toDataURL("image/jpeg", 0.7).split(",")[1]);
+                        };
+                        im.src = url;
+                    }
+                    $("cam").onclick = $("again").onclick = function () { $("file").click(); };
+                    $("file").onchange = function (e) {
+                        var f = e.target.files[0]; e.target.value = "";
+                        if (!f) return;
+                        compress(f, function (b64) {
+                            img = b64; $("pv").src = "data:image/jpeg;base64," + b64; $("pv").hidden = false;
+                            $("cam").hidden = true; $("two").hidden = false; $("err").textContent = "";
+                        });
+                    };
+                    $("send").onclick = function () {
+                        if (!img) return;
+                        $("send").disabled = true; $("send").textContent = "جارٍ الإرسال…";
+                        fetch("/navitta/r/upload", { method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ jsonrpc: "2.0", method: "call", params: { token: token, data: img, mime: "image/jpeg" } }) })
+                            .then(function (r) { return r.json(); })
+                            .then(function (j) {
+                                var res = j.result || {};
+                                if (res.ok) { $("two").hidden = true; $("pv").hidden = true; $("ok").hidden = false; return; }
+                                $("err").textContent = res.error === "expired" ? "انتهى الكود، اطلبي كود جديد من جهاز الفرع" : "الصورة غير صالحة، صوريها مرة ثانية";
+                                $("send").disabled = false; $("send").textContent = "✓ إرسال";
+                            })
+                            .catch(function () { $("err").textContent = "تعذر الإرسال، تأكدي من الإنترنت"; $("send").disabled = false; $("send").textContent = "✓ إرسال"; });
+                    };
+                })();
+                </script>
+            </body>
+        </html>
+    </template>
+</odoo>

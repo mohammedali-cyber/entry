@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paperformat_navitta_a4" model="report.paperformat">
+        <field name="name">Navitta A4</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">14</field>
+        <field name="margin_bottom">16</field>
+        <field name="margin_left">13</field>
+        <field name="margin_right">13</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+    </record>
+
+    <record id="action_report_daily_summary" model="ir.actions.report">
+        <field name="name">ملخص الفروع اليومي</field>
+        <field name="model">navitta.summary.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">navitta_ops.report_daily_summary</field>
+        <field name="report_file">navitta_ops.report_daily_summary</field>
+        <field name="print_report_name">'ملخص-الفروع'</field>
+        <field name="paperformat_id" ref="paperformat_navitta_a4"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_daily_summary">
+        <t t-call="web.html_container">
+            <div class="article nv" dir="rtl" lang="ar">
+                <style>
+                    .nv{font-family:Tahoma,"DejaVu Sans",Arial,sans-serif;color:#0B0B0C;font-size:10.5pt;line-height:1.55;direction:rtl;text-align:right}
+                    .nv .num{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:embed}
+                    .nv .head{display:table;width:100%;border-bottom:2px solid #0B0B0C;padding-bottom:8px;margin-bottom:4px}
+                    .nv .head > div{display:table-cell;vertical-align:bottom}
+                    .nv .brand{font-family:Georgia,serif;letter-spacing:.42em;font-size:9pt;color:#5C5F65;direction:ltr;text-align:right}
+                    .nv h1{font-size:20pt;margin:2px 0 0;line-height:1.2}
+                    .nv .meta{font-size:9pt;color:#5C5F65;text-align:left}
+                    .nv .sheen{height:3px;background:#C7CACF;margin-bottom:12px}
+                    .nv h2{font-size:12.5pt;margin:14px 0 6px;padding-bottom:3px;border-bottom:1px solid #DCDEE2}
+                    .nv .kpis{width:100%;border-collapse:separate;border-spacing:6px 0}
+                    .nv .kpi{border:1px solid #DCDEE2;border-radius:6px;padding:6px 8px;width:16.6%}
+                    .nv .kpi span{display:block;font-size:8pt;color:#5C5F65}
+                    .nv .kpi b{font-size:13pt}
+                    .nv .up{color:#1D7448}.nv .down{color:#A3242B}
+                    .nv table.t{width:100%;border-collapse:collapse;font-size:9.5pt}
+                    .nv table.t th{background:#F3F3F4;font-weight:600;font-size:8.5pt;color:#45474C;text-align:right;padding:5px 6px;border-bottom:1px solid #C7CACF}
+                    .nv table.t td{padding:5px 6px;border-bottom:1px solid #ECEDEF;vertical-align:top}
+                    .nv table.t tr{page-break-inside:avoid}
+                    .nv table.t tfoot td{font-weight:700;border-top:1.5px solid #0B0B0C;background:#F7F7F8}
+                    .nv .chip{display:inline-block;font-size:8pt;font-weight:600;padding:0 7px;border-radius:9px;white-space:nowrap}
+                    .nv .good{background:#E5F2EA;color:#1D7448}.nv .warn{background:#FBF0DA;color:#8E5B00}.nv .bad{background:#F8E5E6;color:#A3242B}.nv .neu,.nv .info{background:#EEEFF1;color:#45474C}
+                    .nv .two{display:table;width:100%}.nv .two > div{display:table-cell;width:50%;vertical-align:top;padding-left:12px}
+                    .nv ul{margin:0;padding-right:16px}.nv li{margin:2px 0}
+                    .nv .note{font-size:8.5pt;color:#5C5F65;border-top:1px solid #DCDEE2;margin-top:14px;padding-top:6px}
+                    .nv .alert{border:1.5px solid #A3242B;background:#F8E5E6;border-radius:6px;padding:6px 10px;font-weight:600;color:#A3242B;margin-bottom:8px}
+                </style>
+                <div class="head">
+                    <div><div class="brand">NAVITTA</div><h1>ملخص الفروع اليومي</h1></div>
+                    <div class="meta"><span t-esc="s['day'].strftime('%Y-%m-%d')" class="num"/><br/>
+                        <t t-esc="len(s['branches'])"/> فروع · الدوام <t t-esc="s['shift']"/></div>
+                </div>
+                <div class="sheen"/>
+                <div t-if="s['missing']" class="alert"><t t-esc="'، '.join(s['missing'])"/>: لم يُرسل التقرير اليومي حتى وقت الإرسال</div>
+                <table class="kpis"><tr>
+                    <td class="kpi"><span>إجمالي المبيعات</span><b class="num"><t t-esc="f0(s['sales'])"/> ر.س</b>
+                        <t t-if="s['prev_sales']"><br/><i t-att-class="'num ' + (s['sales'] &gt;= s['prev_sales'] and 'up' or 'down')"
+                            t-esc="('▲ ' if s['sales'] &gt;= s['prev_sales'] else '▼ ') + '%.1f%%' % abs((s['sales'] - s['prev_sales']) * 100.0 / s['prev_sales'])"/></t></td>
+                    <td class="kpi"><span>الفواتير</span><b class="num" t-esc="s['invoices']"/></td>
+                    <td class="kpi"><span>متوسط الفاتورة</span><b class="num"><t t-esc="f0(s['invoices'] and s['sales'] / s['invoices'] or 0)"/> ر.س</b></td>
+                    <td class="kpi"><span>العميلات</span><b class="num" t-esc="s['visits']"/></td>
+                    <td class="kpi"><span>نسبة الشراء</span><b class="num" t-esc="pct(s['buy_pct'])"/></td>
+                    <td class="kpi"><span>قرارات معلقة</span><b class="num" t-esc="s['pending']"/></td>
+                </tr></table>
+                <div style="font-size:8pt;color:#5C5F65;margin-top:4px">▲▼ مقارنة بنفس اليوم من الأسبوع الماضي</div>
+
+                <h2>مقارنة الفروع</h2>
+                <table class="t">
+                    <thead><tr><th>الفرع</th><th>المبيعات</th><th>الفواتير</th><th>العميلات</th><th>نسبة الشراء</th><th>الرضا</th><th>تأخير</th><th>تجاوز استراحة</th><th>مبيعات ضائعة</th><th>التقرير</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="s['branches']" t-as="b">
+                            <td><b t-esc="b['name']"/></td><td class="num" t-esc="f0(b['sales'])"/><td class="num" t-esc="b['invoices']"/>
+                            <td class="num" t-esc="b['visits']"/><td class="num" t-esc="pct(b['buy_pct'])"/><td class="num" t-esc="b['sat'] or '—'"/>
+                            <td><span t-if="b['late']" class="chip warn" t-esc="b['late']"/><t t-else="">—</t></td>
+                            <td><span t-if="b['over']" class="chip warn" t-esc="b['over']"/><t t-else="">—</t></td>
+                            <td class="num" t-esc="b['lost']"/>
+                            <td><span t-if="b['sent']" class="chip good">✓ أُرسل</span><span t-else="" class="chip bad">لم يُرسل</span></td>
+                        </tr>
+                    </tbody>
+                    <tfoot><tr><td>الإجمالي</td><td class="num" t-esc="f0(s['sales'])"/><td class="num" t-esc="s['invoices']"/><td class="num" t-esc="s['visits']"/>
+                        <td class="num" t-esc="pct(s['buy_pct'])"/><td/><td class="num" t-esc="s['late']"/><td class="num" t-esc="s['over']"/><td/><td/></tr></tfoot>
+                </table>
+
+                <div class="two">
+                    <div>
+                        <h2>يحتاج قرارك</h2>
+                        <table t-if="s['review']" class="t"><thead><tr><th>الموظفة</th><th>النوع</th><th>السبب</th></tr></thead><tbody>
+                            <tr t-foreach="s['review']" t-as="r"><td t-esc="r['who']"/>
+                                <td><span t-att-class="'chip ' + (r['state'] == 'reply' and 'bad' or r['state'] == 'leave' and 'info' or 'warn')" t-esc="r['what']"/></td>
+                                <td t-esc="r['reason']"/></tr>
+                        </tbody></table>
+                        <p t-else="">لا يوجد</p>
+                    </div>
+                    <div>
+                        <h2>أهم أحداث اليوم</h2>
+                        <ul t-if="s['events']"><li t-foreach="s['events']" t-as="e"><span t-att-class="'chip ' + e['level']" t-esc="e['title']"/> <t t-esc="e['text']"/></li></ul>
+                        <p t-else="">لا توجد أحداث</p>
+                    </div>
+                </div>
+
+                <h2>المبيعات الضائعة الأكثر تكرارًا</h2>
+                <table t-if="s['lost']" class="t"><thead><tr><th>الموديل</th><th>اللون</th><th>المقاس</th><th>مرات</th><th>الفروع</th></tr></thead><tbody>
+                    <tr t-foreach="s['lost']" t-as="l"><td class="num" t-esc="l['model']"/><td t-esc="l['color']"/><td class="num" t-esc="l['size']"/>
+                        <td class="num"><b t-esc="l['n']"/></td><td t-esc="l['branches']"/></tr>
+                </tbody></table>
+                <p t-else="">لا توجد</p>
+                <div class="note">يُرسل تلقائيًا كل ليلة من نظام فروع نافيتا في Odoo</div>
+            </div>
+        </t>
+    </template>
+</odoo>

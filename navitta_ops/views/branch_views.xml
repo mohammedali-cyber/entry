@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_branch_list" model="ir.ui.view">
+        <field name="name">navitta.branch.list</field>
+        <field name="model">navitta.branch</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="cash_balance"/>
+                <field name="month_expenses"/>
+                <field name="stock_roll_invoice"/>
+                <field name="stock_roll_card"/>
+                <field name="stock_bags"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_branch_form" model="ir.ui.view">
+        <field name="name">navitta.branch.form</field>
+        <field name="model">navitta.branch</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <widget name="web_ribbon" title="مؤرشف" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title"><h1><field name="name" placeholder="فرع …"/></h1></div>
+                    <group>
+                        <group string="الفرع">
+                            <field name="code"/>
+                            <field name="sequence"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group string="الصندوق">
+                            <field name="cash_opening_balance"/>
+                            <field name="cash_opening_date"/>
+                            <field name="cash_balance"/>
+                            <field name="month_expenses"/>
+                            <field name="pending_expenses"/>
+                        </group>
+                    </group>
+                    <group string="المستلزمات (الرصيد الحالي)">
+                        <field name="stock_roll_invoice"/>
+                        <field name="stock_roll_card"/>
+                        <field name="stock_bags"/>
+                        <div colspan="2" class="text-muted">لتعديل الرصيد أضف حركة «تعديل» من «حركة المستلزمات».</div>
+                    </group>
+                    <notebook>
+                        <page string="الموظفات" name="employees">
+                            <field name="employee_ids" context="{'default_branch_id': id}">
+                                <list editable="bottom">
+                                    <field name="slot"/>
+                                    <field name="name"/>
+                                    <field name="weekly_off"/>
+                                    <field name="has_pin"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="حسابات جهاز الفرع" name="users">
+                            <field name="user_ids" readonly="1">
+                                <list><field name="name"/><field name="login"/></list>
+                            </field>
+                            <div class="text-muted">أنشئ مستخدمًا لكل جهاز فرع، وأعطه مجموعة «فروع نافيتا: جهاز فرع»، واختر الفرع في حقل «فرع نافيتا».</div>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_branches" model="ir.actions.act_window">
+        <field name="name">الفروع</field>
+        <field name="res_model">navitta.branch</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

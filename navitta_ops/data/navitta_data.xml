@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- penalty table (lateness without disrupting other workers), 1st..4th time. Review against your approved regulations. -->
+    <record id="tier_15" model="navitta.penalty.tier">
+        <field name="max_min">15</field><field name="label">حتى 15 دقيقة</field>
+        <field name="p1">إنذار كتابي</field><field name="p2">حسم 5% من أجر اليوم</field>
+        <field name="p3">حسم 10% من أجر اليوم</field><field name="p4">حسم 20% من أجر اليوم</field>
+    </record>
+    <record id="tier_30" model="navitta.penalty.tier">
+        <field name="max_min">30</field><field name="label">من 16 إلى 30 دقيقة</field>
+        <field name="p1">حسم 10% من أجر اليوم</field><field name="p2">حسم 15% من أجر اليوم</field>
+        <field name="p3">حسم 25% من أجر اليوم</field><field name="p4">حسم 50% من أجر اليوم</field>
+    </record>
+    <record id="tier_60" model="navitta.penalty.tier">
+        <field name="max_min">60</field><field name="label">من 31 إلى 60 دقيقة</field>
+        <field name="p1">حسم 25% من أجر اليوم</field><field name="p2">حسم 50% من أجر اليوم</field>
+        <field name="p3">حسم 75% من أجر اليوم</field><field name="p4">حسم أجر يوم كامل</field>
+    </record>
+    <record id="tier_max" model="navitta.penalty.tier">
+        <field name="max_min">100000</field><field name="label">أكثر من ساعة</field>
+        <field name="p1">إنذار كتابي وحسم أجر ساعات التأخير</field><field name="p2">حسم أجر ساعات التأخير والإحالة للتحقيق</field>
+        <field name="p3">حسم أجر ساعات التأخير والإحالة للتحقيق</field><field name="p4">حسم أجر ساعات التأخير والإحالة للتحقيق</field>
+    </record>
+
+    <!-- branches -->
+    <record id="branch_dwd" model="navitta.branch"><field name="name">فرع الدوادمي</field><field name="code">dwd</field><field name="sequence">1</field></record>
+    <record id="branch_qsm" model="navitta.branch"><field name="name">فرع القصيم</field><field name="code">qsm</field><field name="sequence">2</field></record>
+    <record id="branch_ahs" model="navitta.branch"><field name="name">فرع الأحساء</field><field name="code">ahs</field><field name="sequence">3</field></record>
+    <record id="branch_hfb" model="navitta.branch"><field name="name">فرع حفر الباطن</field><field name="code">hfb</field><field name="sequence">4</field></record>
+    <record id="branch_skk" model="navitta.branch"><field name="name">فرع سكاكا</field><field name="code">skk</field><field name="sequence">5</field></record>
+
+    <!-- employees: weekly_off 0 = Sunday, 1 = Monday -->
+    <record id="emp_dwd_1" model="navitta.employee"><field name="name">ريم</field><field name="branch_id" ref="branch_dwd"/><field name="slot">1</field><field name="weekly_off">1</field></record>
+    <record id="emp_dwd_2" model="navitta.employee"><field name="name">شيمة</field><field name="branch_id" ref="branch_dwd"/><field name="slot">2</field><field name="weekly_off">0</field></record>
+    <record id="emp_qsm_1" model="navitta.employee"><field name="name">حبور</field><field name="branch_id" ref="branch_qsm"/><field name="slot">1</field><field name="weekly_off">0</field></record>
+    <record id="emp_qsm_2" model="navitta.employee"><field name="name">شادية</field><field name="branch_id" ref="branch_qsm"/><field name="slot">2</field><field name="weekly_off">1</field></record>
+    <record id="emp_ahs_1" model="navitta.employee"><field name="name">بثينة</field><field name="branch_id" ref="branch_ahs"/><field name="slot">1</field><field name="weekly_off">0</field></record>
+    <record id="emp_ahs_2" model="navitta.employee"><field name="name">مروة</field><field name="branch_id" ref="branch_ahs"/><field name="slot">2</field><field name="weekly_off">1</field></record>
+    <record id="emp_hfb_1" model="navitta.employee"><field name="name">باسمة</field><field name="branch_id" ref="branch_hfb"/><field name="slot">1</field><field name="weekly_off">0</field></record>
+    <record id="emp_hfb_2" model="navitta.employee"><field name="name">نوال</field><field name="branch_id" ref="branch_hfb"/><field name="slot">2</field><field name="weekly_off">1</field></record>
+    <record id="emp_skk_1" model="navitta.employee"><field name="name">أريام</field><field name="branch_id" ref="branch_skk"/><field name="slot">1</field><field name="weekly_off">0</field></record>
+    <record id="emp_skk_2" model="navitta.employee"><field name="name">اليمامة</field><field name="branch_id" ref="branch_skk"/><field name="slot">2</field><field name="weekly_off">1</field></record>
+</odoo>

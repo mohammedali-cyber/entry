@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_employee_list" model="ir.ui.view">
+        <field name="name">navitta.employee.list</field>
+        <field name="model">navitta.employee</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="branch_id"/>
+                <field name="slot"/>
+                <field name="name"/>
+                <field name="email"/>
+                <field name="weekly_off"/>
+                <field name="has_pin" widget="boolean"/>
+                <button name="action_new_pin" type="object" string="رمز جديد" icon="fa-key"
+                        confirm="سيتم إلغاء الرمز الحالي وإنشاء رمز جديد يظهر مرة واحدة. متابعة؟"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_employee_form" model="ir.ui.view">
+        <field name="name">navitta.employee.form</field>
+        <field name="model">navitta.employee</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_new_pin" type="object" string="إنشاء رمز سري جديد" class="btn-primary"
+                            confirm="سيتم إلغاء الرمز الحالي وإنشاء رمز جديد يظهر مرة واحدة. متابعة؟"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="مؤرشفة" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="branch_id"/>
+                            <field name="slot"/>
+                            <field name="weekly_off"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="email" widget="email"/>
+                            <field name="has_pin"/>
+                        </group>
+                    </group>
+                    <div class="text-muted">الرمز السري (4 أرقام) لتسجيل الحضور والانصراف وفتح «تنبيهاتي» والطلبات. محفوظ مشفّرًا، ولا يمكن عرض الرمز القديم.</div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_employee_search" model="ir.ui.view">
+        <field name="name">navitta.employee.search</field>
+        <field name="model">navitta.employee</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="branch_id"/>
+                <filter name="archived" string="مؤرشفة" domain="[('active', '=', False)]"/>
+                <group><filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/></group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_employees" model="ir.actions.act_window">
+        <field name="name">الموظفات</field>
+        <field name="res_model">navitta.employee</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_notification_list" model="ir.ui.view">
+        <field name="name">navitta.notification.list</field>
+        <field name="model">navitta.notification</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" decoration-danger="state in ('exception', 'no_email')" decoration-muted="state == 'sent'">
+                <field name="create_date" string="الوقت"/>
+                <field name="employee_id"/>
+                <field name="to_email"/>
+                <field name="subject"/>
+                <field name="state"/>
+                <field name="failure_reason" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_notification_form" model="ir.ui.view">
+        <field name="name">navitta.notification.form</field>
+        <field name="model">navitta.notification</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0">
+                <sheet>
+                    <group><field name="create_date" string="الوقت"/><field name="employee_id"/><field name="to_email"/><field name="state"/><field name="failure_reason"/></group>
+                    <h3><field name="subject"/></h3>
+                    <field name="body"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_notifications" model="ir.actions.act_window">
+        <field name="name">الإشعارات بالإيميل</field>
+        <field name="res_model">navitta.notification</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="cron_late_check" model="ir.cron">
+        <field name="name">نافيتا: كشف التأخير في الحضور</field>
+        <field name="model_id" ref="model_navitta_late_case"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_late_check()</field>
+        <field name="interval_number">5</field>
+        <field name="interval_type">minutes</field>
+    </record>
+
+    <!-- 23:45 in the company time zone (set at install, see post_init_hook) -->
+    <record id="cron_daily_summary" model="ir.cron">
+        <field name="name">نافيتا: ملخص الفروع اليومي بالإيميل</field>
+        <field name="model_id" ref="model_navitta_api"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_daily_summary()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+    </record>
+</odoo>

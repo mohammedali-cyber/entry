@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.navitta</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="90"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="فروع نافيتا" string="فروع نافيتا" name="navitta_ops" groups="navitta_ops.group_navitta_admin">
+                    <block title="الدوام والقواعد" name="navitta_shift">
+                        <setting string="الدوام" help="بداية ونهاية الدوام بتوقيت الفروع">
+                            <div class="d-flex gap-2 align-items-center">
+                                <field name="navitta_shift_start" widget="float_time" class="w-25"/> <span>إلى</span>
+                                <field name="navitta_shift_end" widget="float_time" class="w-25"/>
+                            </div>
+                            <field name="navitta_tz"/>
+                        </setting>
+                        <setting string="مهلة الحضور" help="بعدها يُحتسب التأخير من بداية الدوام">
+                            <field name="navitta_grace"/> <span>دقيقة</span>
+                        </setting>
+                        <setting string="الاستراحة اليومية" help="بدون مهلة، وتجاوزها يدخل نظام التأخير">
+                            <field name="navitta_break_max"/> <span>دقيقة</span>
+                        </setting>
+                        <setting string="فرص المسامحة شهريًا" help="مشتركة بين تأخير الحضور وتجاوز الاستراحة">
+                            <field name="navitta_chances"/>
+                        </setting>
+                    </block>
+                    <block title="الإيميل والتقارير" name="navitta_mail">
+                        <setting string="إيميل الإدارة" help="يوصله ملخص الفروع كل ليلة 11:45 م، وتنبيهات الطلبات والمصروفات. الإرسال يحتاج خادم بريد صادر في إعدادات Odoo.">
+                            <field name="navitta_report_email" widget="email"/>
+                        </setting>
+                        <setting string="ضريبة القيمة المضافة" help="لحساب الضريبة والصافي في تقارير المبيعات (المبيعات تُسجَّل شاملة الضريبة)">
+                            <field name="navitta_vat_rate"/> <span>%</span>
+                        </setting>
+                    </block>
+                    <block title="أجهزة الفروع" name="navitta_devices">
+                        <setting string="كلمة سر الإدارة" help="تنطلب في جهاز الفرع لتعديل التارقت ولإلغاء انصراف سجلته موظفة بالغلط">
+                            <div>
+                                <span invisible="not navitta_admin_pw_set" class="badge text-bg-success">🔒 محددة</span>
+                                <span invisible="navitta_admin_pw_set" class="badge text-bg-warning">لم تُحدد بعد</span>
+                            </div>
+                            <button name="action_navitta_admin_password" type="object" string="تعيين كلمة السر" class="btn-link" icon="fa-key"/>
+                        </setting>
+                        <setting string="الحد الأدنى للمستلزمات" help="تحت هذا الرقم يطلع تنبيه عند الفرع والإدارة">
+                            <div class="d-flex flex-wrap gap-2">
+                                <span>🧾 رول فاتورة</span><field name="navitta_min_roll_invoice" class="w-25"/>
+                                <span>💳 رول شبكة</span><field name="navitta_min_roll_card" class="w-25"/>
+                                <span>🛍️ أكياس</span><field name="navitta_min_bags" class="w-25"/>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_navitta_settings" model="ir.actions.act_window">
+        <field name="name">الإعدادات</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'navitta_ops', 'bin_size': False}</field>
+    </record>
+</odoo>

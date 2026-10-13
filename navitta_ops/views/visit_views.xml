@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_visit_list" model="ir.ui.view">
+        <field name="name">navitta.visit.list</field>
+        <field name="model">navitta.visit</field>
+        <field name="arch" type="xml">
+            <list create="0" decoration-muted="not saved">
+                <field name="day"/>
+                <field name="branch_id"/>
+                <field name="employee_id"/>
+                <field name="started_at"/>
+                <field name="ended_at"/>
+                <field name="duration_min" avg="المتوسط"/>
+                <field name="outcome"/>
+                <field name="lost_reason"/>
+                <field name="lost_model" optional="hide"/>
+                <field name="lost_color" optional="hide"/>
+                <field name="lost_size" optional="hide"/>
+                <field name="note" optional="hide"/>
+                <field name="saved" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_visit_form" model="ir.ui.view">
+        <field name="name">navitta.visit.form</field>
+        <field name="model">navitta.visit</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <sheet>
+                    <group>
+                        <group><field name="branch_id"/><field name="employee_id"/><field name="day"/><field name="started_at"/><field name="ended_at"/><field name="duration_sec"/></group>
+                        <group><field name="bought"/><field name="exchanged"/><field name="lost_reason"/><field name="other_text"/>
+                            <field name="lost_model"/><field name="lost_color"/><field name="lost_size"/><field name="saved"/></group>
+                    </group>
+                    <field name="note"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_visit_search" model="ir.ui.view">
+        <field name="name">navitta.visit.search</field>
+        <field name="model">navitta.visit</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="branch_id"/>
+                <filter name="saved" string="محفوظة" domain="[('saved', '=', True)]"/>
+                <filter name="bought" string="اشترت" domain="[('bought', '=', True)]"/>
+                <filter name="lost" string="ما اشترت" domain="[('lost_reason', '!=', False)]"/>
+                <filter name="f_day" string="اليوم" date="day"/>
+                <group>
+                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_emp" string="الموظفة" context="{'group_by': 'employee_id'}"/>
+                    <filter name="g_outcome" string="النتيجة" context="{'group_by': 'outcome'}"/>
+                    <filter name="g_reason" string="سبب عدم الشراء" context="{'group_by': 'lost_reason'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="view_visit_pivot" model="ir.ui.view">
+        <field name="name">navitta.visit.pivot</field>
+        <field name="model">navitta.visit</field>
+        <field name="arch" type="xml">
+            <pivot string="تحليل الزيارات">
+                <field name="branch_id" type="row"/>
+                <field name="outcome" type="col"/>
+                <field name="visit_count" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+    <record id="view_visit_graph" model="ir.ui.view">
+        <field name="name">navitta.visit.graph</field>
+        <field name="model">navitta.visit</field>
+        <field name="arch" type="xml">
+            <graph string="الزيارات" type="bar">
+                <field name="day" interval="day"/>
+                <field name="visit_count" type="measure"/>
+            </graph>
+        </field>
+    </record>
+    <record id="action_visits" model="ir.actions.act_window">
+        <field name="name">زيارات العميلات</field>
+        <field name="res_model">navitta.visit</field>
+        <field name="view_mode">list,pivot,graph,form</field>
+        <field name="context">{'search_default_saved': 1}</field>
+    </record>
+
+    <!-- visit duration edits -->
+    <record id="view_visit_edit_list" model="ir.ui.view">
+        <field name="name">navitta.visit.edit.request.list</field>
+        <field name="model">navitta.visit.edit.request</field>
+        <field name="arch" type="xml">
+            <list create="0" decoration-warning="state == 'pending'">
+                <field name="create_date" string="الوقت"/>
+                <field name="branch_id"/>
+                <field name="employee_id"/>
+                <field name="old_sec"/>
+                <field name="new_sec"/>
+                <field name="reason"/>
+                <field name="state"/>
+                <button name="action_approve" type="object" string="قبول" icon="fa-check" invisible="state != 'pending'"/>
+                <button name="action_reject" type="object" string="رفض" icon="fa-times" invisible="state != 'pending'"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_visit_edit_form" model="ir.ui.view">
+        <field name="name">navitta.visit.edit.request.form</field>
+        <field name="model">navitta.visit.edit.request</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <header>
+                    <button name="action_approve" type="object" string="قبول" class="btn-primary" invisible="state != 'pending'"/>
+                    <button name="action_reject" type="object" string="رفض" invisible="state != 'pending'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet><group>
+                    <field name="visit_id" readonly="1"/><field name="employee_id" readonly="1"/>
+                    <field name="old_sec" readonly="1"/><field name="new_sec" readonly="1"/><field name="reason" readonly="1"/>
+                    <field name="reply" readonly="state != 'pending'"/>
+                </group></sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_visit_edits" model="ir.actions.act_window">
+        <field name="name">طلبات تعديل مدة الزيارة</field>
+        <field name="res_model">navitta.visit.edit.request</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- lost sales -->
+    <record id="view_lost_list" model="ir.ui.view">
+        <field name="name">navitta.lost.sale.list</field>
+        <field name="model">navitta.lost.sale</field>
+        <field name="arch" type="xml">
+            <list create="0">
+                <field name="day"/>
+                <field name="branch_id"/>
+                <field name="employee_id"/>
+                <field name="reason"/>
+                <field name="item_no"/>
+                <field name="model"/>
+                <field name="color"/>
+                <field name="size"/>
+                <field name="price" sum="الإجمالي"/>
+                <field name="contact_phone" optional="show"/>
+                <field name="contacted_at" optional="hide"/>
+                <field name="note" optional="hide"/>
+                <button name="action_contacted" type="object" string="تواصلنا" icon="fa-phone" invisible="not waiting"/>
+                <field name="waiting" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_lost_search" model="ir.ui.view">
+        <field name="name">navitta.lost.sale.search</field>
+        <field name="model">navitta.lost.sale</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="item_no"/>
+                <field name="model"/>
+                <field name="branch_id"/>
+                <filter name="waiting" string="عميلات ينتظرن" domain="[('waiting', '=', True)]"/>
+                <filter name="mfg" string="يحتاج تصنيع (للطلبية الجاية)" domain="[('reason', '=', 'manufacture')]"/>
+                <filter name="oos" string="مقاس أو لون مخلص" domain="[('reason', 'in', ('size_na', 'color_na'))]"/>
+                <filter name="f_day" string="اليوم" date="day"/>
+                <group>
+                    <filter name="g_reason" string="السبب" context="{'group_by': 'reason'}"/>
+                    <filter name="g_item" string="الموديل" context="{'group_by': 'item_no'}"/>
+                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="view_lost_pivot" model="ir.ui.view">
+        <field name="name">navitta.lost.sale.pivot</field>
+        <field name="model">navitta.lost.sale</field>
+        <field name="arch" type="xml">
+            <pivot string="المبيعات الضائعة">
+                <field name="reason" type="row"/>
+                <field name="branch_id" type="col"/>
+                <field name="lost_count" type="measure"/>
+                <field name="price" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+    <record id="action_lost_sales" model="ir.actions.act_window">
+        <field name="name">سجل المبيعات الضائعة</field>
+        <field name="res_model">navitta.lost.sale</field>
+        <field name="view_mode">list,pivot,form</field>
+    </record>
+</odoo>

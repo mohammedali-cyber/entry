@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pin_wizard" model="ir.ui.view">
+        <field name="name">navitta.pin.wizard.form</field>
+        <field name="model">navitta.pin.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <div class="text-center">
+                    <p>الرمز السري الجديد لـ <b><field name="employee_id" readonly="1" class="d-inline"/></b></p>
+                    <h1 style="font-size:48px;letter-spacing:.3em" dir="ltr"><field name="pin" readonly="1"/></h1>
+                    <p class="text-muted">يظهر مرة وحدة بس. اكتبه وأعطه للموظفة بشكل خاص. الرمز القديم توقف.</p>
+                </div>
+                <footer><button string="تم" special="cancel" class="btn-primary"/></footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_admin_password_wizard" model="ir.ui.view">
+        <field name="name">navitta.admin.password.wizard.form</field>
+        <field name="model">navitta.admin.password.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <p>تنطلب في جهاز الفرع لتعديل التارقت، ولإلغاء انصراف سجلته موظفة بالغلط. أنت من لوحة الإدارة ما تحتاجها.</p>
+                <group>
+                    <field name="password" password="True"/>
+                    <field name="confirm" password="True"/>
+                </group>
+                <footer>
+                    <button name="action_save" type="object" string="حفظ" class="btn-primary"/>
+                    <button string="إلغاء" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_catalog_import_wizard" model="ir.ui.view">
+        <field name="name">navitta.catalog.import.wizard.form</field>
+        <field name="model">navitta.catalog.import.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <p>ملف Excel فيه الأعمدة: ALU (الباركود)، Desc4 (الموديل)، Desc1 (رقم المؤسسة)، Attr (اللون)، Size، Price WT، DCS، heel، material.
+                    <b>رفع ملف جديد يستبدل القديم كامل.</b></p>
+                <p class="text-muted"><field name="info"/></p>
+                <group><field name="file" filename="filename"/><field name="filename" invisible="1"/></group>
+                <footer>
+                    <button name="action_import" type="object" string="رفع واستبدال" class="btn-primary"/>
+                    <button string="إلغاء" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_catalog_import" model="ir.actions.act_window">
+        <field name="name">رفع ملف الموديلات</field>
+        <field name="res_model">navitta.catalog.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_summary_wizard" model="ir.ui.view">
+        <field name="name">navitta.summary.wizard.form</field>
+        <field name="model">navitta.summary.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group><field name="day"/></group>
+                <footer>
+                    <button name="action_print" type="object" string="عرض PDF" class="btn-primary"/>
+                    <button name="action_send" type="object" string="إرسال بالإيميل الآن"/>
+                    <button string="إلغاء" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_summary_wizard" model="ir.actions.act_window">
+        <field name="name">ملخص الفروع اليومي (PDF)</field>
+        <field name="res_model">navitta.summary.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
