@@ -5,13 +5,106 @@
         <field name="name">navitta.attendance.list</field>
         <field name="model">navitta.attendance</field>
         <field name="arch" type="xml">
-            <list>
+            <list decoration-warning="no_photo">
                 <field name="day"/>
                 <field name="branch_id"/>
                 <field name="employee_id"/>
                 <field name="check_in"/>
+                <field name="in_source"/>
                 <field name="check_out"/>
+                <field name="out_source" optional="show"/>
+                <field name="no_photo" optional="show"/>
             </list>
+        </field>
+    </record>
+    <record id="view_attendance_kanban" model="ir.ui.view">
+        <field name="name">navitta.attendance.kanban</field>
+        <field name="model">navitta.attendance</field>
+        <field name="arch" type="xml">
+            <kanban create="0" class="o_kanban_mobile">
+                <field name="no_photo"/>
+                <field name="in_photo_id"/>
+                <field name="out_photo_id"/>
+                <field name="in_source"/>
+                <field name="out_source"/>
+                <field name="check_out"/>
+                <templates>
+                    <t t-name="card" class="flex-column">
+                        <div class="d-flex justify-content-between">
+                            <b><field name="employee_id"/></b>
+                            <span class="text-muted"><field name="day"/></span>
+                        </div>
+                        <div class="text-muted small"><field name="branch_id"/>
+                            <span t-if="record.no_photo.raw_value" class="badge text-bg-warning ms-1">بدون صورة</span></div>
+                        <div class="row g-2 mt-1 text-center small">
+                            <div class="col-4">
+                                <field name="ref_image" widget="image" options="{'size': [84, 84]}"/>
+                                <div class="text-muted">المرجعية</div>
+                            </div>
+                            <div class="col-4">
+                                <field name="in_image" widget="image" options="{'size': [84, 84]}" invisible="not in_photo_id"/>
+                                <div t-if="!record.in_photo_id.raw_value" class="border rounded d-flex align-items-center justify-content-center text-muted" style="height:84px">
+                                    <t t-if="record.in_source.raw_value === 'device'">🖐️</t><t t-else="">—</t></div>
+                                <div class="fw-bold">حضور</div>
+                                <div><field name="check_in"/></div>
+                                <div class="text-muted"><field name="in_source"/></div>
+                            </div>
+                            <div class="col-4">
+                                <t t-if="record.check_out.raw_value">
+                                    <field name="out_image" widget="image" options="{'size': [84, 84]}" invisible="not out_photo_id"/>
+                                    <div t-if="!record.out_photo_id.raw_value" class="border rounded d-flex align-items-center justify-content-center text-muted" style="height:84px">
+                                        <t t-if="record.out_source.raw_value === 'device'">🖐️</t><t t-else="">—</t></div>
+                                    <div class="fw-bold">انصراف</div>
+                                    <div><field name="check_out"/></div>
+                                    <div class="text-muted"><field name="out_source"/></div>
+                                </t>
+                                <div t-else="" class="text-muted pt-4">لم تسجل انصراف</div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    <record id="view_attendance_form" model="ir.ui.view">
+        <field name="name">navitta.attendance.form</field>
+        <field name="model">navitta.attendance</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_use_as_reference" type="object" string="اعتماد صورة الحضور كصورة مرجعية"
+                            invisible="not in_photo_id" groups="navitta_ops.group_navitta_admin"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="employee_id"/>
+                            <field name="branch_id"/>
+                            <field name="day"/>
+                        </group>
+                        <group>
+                            <field name="check_in"/>
+                            <field name="in_source"/>
+                            <field name="in_device_id" invisible="not in_device_id"/>
+                            <field name="check_out"/>
+                            <field name="out_source"/>
+                            <field name="out_device_id" invisible="not out_device_id"/>
+                            <field name="no_photo"/>
+                        </group>
+                    </group>
+                    <field name="in_photo_id" invisible="1"/>
+                    <field name="out_photo_id" invisible="1"/>
+                    <div class="d-flex flex-wrap gap-4 mt-3">
+                        <div class="text-center"><div class="fw-bold mb-1">الصورة المرجعية</div>
+                            <field name="ref_image" widget="image" options="{'size': [220, 220]}" readonly="1"/></div>
+                        <div class="text-center"><div class="fw-bold mb-1">صورة الحضور</div>
+                            <field name="in_image" widget="image" options="{'size': [220, 220]}" readonly="1"/>
+                            <div invisible="in_photo_id or in_source != 'ipad'" class="text-warning">بدون صورة</div></div>
+                        <div class="text-center"><div class="fw-bold mb-1">صورة الانصراف</div>
+                            <field name="out_image" widget="image" options="{'size': [220, 220]}" readonly="1"/></div>
+                    </div>
+                </sheet>
+            </form>
         </field>
     </record>
     <record id="view_attendance_search" model="ir.ui.view">
@@ -23,6 +116,8 @@
                 <field name="branch_id"/>
                 <filter name="today" string="اليوم" domain="[('day', '=', context_today().strftime('%Y-%m-%d'))]"/>
                 <filter name="no_out" string="لم تسجل انصراف" domain="[('check_out', '=', False)]"/>
+                <filter name="no_photo" string="بدون صورة" domain="[('no_photo', '=', True)]"/>
+                <filter name="from_device" string="من جهاز البصمة" domain="['|', ('in_source', '=', 'device'), ('out_source', '=', 'device')]"/>
                 <filter name="f_day" string="اليوم" date="day"/>
                 <group>
                     <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
@@ -34,7 +129,8 @@
     <record id="action_attendance" model="ir.actions.act_window">
         <field name="name">الحضور والانصراف</field>
         <field name="res_model">navitta.attendance</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html"><p>كل بطاقة: الصورة المرجعية للموظفة جنب صورة حضورها وانصرافها، للمقارنة السريعة.</p></field>
     </record>
 
     <!-- breaks -->

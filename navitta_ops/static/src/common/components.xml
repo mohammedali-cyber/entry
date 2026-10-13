@@ -29,6 +29,18 @@
         </div>
     </t>
 
+    <t t-name="navitta_ops.FaceCam">
+        <div class="facecam">
+            <div t-att-class="'fc-frame' + (state.ready ? ' on' : '')">
+                <video t-ref="video" autoplay="1" muted="1" playsinline="1"/>
+                <span t-if="!state.ready and !state.failed" class="fc-msg">📷 …</span>
+                <span t-if="state.failed" class="fc-msg">📷✕</span>
+            </div>
+            <small t-if="state.failed">الكاميرا غير متاحة، تنسجل البصمة بدون صورة</small>
+            <small t-elif="state.ready">📷 تنحفظ صورتك مع البصمة</small>
+        </div>
+    </t>
+
     <t t-name="navitta_ops.SignModal">
         <NvModal onClose="props.onClose">
             <div t-if="!state.emp" class="nv-card pinbox">

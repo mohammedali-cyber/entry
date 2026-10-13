@@ -13,7 +13,8 @@
 
     <menuitem id="menu_records" name="السجلات" parent="menu_root" sequence="20" groups="group_navitta_admin">
         <menuitem id="menu_rec_late" name="التأخير والعقوبات" action="action_late_cases" sequence="1"/>
-        <menuitem id="menu_rec_attendance" name="الحضور والانصراف" action="action_attendance" sequence="2"/>
+        <menuitem id="menu_rec_attendance" name="الحضور والانصراف (مع الصور)" action="action_attendance" sequence="2"/>
+        <menuitem id="menu_rec_punches" name="سجل جهاز البصمة" action="action_device_punches" sequence="2"/>
         <menuitem id="menu_rec_breaks" name="الاستراحات" action="action_breaks" sequence="3"/>
         <menuitem id="menu_rec_visits" name="زيارات العميلات" action="action_visits" sequence="4"/>
         <menuitem id="menu_rec_visit_edits" name="طلبات تعديل مدة الزيارة" action="action_visit_edits" sequence="5"/>
@@ -37,6 +38,7 @@
         <menuitem id="menu_cfg_branches" name="الفروع" action="action_branches" sequence="2"/>
         <menuitem id="menu_cfg_employees" name="الموظفات والرموز السرية" action="action_employees" sequence="3"/>
         <menuitem id="menu_cfg_users" name="حسابات أجهزة الفروع" action="action_branch_users" sequence="4"/>
+        <menuitem id="menu_cfg_devices" name="أجهزة البصمة" action="action_devices" sequence="4"/>
         <menuitem id="menu_cfg_penalty" name="جدول المخالفات" action="action_penalty_tiers" sequence="5"/>
         <menuitem id="menu_cfg_catalog" name="ملف الموديلات" action="action_catalog" sequence="6"/>
         <menuitem id="menu_cfg_catalog_import" name="رفع ملف الموديلات" action="action_catalog_import" sequence="7"/>

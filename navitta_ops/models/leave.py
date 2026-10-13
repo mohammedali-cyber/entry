@@ -46,8 +46,9 @@ class NavittaLeave(models.Model):
                 d += timedelta(days=1)
 
     @api.model
-    def _admin_add(self, employee, from_day, to_day, type_, cover):
-        mate = employee._mate() if cover else self.env["navitta.employee"]
+    def _admin_add(self, employee, from_day, to_day, type_, cover=None):
+        """cover: the colleague (navitta.employee) who covers the branch, if any."""
+        mate = cover or self.env["navitta.employee"]
         return self.sudo().create({"employee_id": employee.id, "from_day": from_day, "to_day": to_day,
                                    "type": type_, "cover_employee_id": mate.id or False})
 

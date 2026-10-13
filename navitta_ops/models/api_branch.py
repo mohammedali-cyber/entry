@@ -58,6 +58,7 @@ ERRORS = {
     "bad_lost": "المبيعات الضائعة: اكتبي اللون أو المقاس",
     "not_edit": "هذا ليس طلب تعديل مدة",
     "bad_decision": "قرار غير معروف",
+    "pick_cover": "اختاري الزميلة اللي بتغطي الفرع",
 }
 
 
@@ -129,7 +130,8 @@ class NavittaApi(models.AbstractModel):
         return {"shift_start": hours_to_min(c.navitta_shift_start), "shift_end": hours_to_min(c.navitta_shift_end),
                 "grace": c.navitta_grace, "break_max": c.navitta_break_max, "chances": c.navitta_chances,
                 "min_roll_invoice": c.navitta_min_roll_invoice, "min_roll_card": c.navitta_min_roll_card,
-                "min_bags": c.navitta_min_bags, "tz": c.navitta_tz or "Asia/Riyadh", "vat_rate": c.navitta_vat_rate}
+                "min_bags": c.navitta_min_bags, "tz": c.navitta_tz or "Asia/Riyadh", "vat_rate": c.navitta_vat_rate,
+                "checkin_photo": c.navitta_checkin_photo}
 
     @api.model
     def _visit_dict(self, v):
@@ -151,7 +153,9 @@ class NavittaApi(models.AbstractModel):
         att = self.env["navitta.attendance"].sudo().search([("employee_id", "in", employees.ids), ("day", "=", day)])
         brk = self.env["navitta.break"].sudo().search([("employee_id", "in", employees.ids), ("day", "=", day)])
         return (
-            [{"employee_id": a.employee_id.id, "check_in": iso(a.check_in), "check_out": iso(a.check_out)} for a in att],
+            [{"employee_id": a.employee_id.id, "check_in": iso(a.check_in), "check_out": iso(a.check_out),
+              "in_source": a.in_source, "out_source": a.out_source or False,
+              "in_photo_id": a.in_photo_id.id or False, "out_photo_id": a.out_photo_id.id or False} for a in att],
             [{"id": b.id, "employee_id": b.employee_id.id, "started_at": iso(b.started_at), "ended_at": iso(b.ended_at)} for b in brk],
         )
 
@@ -184,7 +188,16 @@ class NavittaApi(models.AbstractModel):
         }
 
     @api.model
-    def check_in(self, emp_id, pin):
+    def _punch_photo(self, branch, data):
+        """The selfie the branch screen took while the PIN was typed (base64 JPEG). Saved only after the PIN is
+        right; a missing or broken picture doesn't block the punch (the attendance is marked «بدون صورة»)."""
+        if not data or not isinstance(data, str):
+            return None
+        photo, err = self.env["navitta.photo"]._from_b64(branch, data, "image/jpeg")
+        return None if err else photo
+
+    @api.model
+    def check_in(self, emp_id, pin, photo=None):
         e, err = self._auth(emp_id, pin)
         if err:
             return self._err(err)
@@ -192,25 +205,11 @@ class NavittaApi(models.AbstractModel):
         Att = self.env["navitta.attendance"].sudo()
         if Att.search_count([("employee_id", "=", e.id), ("day", "=", day)]):
             return self._err("already_in")
-        now = fields.Datetime.now()
-        Att.create({"employee_id": e.id, "day": day, "check_in": now})
-        c = self.env.company
-        start, m, late = hours_to_min(c.navitta_shift_start), app_minute(self.env, now), 0
-        if not e._is_off(day) and m > start + c.navitta_grace:
-            late = m - start
-            Case = self.env["navitta.late.case"].sudo()
-            case = Case.search([("employee_id", "=", e.id), ("day", "=", day), ("kind", "=", "late")], limit=1)
-            if case:
-                case.write({"minutes": late, "check_in": now})
-            else:
-                Case.create({"employee_id": e.id, "day": day, "kind": "late", "minutes": late, "check_in": now})
-            e._notify(_("تنبيه: تأخير في الحضور"),
-                      _("مرحبًا %(n)s، تم تسجيل حضورك الساعة %(t)s بتأخير %(l)s دقيقة عن بداية الدوام %(s)s. يجب ذكر سبب التأخير من «تنبيهاتي». إدارة نافيتا",
-                        n=e.name, t=fmt_time(m), l=late, s=fmt_time(start)))
+        _att, late = Att._register_in(e, fields.Datetime.now(), "ipad", self._punch_photo(e.branch_id, photo))
         return {"ok": True, "late": late}
 
     @api.model
-    def check_out(self, emp_id, pin):
+    def check_out(self, emp_id, pin, photo=None):
         e, err = self._auth(emp_id, pin)
         if err:
             return self._err(err)
@@ -224,7 +223,7 @@ class NavittaApi(models.AbstractModel):
         att = self.env["navitta.attendance"].sudo().search([("employee_id", "=", e.id), ("day", "=", day), ("check_out", "=", False)], limit=1)
         if not att:
             return self._err("not_in")
-        att.check_out = fields.Datetime.now()
+        att._register_out(fields.Datetime.now(), "ipad", self._punch_photo(e.branch_id, photo))
         return {"ok": True}
 
     @api.model
@@ -405,6 +404,7 @@ class NavittaApi(models.AbstractModel):
         threads = self.env["navitta.thread"].sudo().search([("employee_id", "=", e.id)])
         res = {
             "employee": {"id": e.id, "name": e.name},
+            "mates": [{"id": m.id, "name": m.name} for m in e._mates()],
             "chances": {"used": self.env["navitta.late.case"]._chances_used(e, day), "max": self.env.company.navitta_chances},
             "cases": [self._case_dict(c) for c in cases],
             "leave_requests": [{
@@ -459,7 +459,17 @@ class NavittaApi(models.AbstractModel):
         if (self.env["navitta.leave"].sudo().search_count(overlap)
                 or self.env["navitta.leave.request"].sudo().search_count(overlap + [("state", "in", ("cover", "pending"))])):
             return self._err("overlap")
-        mate = e._mate() if cover else self.env["navitta.employee"]
+        # cover: False (no cover), a colleague's id, or True when she has a single colleague
+        mates, mate = e._mates(), self.env["navitta.employee"]
+        if cover:
+            if cover is True:
+                if len(mates) != 1:
+                    return self._err("pick_cover")
+                mate = mates
+            else:
+                mate = mates.filtered(lambda m: m.id == int(cover))
+                if not mate:
+                    return self._err("pick_cover")
         r = self.env["navitta.leave.request"].sudo().create({
             "employee_id": e.id, "type": type_, "from_day": d0, "to_day": d1, "reason": reason,
             "cover_employee_id": mate.id or False, "state": "cover" if mate else "pending"})

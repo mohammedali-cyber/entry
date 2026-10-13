@@ -61,6 +61,56 @@ export class PinPad extends Component {
     }
 }
 
+/**
+ * Front-camera preview shown above the PIN pad for check-in / check-out ("بصمة بالصورة").
+ * register({capture}) hands the parent a function returning a small JPEG (base64) of the current frame, or null.
+ */
+export class FaceCam extends Component {
+    static template = "navitta_ops.FaceCam";
+    static props = { register: Function };
+    setup() {
+        this.state = useState({ ready: false, failed: false });
+        this.videoRef = useRef("video");
+        this.props.register({ capture: () => this.capture() });
+        onMounted(() => this.start());
+        onWillUnmount(() => this.stop());
+    }
+    async start() {
+        try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error("no camera api");
+            }
+            this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 640 } }, audio: false });
+            const v = this.videoRef.el;
+            if (!v) {
+                return this.stop();
+            }
+            v.srcObject = this.stream;
+            await v.play();
+            this.state.ready = true;
+        } catch {
+            this.state.failed = true;
+        }
+    }
+    stop() {
+        if (this.stream) {
+            this.stream.getTracks().forEach((t) => t.stop());
+            this.stream = null;
+        }
+    }
+    async capture() {
+        const v = this.videoRef.el;
+        if (!this.state.ready || !v || !v.videoWidth) {
+            return null;
+        }
+        try {
+            return await compress(v, 640, 0.7);
+        } catch {
+            return null;
+        }
+    }
+}
+
 /** Signs an action with an employee's PIN: pick the employee, then the PIN pad. */
 export class SignModal extends Component {
     static template = "navitta_ops.SignModal";

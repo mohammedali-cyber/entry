@@ -29,6 +29,18 @@
         </select>
     </t>
 
+    <!-- check-in / check-out time with how it was taken: 📷 photo link (iPad), 🖐️ fingerprint terminal -->
+    <t t-name="navitta_ops.PunchCell">
+        <t t-set="when" t-value="a and (k === 'in' ? a.check_in : a.check_out)"/>
+        <t t-if="when">
+            <t t-esc="clock(when)"/>
+            <span t-if="a[k + '_source'] === 'device'" class="chip neutral" title="جهاز البصمة">🖐️</span>
+            <PhotoLink t-elif="a[k + '_photo_id']" id="a[k + '_photo_id']" label="'صورة'"/>
+            <span t-elif="d.settings.checkin_photo" class="chip warn" title="الكاميرا ما التقطت صورة">بدون صورة</span>
+        </t>
+        <t t-else="">—</t>
+    </t>
+
     <!-- ============================================================ dashboard -->
     <t t-name="navitta_ops.AdminDashboard">
         <div t-if="!state.d" class="empty">جارٍ التحميل…</div>
@@ -162,7 +174,8 @@
                     <div class="nv-card-h"><div><h2>حضور اليوم بالبصمة</h2><p class="sub">الدوام <t t-esc="h12(d.settings.shift_start)"/> إلى <t t-esc="h12(d.settings.shift_end)"/></p></div></div>
                     <div class="tscroll"><table class="nv-tbl"><thead><tr><th>الفرع</th><th>الموظفة</th><th>الحضور</th><th>الانصراف</th><th>الاستراحة</th><th>الحالة</th></tr></thead><tbody>
                         <t t-foreach="w.emps" t-as="e" t-key="e.id"><t t-set="ar" t-value="attRow(e)"/>
-                            <tr><td t-esc="bName(e.branch_id)"/><td><b t-esc="e.name"/></td><td class="n" t-esc="ar.a ? clock(ar.a.check_in) : '—'"/><td class="n" t-esc="ar.a and ar.a.check_out ? clock(ar.a.check_out) : '—'"/>
+                            <tr><td t-esc="bName(e.branch_id)"/><td><b t-esc="e.name"/></td><td class="n"><t t-call="navitta_ops.PunchCell"><t t-set="a" t-value="ar.a"/><t t-set="k" t-value="'in'"/></t></td>
+                                <td class="n"><t t-call="navitta_ops.PunchCell"><t t-set="a" t-value="ar.a"/><t t-set="k" t-value="'out'"/></t></td>
                                 <td><span t-if="ar.onB" class="chip info">☕ في استراحة</span><span t-elif="ar.bm" class="num">☕ <t t-esc="ar.bm"/> د <span t-if="ar.bm &gt; d.settings.break_max" class="chip warn">تجاوز <t t-esc="ar.bm - d.settings.break_max"/> د</span></span><t t-else="">—</t></td>
                                 <td><span t-att-class="'chip ' + ar.st[0]" t-esc="ar.st[1]"/></td></tr>
                         </t>

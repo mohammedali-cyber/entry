@@ -1,8 +1,7 @@
 from datetime import timedelta
 
 from odoo import _, api, fields, models
-from odoo.exceptions import ValidationError
-from odoo.tools import sql
+from odoo.exceptions import UserError, ValidationError
 
 from .common import CRYPT, WEEKDAYS, dow, new_pin
 
@@ -10,11 +9,16 @@ from .common import CRYPT, WEEKDAYS, dow, new_pin
 class NavittaEmployee(models.Model):
     _name = "navitta.employee"
     _description = "موظفة فرع"
-    _order = "branch_id, slot"
+    _order = "branch_id, slot, id"
 
     name = fields.Char("الاسم", required=True)
     branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="restrict")
-    slot = fields.Integer("رقمها في الفرع", required=True, default=1, help="1 أو 2: مكانها في شاشة العدّاد")
+    slot = fields.Integer("ترتيبها في الشاشة", required=True, default=0,
+                          help="ترتيب بطاقتها في شاشة العدّاد، ورقم اختصارها في لوحة المفاتيح. يُعطى تلقائيًا عند الإضافة")
+    device_user_id = fields.Char("رقم البصمة في الجهاز", copy=False, index=True,
+                                 help="رقم الموظفة المسجل في جهاز البصمة (ZKTeco) بفرعها. تُربط به بصماتها تلقائيًا")
+    photo = fields.Image("الصورة المرجعية", max_width=512, max_height=512, groups="navitta_ops.group_navitta_admin",
+                         help="صورة واضحة للوجه تقارن بها الإدارة صور البصمة")
     email = fields.Char("الإيميل", groups="navitta_ops.group_navitta_admin", help="تُرسل إليه التنبيهات والقرارات")
     weekly_off = fields.Selection(WEEKDAYS, "الإجازة الأسبوعية")
     active = fields.Boolean(default=True)
@@ -28,14 +32,60 @@ class NavittaEmployee(models.Model):
     @api.constrains("slot")
     def _check_slot(self):
         for e in self:
-            if e.slot not in (1, 2):
-                raise ValidationError(_("رقم الموظفة في الفرع لازم يكون 1 أو 2"))
+            if e.slot < 1:
+                raise ValidationError(_("الترتيب في الشاشة لازم يكون 1 أو أكثر"))
+
+    @api.constrains("device_user_id", "branch_id", "active")
+    def _check_device_user_id(self):
+        for e in self.filtered(lambda x: x.device_user_id and x.active):
+            if not e.device_user_id.strip().isdigit():
+                raise ValidationError(_("رقم البصمة لازم يكون أرقام فقط (مثل رقم الموظفة في الجهاز)"))
+            other = self.sudo().search([("id", "!=", e.id), ("branch_id", "=", e.branch_id.id), ("active", "=", True),
+                                        ("device_user_id", "=", e.device_user_id.strip())], limit=1)
+            if other:
+                raise ValidationError(_("رقم البصمة %(n)s مستخدم لموظفة ثانية في نفس الفرع: %(o)s", n=e.device_user_id, o=other.name))
 
     def init(self):
-        # one active employee per slot in a branch (replaced employees are archived)
-        if not sql.index_exists(self.env.cr, "navitta_employee_branch_slot_active"):
-            self.env.cr.execute("CREATE UNIQUE INDEX navitta_employee_branch_slot_active "
-                                "ON navitta_employee (branch_id, slot) WHERE active")
+        # versions before 18.0.1.2 allowed only 2 employees per branch (slot 1/2, unique)
+        self.env.cr.execute("DROP INDEX IF EXISTS navitta_employee_branch_slot_active")
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get("device_user_id"):
+                vals["device_user_id"] = str(vals["device_user_id"]).strip()
+            if not vals.get("slot") and vals.get("branch_id"):
+                last = self.sudo().search([("branch_id", "=", vals["branch_id"])], order="slot desc", limit=1)
+                vals["slot"] = (last.slot or 0) + 1
+        return super().create(vals_list)
+
+    def write(self, vals):
+        if vals.get("device_user_id"):
+            vals["device_user_id"] = str(vals["device_user_id"]).strip()
+        if "branch_id" in vals:
+            from .common import app_today
+            moving = self.filtered(lambda e: e.branch_id.id != vals["branch_id"])
+            if moving and self.env["navitta.attendance"].sudo().search_count(
+                    [("employee_id", "in", moving.ids), ("day", "=", app_today(self.env)), ("check_out", "=", False)]):
+                raise UserError(_("الموظفة مسجلة حضور الحين في فرعها. انقلها بعد ما تسجل انصراف"))
+        res = super().write(vals)
+        if vals.get("device_user_id") or vals.get("branch_id"):
+            # punches that came in before she was linked to her fingerprint number
+            self.env["navitta.device.punch"].sudo()._process_unmatched(self)
+        return res
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_without_history(self):
+        for e in self:
+            if self.env["navitta.attendance"].sudo().search_count([("employee_id", "=", e.id)], limit=1) or \
+                    self.env["navitta.visit"].sudo().search_count([("employee_id", "=", e.id)], limit=1):
+                raise UserError(_("%s لها سجلات حضور أو زيارات، فما يمكن حذفها. استخدم «أرشفة» بدل الحذف "
+                                  "(تختفي من شاشة الفرع وتبقى سجلاتها).", e.name))
+
+    def action_attendance(self):
+        self.ensure_one()
+        return {"type": "ir.actions.act_window", "name": _("حضور %s", self.name), "res_model": "navitta.attendance",
+                "view_mode": "kanban,list,form", "domain": [("employee_id", "=", self.id)]}
 
     @api.depends("pin_hash")
     def _compute_has_pin(self):
@@ -104,10 +154,10 @@ class NavittaEmployee(models.Model):
             return not covering
         return False
 
-    def _mate(self):
-        """The other active employee of the same branch."""
+    def _mates(self):
+        """The other active employees of the same branch."""
         self.ensure_one()
-        return self.sudo().search([("branch_id", "=", self.branch_id.id), ("slot", "!=", self.slot), ("active", "=", True)], limit=1)
+        return self.sudo().search([("branch_id", "=", self.branch_id.id), ("id", "!=", self.id), ("active", "=", True)])
 
     def _notify(self, subject, body):
         self.env["navitta.notification"]._notify_employee(self, subject, body)

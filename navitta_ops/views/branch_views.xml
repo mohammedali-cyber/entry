@@ -49,11 +49,17 @@
                         <page string="الموظفات" name="employees">
                             <field name="employee_ids" context="{'default_branch_id': id}">
                                 <list editable="bottom">
-                                    <field name="slot"/>
+                                    <field name="slot" widget="handle"/>
                                     <field name="name"/>
                                     <field name="weekly_off"/>
+                                    <field name="device_user_id"/>
                                     <field name="has_pin"/>
                                 </list>
+                            </field>
+                        </page>
+                        <page string="أجهزة البصمة" name="devices">
+                            <field name="device_ids" context="{'default_branch_id': id}">
+                                <list><field name="name"/><field name="serial_number"/><field name="state"/><field name="last_seen"/></list>
                             </field>
                         </page>
                         <page string="حسابات جهاز الفرع" name="users">

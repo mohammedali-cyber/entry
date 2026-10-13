@@ -1,8 +1,9 @@
 import base64
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
-from odoo.exceptions import AccessError, UserError
+from odoo import fields
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import tagged
 from odoo.tests.common import HttpCase, TransactionCase, freeze_time
 
@@ -388,6 +389,69 @@ class NavittaCase(TransactionCase):
         act = self.env.ref("navitta_ops.action_branch_users")
         self.assertEqual(act.view_ids.filtered(lambda v: v.view_mode == "form").view_id, self.env.ref("base.view_users_form"))
 
+    # ------------------------------------------------------------------ employees: any number per branch, the form
+    def test_employees_any_number(self):
+        Emp = self.env["navitta.employee"]
+        third = Emp.create({"name": "نورة", "branch_id": self.dwd.id})
+        self.assertEqual(third.slot, 3)                      # next place on the screen
+        third._set_pin("2468")
+        with freeze_time(utc(15, 20)):
+            self.assertEqual([e["name"] for e in self.api().branch_state()["employees"]], ["ريم", "شيمة", "نورة"])
+            self.assertTrue(self.api().check_in(third.id, "2468")["ok"])
+            with self.assertRaises(UserError):              # checked in: move her after she leaves
+                third.write({"branch_id": self.qsm.id})
+            # a leave with 2 colleagues: she must say who covers
+            self.assertEqual(self.api().leave_request(self.reem.id, "2468", "annual", "2026-11-01", "2026-11-02", "سفر", True)["error"], "pick_cover")
+            self.assertEqual(self.api().leave_request(self.reem.id, "2468", "annual", "2026-11-01", "2026-11-02", "سفر", self.hubour.id)["error"], "pick_cover")
+            r = self.api().leave_request(self.reem.id, "2468", "annual", "2026-11-01", "2026-11-02", "سفر", third.id)
+            self.assertEqual(self.env["navitta.leave.request"].browse(r["id"]).cover_employee_id, third)
+            self.assertEqual({m["name"] for m in self.api().inbox(self.reem.id, "2468")["mates"]}, {"شيمة", "نورة"})
+        with self.assertRaises(UserError):                  # history: archive instead of delete
+            third.unlink()
+        Emp.create({"name": "مؤقتة", "branch_id": self.qsm.id}).unlink()    # no history: can be deleted
+        self.shima.write({"branch_id": self.qsm.id})        # not checked in today: can move
+        self.assertEqual(self.shima.branch_id, self.qsm)
+
+    def test_fingerprint_number(self):
+        self.reem.device_user_id = " 5 "
+        self.assertEqual(self.reem.device_user_id, "5")
+        with self.assertRaises(ValidationError):
+            self.shima.device_user_id = "5"                 # same branch
+        self.hubour.device_user_id = "5"                    # other branch: fine
+        with self.assertRaises(ValidationError):
+            self.shima.device_user_id = "A5"
+
+    # ------------------------------------------------------------------ check-in with a photo (iPad)
+    def test_checkin_photo(self):
+        import io
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new("RGB", (64, 48), (180, 120, 90)).save(buf, "JPEG")
+        jpeg = base64.b64encode(buf.getvalue()).decode()
+        Photo = self.env["navitta.photo"]
+        n0 = Photo.search_count([])
+        with freeze_time(utc(15, 20)):
+            self.assertEqual(self.api().check_in(self.reem.id, "0000", jpeg)["error"], "wrong_pin")
+            self.assertEqual(Photo.search_count([]), n0)    # wrong PIN: the picture is not kept
+            self.assertTrue(self.api().check_in(self.reem.id, "2468", jpeg)["ok"])
+            self.assertTrue(self.api().check_in(self.shima.id, "2468")["ok"])          # camera refused: still checked in
+            self.assertEqual(self.api().check_in(self.shima.id, "2468")["error"], "already_in")
+        att = self.env["navitta.attendance"].search([("employee_id", "=", self.reem.id)])
+        self.assertEqual((att.in_source, bool(att.in_photo_id), att.no_photo), ("ipad", True, False))
+        self.assertEqual(att.in_photo_id.branch_id, self.dwd)
+        self.assertTrue(self.env["navitta.attendance"].search([("employee_id", "=", self.shima.id)]).no_photo)
+        with freeze_time(utc(23, 31)):
+            self.assertTrue(self.api().check_out(self.reem.id, "2468", "not-base64!")["ok"])   # broken picture
+        att.invalidate_recordset()
+        self.assertTrue(att.no_photo)
+        att.with_user(self.boss).action_use_as_reference()
+        self.assertTrue(self.reem.photo)
+        with freeze_time(utc(23, 40)):
+            d = self.admin().admin_dashboard(1)
+        reem_row = [a for a in d["attendance"] if a["employee_id"] == self.reem.id][0]
+        self.assertTrue(reem_row["in_photo_id"])
+        self.assertFalse(reem_row["out_photo_id"])
+
     # ------------------------------------------------------------------ models file import and nightly summary
     def test_catalog_import_wizard(self):
         import io
@@ -440,3 +504,58 @@ class NavittaHttp(HttpCase):
         self.assertTrue(r.json()["result"]["ok"])
         tok.invalidate_recordset()
         self.assertEqual(tok.photo_id.branch_id, dwd)
+
+    def test_fingerprint_device_push(self):
+        """A ZKTeco terminal in cloud (ADMS) mode: unknown -> pending, approved -> punches become attendance."""
+        env = self.env
+        env.company.write({"navitta_tz": "Asia/Riyadh", "navitta_shift_start": 15.5, "navitta_shift_end": 23.5, "navitta_grace": 5})
+        dwd = env.ref("navitta_ops.branch_dwd")
+        emp = env["navitta.employee"].create({"name": "تجربة البصمة", "branch_id": dwd.id, "device_user_id": "5"})
+        y = (fields.Datetime.now() + timedelta(hours=3)).date() - timedelta(days=1)   # yesterday, Riyadh
+        t = lambda h, m, s=0: "%s %02d:%02d:%02d" % (y, h, m, s)
+        sn = "NVTEST01"
+
+        def post(lines, sn=sn):
+            return self.url_open("/iclock/cdata?SN=%s&table=ATTLOG&Stamp=1" % sn, data="".join(lines),
+                                 headers={"Content-Type": "text/plain"})
+        hello = self.url_open("/iclock/cdata?SN=%s&options=all&pushver=2.4.1" % sn)
+        self.assertEqual(hello.status_code, 200)
+        self.assertIn("GET OPTION FROM: %s" % sn, hello.text)
+        self.assertIn("Realtime=1", hello.text)
+        dev = env["navitta.device"].search([("serial_number", "=", sn)])
+        self.assertEqual(dev.state, "pending")
+        line = "5\t%s\t0\t1\t0\t0\t0\n"
+        self.assertEqual(post([line % t(15, 40)]).status_code, 403)          # not approved: device keeps the punch
+        dev.write({"branch_id": dwd.id})
+        dev.action_approve()
+        r = post([line % t(15, 40), line % t(15, 41)])
+        self.assertEqual((r.status_code, r.text), (200, "OK: 2"))
+        att = env["navitta.attendance"].search([("employee_id", "=", emp.id), ("day", "=", y)])
+        self.assertEqual((att.in_source, att.in_device_id), ("device", dev))
+        case = env["navitta.late.case"].search([("employee_id", "=", emp.id), ("day", "=", y), ("kind", "=", "late")])
+        self.assertEqual(case.minutes, 10)
+        punches = env["navitta.device.punch"].search([("device_id", "=", dev.id)], order="punched_at")
+        self.assertEqual(punches.mapped("state"), ["in", "duplicate"])
+        self.assertEqual(post([line % t(15, 40)]).text, "OK: 1")               # same batch again: not counted twice
+        self.assertEqual(env["navitta.device.punch"].search_count([("device_id", "=", dev.id)]), 2)
+        post([line % t(23, 35)])
+        att.invalidate_recordset()
+        self.assertEqual(att.out_source, "device")
+        self.assertEqual(att.check_out.strftime("%H:%M"), "20:35")             # 23:35 Riyadh = 20:35 UTC
+        post([line % t(15, 30)])                                               # an earlier punch arrives late
+        att.invalidate_recordset()
+        self.assertEqual(att.check_in.strftime("%H:%M"), "12:30")
+        self.assertFalse(case.exists())                                        # on time after all
+        post(["77\t%s\t0\t1\t0\n" % t(16, 0)])                             # nobody has fingerprint number 77 yet
+        p77 = env["navitta.device.punch"].search([("device_user_id", "=", "77")])
+        self.assertEqual(p77.state, "unmatched")
+        other = env["navitta.employee"].create({"name": "رقم 77", "branch_id": dwd.id})
+        other.device_user_id = "77"                                            # linking her processes the waiting punch
+        self.assertEqual(p77.state, "in")
+        self.assertEqual(self.url_open("/iclock/getrequest?SN=%s&INFO=Ver 8.0,3,2" % sn).text, "OK")
+        dev.invalidate_recordset()
+        self.assertIn("Ver 8.0", dev.info)
+        dev.allowed_ip = "10.9.9.9"
+        self.assertEqual(post([line % t(23, 50)]).status_code, 403)
+        self.assertEqual(self.url_open("/iclock/cdata?SN=bad%20sn!&options=all").status_code, 400)
+

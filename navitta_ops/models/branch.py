@@ -17,6 +17,7 @@ class NavittaBranch(models.Model):
     company_id = fields.Many2one("res.company", default=lambda self: self.env.company, required=True)
     employee_ids = fields.One2many("navitta.employee", "branch_id", string="الموظفات")
     user_ids = fields.One2many("res.users", "navitta_branch_id", string="حسابات جهاز الفرع")
+    device_ids = fields.One2many("navitta.device", "branch_id", string="أجهزة البصمة")
 
     cash_opening_balance = fields.Float("رصيد الصندوق الافتتاحي", digits=(12, 2))
     cash_opening_date = fields.Date("في تاريخ", help="الرصيد بعد هذا التاريخ ينحسب تلقائيًا من النقدي والإيداع والمصروفات المعتمدة")

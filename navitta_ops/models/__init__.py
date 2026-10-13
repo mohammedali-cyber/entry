@@ -10,6 +10,7 @@ from . import message
 from . import sales
 from . import request
 from . import catalog
+from . import device
 from . import api_branch
 from . import api_admin
 from . import report_summary

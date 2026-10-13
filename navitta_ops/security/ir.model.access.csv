@@ -52,3 +52,5 @@ access_pin_wizard_admin,navitta.pin_wizard.admin,model_navitta_pin_wizard,group_
 access_admin_password_wizard_admin,navitta.admin_password_wizard.admin,model_navitta_admin_password_wizard,group_navitta_admin,1,1,1,1
 access_catalog_import_wizard_admin,navitta.catalog_import_wizard.admin,model_navitta_catalog_import_wizard,group_navitta_admin,1,1,1,1
 access_summary_wizard_admin,navitta.summary_wizard.admin,model_navitta_summary_wizard,group_navitta_admin,1,1,1,1
+access_device_admin,navitta.device.admin,model_navitta_device,group_navitta_admin,1,1,1,1
+access_device_punch_admin,navitta.device_punch.admin,model_navitta_device_punch,group_navitta_admin,1,1,0,1

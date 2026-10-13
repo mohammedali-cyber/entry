@@ -41,7 +41,7 @@ class AdminBase extends Component {
 // ---------------------------------------------------------------- dashboard
 class Dashboard extends AdminBase {
     static template = "navitta_ops.AdminDashboard";
-    static components = { DailyQuote, EmpBoard, NvModal };
+    static components = { DailyQuote, EmpBoard, NvModal, PhotoLink };
     setup() {
         super.setup();
         this.state = useState({ d: null, br: 0, period: 7, notes: {}, openT: null, reply: "", setup: null, once: null, busy: false });

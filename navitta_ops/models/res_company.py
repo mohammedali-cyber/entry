@@ -24,6 +24,8 @@ class ResCompany(models.Model):
     navitta_min_bags = fields.Integer("الحد الأدنى: أكياس", default=5)
     navitta_vat_rate = fields.Float("نسبة ضريبة القيمة المضافة (%)", default=15.0,
                                     help="المبيعات المسجلة شاملة الضريبة. تُستخدم لحساب الضريبة والصافي في تقارير المبيعات فقط.")
+    navitta_checkin_photo = fields.Boolean("صورة مع البصمة", default=True,
+                                           help="الآيباد يصوّر الموظفة بالكاميرا الأمامية لحظة كتابة رمزها للحضور والانصراف")
 
     @api.constrains("navitta_shift_start", "navitta_shift_end", "navitta_grace", "navitta_break_max", "navitta_chances")
     def _check_navitta_rules(self):

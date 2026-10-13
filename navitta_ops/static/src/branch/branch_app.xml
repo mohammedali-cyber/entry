@@ -53,7 +53,7 @@
             <DailyQuote/>
             <div class="counter-top">
                 <span class="chip neutral num" t-esc="longDate(d.day)"/>
-                <span class="range-note">اليوم: <t t-esc="d.visits.filter((v) => v.saved).length"/> عميلة · من لوحة المفاتيح: 1 للموظفة الأولى و2 للثانية</span>
+                <span class="range-note">اليوم: <t t-esc="d.visits.filter((v) => v.saved).length"/> عميلة · من لوحة المفاتيح: رقم الموظفة (1، 2، 3…) يبدأ زيارة</span>
                 <button type="button" class="ms-btn" t-on-click="() => state.search = true">🔎 بحث موديل</button>
             </div>
             <ModelSearch t-if="state.search" onClose="() => state.search = false"/>
@@ -76,10 +76,11 @@
             <div class="split">
                 <t t-foreach="d.employees" t-as="emp" t-key="emp.id">
                     <t t-set="p" t-value="pane(emp)"/>
+                    <t t-set="num" t-value="emp_index + 1"/>
                     <div class="pane">
                         <div class="pane-h">
                             <div style="min-width:0;flex:1">
-                                <div class="slot">الموظفة <t t-esc="emp.slot"/></div>
+                                <div class="slot">الموظفة <t t-esc="num"/></div>
                                 <div class="ename" style="border:0" t-esc="emp.name"/>
                                 <div class="att num">
                                     <t t-if="p.att">
@@ -133,7 +134,7 @@
                         </div>
 
                         <div t-if="p.isIn and !p.onBreak" class="visits">
-                            <button type="button" class="start" t-on-click="() => this.startVisit(emp)">دخلت عميلة <kbd t-esc="emp.slot"/></button>
+                            <button type="button" class="start" t-on-click="() => this.startVisit(emp)">دخلت عميلة <kbd t-if="num &lt; 10" t-esc="num"/></button>
                             <t t-foreach="p.open" t-as="v" t-key="v.id">
                                 <t t-set="x" t-value="dr(v)"/>
                                 <div t-att-class="'visit ' + (v.ended_at ? 'done' : 'run')" t-att-id="'visit-' + v.id">
@@ -178,6 +179,7 @@
                 </t>
             </div>
             <NvModal t-if="state.pin" onClose="() => state.pin = null">
+                <FaceCam t-if="st.checkin_photo" register="(c) => this.cam = c"/>
                 <PinPad title="(state.pin.mode === 'in' ? 'حضور ' : 'انصراف ') + state.pin.emp.name" onCancel="() => state.pin = null" onDone="(code) => this.pinDone(code)"/>
             </NvModal>
         </t>
@@ -310,7 +312,12 @@
                         <label>آخر يوم إجازة<input type="date" class="ctl num" t-model="state.lv.to"/></label>
                     </div>
                     <label class="lr-l">السبب *<textarea class="ctl" rows="2" t-model="state.lv.why"/></label>
-                    <label class="chk"><input type="checkbox" t-model="state.lv.cover"/> زميلتي تغطي الفرع</label>
+                    <label t-if="box.mates.length" class="lr-l">مين تغطي الفرع أثناء إجازتك؟
+                        <select class="ctl" t-model="state.lv.cover">
+                            <option t-if="box.mates.length &gt; 1" value="">— اختاري الزميلة —</option>
+                            <t t-foreach="box.mates" t-as="m" t-key="m.id"><option t-att-value="m.id" t-esc="m.name"/></t>
+                            <option value="0">بدون تغطية</option>
+                        </select></label>
                     <div class="vrow"><button type="button" class="nv-btn primary" t-on-click="sendLeave">إرسال الطلب</button></div>
                 </div>
                 <div t-foreach="box.deferred" t-as="x" t-key="x.id" class="nfy" t-att-style="'margin-top:8px;background:' + (x.new_day ? 'var(--good-bg)' : 'var(--surface-2)')">

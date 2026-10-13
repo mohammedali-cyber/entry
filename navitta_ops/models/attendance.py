@@ -4,7 +4,9 @@ from datetime import timedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
-from .common import fmt_time, hours_to_min
+from .common import app_minute, fmt_time, hours_to_min, local_dt
+
+SOURCES = [("ipad", "آيباد الفرع"), ("device", "جهاز البصمة"), ("manual", "يدوي")]
 
 
 class NavittaAttendance(models.Model):
@@ -17,8 +19,87 @@ class NavittaAttendance(models.Model):
     day = fields.Date("اليوم", required=True, index=True)
     check_in = fields.Datetime("الحضور", required=True)
     check_out = fields.Datetime("الانصراف")
+    in_source = fields.Selection(SOURCES, "طريقة الحضور", default="ipad", required=True)
+    out_source = fields.Selection(SOURCES, "طريقة الانصراف")
+    in_photo_id = fields.Many2one("navitta.photo", "صورة الحضور", ondelete="set null", copy=False)
+    out_photo_id = fields.Many2one("navitta.photo", "صورة الانصراف", ondelete="set null", copy=False)
+    in_image = fields.Binary(related="in_photo_id.image", string="صورة الحضور ")
+    out_image = fields.Binary(related="out_photo_id.image", string="صورة الانصراف ")
+    ref_image = fields.Image(related="employee_id.photo", string="الصورة المرجعية", groups="navitta_ops.group_navitta_admin")
+    in_device_id = fields.Many2one("navitta.device", "جهاز الحضور", ondelete="set null")
+    out_device_id = fields.Many2one("navitta.device", "جهاز الانصراف", ondelete="set null")
+    no_photo = fields.Boolean("بصمة آيباد بدون صورة", compute="_compute_no_photo", store=True,
+                              help="حضور أو انصراف من الآيباد والكاميرا ما التقطت صورة")
 
     _sql_constraints = [("emp_day_uniq", "unique(employee_id, day)", "تم تسجيل الحضور مسبقًا لهذا اليوم")]
+
+    @api.depends("employee_id", "day")
+    def _compute_display_name(self):
+        for a in self:
+            a.display_name = "%s · %s" % (a.employee_id.name or "", a.day or "")
+
+    @api.depends("in_source", "in_photo_id", "out_source", "out_photo_id", "check_out")
+    def _compute_no_photo(self):
+        for a in self:
+            a.no_photo = (a.in_source == "ipad" and not a.in_photo_id) or \
+                         (bool(a.check_out) and a.out_source == "ipad" and not a.out_photo_id)
+
+    # ------------------------------------------------------------------ one path for every source
+    @api.model
+    def _late_minutes(self, employee, day, when):
+        c = self.env.company
+        start = hours_to_min(c.navitta_shift_start)
+        m = app_minute(self.env, when)
+        if employee._is_off(day) or m <= start + c.navitta_grace:
+            return 0
+        return m - start
+
+    @api.model
+    def _register_in(self, employee, when, source="ipad", photo=None, device=None):
+        """Check-in of `employee` at `when` (naive UTC). Creates the late case and its notice when late.
+        Returns (attendance, late_minutes)."""
+        day = local_dt(self.env, when).date()
+        att = self.sudo().create({"employee_id": employee.id, "day": day, "check_in": when, "in_source": source,
+                                  "in_photo_id": photo.id if photo else False, "in_device_id": device.id if device else False})
+        return att, att._apply_late()
+
+    def _apply_late(self):
+        """(Re)evaluates the late case of this check-in; returns the late minutes."""
+        self.ensure_one()
+        e, day = self.employee_id, self.day
+        late = self._late_minutes(e, day, self.check_in)
+        Case = self.env["navitta.late.case"].sudo()
+        case = Case.search([("employee_id", "=", e.id), ("day", "=", day), ("kind", "=", "late")], limit=1)
+        if late:
+            if case:
+                case.write({"minutes": late, "check_in": self.check_in})
+            else:
+                Case.create({"employee_id": e.id, "day": day, "kind": "late", "minutes": late, "check_in": self.check_in})
+            start = hours_to_min(self.env.company.navitta_shift_start)
+            e._notify(_("تنبيه: تأخير في الحضور"),
+                      _("مرحبًا %(n)s، تم تسجيل حضورك الساعة %(t)s بتأخير %(l)s دقيقة عن بداية الدوام %(s)s. يجب ذكر سبب التأخير من «تنبيهاتي». إدارة نافيتا",
+                        n=e.name, t=fmt_time(app_minute(self.env, self.check_in)), l=late, s=fmt_time(start)))
+        elif case and case.state == "reply":
+            # an earlier punch arrived later (device offline): she wasn't late after all
+            case.unlink()
+        return late
+
+    def _register_out(self, when, source="ipad", photo=None, device=None):
+        self.ensure_one()
+        self.sudo().write({"check_out": when, "out_source": source, "out_photo_id": photo.id if photo else False,
+                           "out_device_id": device.id if device else False})
+
+    def action_use_as_reference(self):
+        """Management: make this check-in photo the employee's reference photo."""
+        self.ensure_one()
+        if not self.in_photo_id:
+            raise UserError(_("ما فيه صورة حضور لهذا اليوم"))
+        try:
+            self.employee_id.sudo().photo = self.in_photo_id.image
+        except UserError:
+            raise UserError(_("صورة الحضور تالفة وما تصلح كصورة مرجعية")) from None
+        return {"type": "ir.actions.client", "tag": "display_notification",
+                "params": {"message": _("صارت صورة %s المرجعية", self.employee_id.name), "type": "success"}}
 
 
 class NavittaBreak(models.Model):

@@ -8,7 +8,7 @@ import {
     CTX, addDays, api, clock, dTxt, days, f0, h12, jn, longDate, minuteNow, mmss, now, photoUrl, setClock, sizesOf, swatch, today, ago, icon, dcsText,
 } from "../common/utils";
 import {
-    DailyQuote, ModelPicker, ModelSearch, NvModal, PhotoLink, PhotoPicker, PinPad, SignModal, TargetBar,
+    DailyQuote, FaceCam, ModelPicker, ModelSearch, NvModal, PhotoLink, PhotoPicker, PinPad, SignModal, TargetBar,
 } from "../common/components";
 
 const MFG = "manufacture", OTHER = "__other";
@@ -113,7 +113,7 @@ class UndoOut extends Component {
 // ---------------------------------------------------------------- counter
 class Counter extends Component {
     static template = "navitta_ops.Counter";
-    static components = { DailyQuote, TargetBar, ModelSearch, NvModal, PinPad, Outcome, EditReq, UndoOut };
+    static components = { DailyQuote, TargetBar, ModelSearch, NvModal, PinPad, FaceCam, Outcome, EditReq, UndoOut };
     static props = { goto: Function };
     setup() {
         this.orm = useService("orm");
@@ -135,8 +135,9 @@ class Counter extends Component {
             if (!d || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || this.state.pin || this.state.search || document.querySelector(".nv-modal-bg")) {
                 return;
             }
-            const n = { 1: 1, "١": 1, 2: 2, "٢": 2 }[e.key];
-            const emp = n && d.employees.find((x) => x.slot === n);
+            const digits = "١٢٣٤٥٦٧٨٩";
+            const n = /^[1-9]$/.test(e.key) ? +e.key : digits.indexOf(e.key) + 1;
+            const emp = n > 0 && d.employees[n - 1];
             if (emp && this.isIn(emp) && !this.onBreak(emp)) {
                 this.startVisit(emp);
             }
@@ -320,7 +321,9 @@ class Counter extends Component {
     }
     async pinDone(code) {
         const p = this.state.pin;
-        const r = await api(this.orm, p.mode === "in" ? "check_in" : "check_out", p.emp.id, code);
+        // the photo goes with the PIN; the server keeps it only when the PIN is right
+        const photo = this.cam && this.state.d.settings.checkin_photo ? await this.cam.capture() : null;
+        const r = await api(this.orm, p.mode === "in" ? "check_in" : "check_out", p.emp.id, code, photo);
         if (r.error) {
             return r.message;
         }
@@ -365,7 +368,7 @@ class Inbox extends Component {
         this.notification = useService("notification");
         this.state = useState({
             emps: [], emp: null, pin: null, box: null, leaveForm: this.props.open === "leave", msgForm: this.props.open === "msg",
-            lv: { type: "annual", from: "", to: "", why: "", cover: true }, msg: { topic: "personal", body: "" }, rep: {}, coverNote: {},
+            lv: { type: "annual", from: "", to: "", why: "", cover: "" }, msg: { topic: "personal", body: "" }, rep: {}, coverNote: {},
         });
         Object.assign(this, H);
         onWillStart(async () => {
@@ -396,6 +399,8 @@ class Inbox extends Component {
             return r.message;
         }
         this.state.box = r;
+        // who covers the branch during a leave: preselected when she has a single colleague
+        this.state.lv.cover = r.mates.length === 1 ? String(r.mates[0].id) : "";
         return null;
     }
     async unlock(code) {
@@ -424,8 +429,13 @@ class Inbox extends Component {
     }
     async sendLeave() {
         const lv = this.state.lv;
-        if (await this.call("leave_request", [lv.type, lv.from, lv.to, lv.why, lv.cover],
-            lv.cover ? "تم إرسال الطلب لزميلتك لتوافق على التغطية، وبعدها يوصل للإدارة" : "تم إرسال طلب الإجازة للإدارة")) {
+        if (this.state.box.mates.length && lv.cover === "") {
+            this.notification.add("اختاري مين تغطي الفرع، أو «بدون تغطية»", { type: "warning" });
+            return;
+        }
+        const cover = +lv.cover || false;
+        if (await this.call("leave_request", [lv.type, lv.from, lv.to, lv.why, cover],
+            cover ? "تم إرسال الطلب لزميلتك لتوافق على التغطية، وبعدها يوصل للإدارة" : "تم إرسال طلب الإجازة للإدارة")) {
             this.state.leaveForm = false;
             lv.why = "";
         }
