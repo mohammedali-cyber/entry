@@ -6,7 +6,7 @@ from datetime import timedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
-from .common import EXPENSE_CATEGORIES, GOODS_REASONS, SUPPLIES, label
+from .common import EXPENSE_CATEGORIES, SUPPLIES, label
 
 MAX_PHOTO_BYTES = 1_500_000           # photos are compressed on the device (~1280px JPEG) before upload
 PHOTO_MIMES = ("image/jpeg", "image/png", "image/webp")

@@ -10,7 +10,7 @@ from datetime import timedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 
-from .common import (EXCHANGE_REASONS, LEAVE_TYPES, LOST_REASONS, OUT_OF_STOCK, STOCK_SUPPLIES, TOPICS, SUPPLIES,
+from .common import (EXCHANGE_REASONS, LEAVE_TYPES, LOST_REASONS, OUT_OF_STOCK, TOPICS, SUPPLIES,
                      EXPENSE_CATEGORIES, GOODS_REASONS, EMERGENCIES, SHELF, app_minute, app_today, fmt_time,
                      hours_to_min, iso, label)
 

@@ -23,5 +23,9 @@
         <field name="view_mode">list,form</field>
         <field name="domain">[('navitta_branch_id', '!=', False)]</field>
         <field name="context">{'search_default_filter_no_share': 1}</field>
+        <!-- the full user form (permissions + Navitta tab), not Odoo's short "simple" user form -->
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('base.view_users_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('base.view_users_form')})]"/>
     </record>
 </odoo>

@@ -23,6 +23,10 @@ export class PinPad extends Component {
     setup() {
         this.state = useState({ buf: "", err: "", busy: false });
         useExternalListener(window, "keydown", (e) => {
+            // typing in a text box elsewhere on the page must not also fill the PIN
+            if (e.target && e.target.closest && e.target.closest("input, textarea, select, [contenteditable]")) {
+                return;
+            }
             const map = { "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4", "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9" };
             const d = map[e.key] || e.key;
             if (/^[0-9]$/.test(d)) {

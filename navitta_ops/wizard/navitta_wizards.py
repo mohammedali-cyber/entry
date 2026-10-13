@@ -21,11 +21,14 @@ class NavittaAdminPasswordWizard(models.TransientModel):
     _name = "navitta.admin.password.wizard"
     _description = "كلمة سر الإدارة لأجهزة الفروع"
 
-    password = fields.Char("كلمة السر الجديدة", required=True)
-    confirm = fields.Char("تأكيد كلمة السر", required=True)
+    # not required at database level: the typed password is wiped from the wizard right after saving
+    password = fields.Char("كلمة السر الجديدة")
+    confirm = fields.Char("تأكيد كلمة السر")
 
     def action_save(self):
         self.ensure_one()
+        if not self.password:
+            raise UserError(_("اكتب كلمة السر الجديدة"))
         if self.password != self.confirm:
             raise UserError(_("كلمتا السر غير متطابقتين"))
         self.env.company._navitta_set_admin_password(self.password)

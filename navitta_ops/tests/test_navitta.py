@@ -2,7 +2,7 @@ import base64
 import json
 from datetime import date, datetime
 
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, UserError
 from odoo.tests import tagged
 from odoo.tests.common import HttpCase, TransactionCase, freeze_time
 
@@ -375,6 +375,18 @@ class NavittaCase(TransactionCase):
             self.api().admin_setup_pins()
         with self.assertRaises(AccessError):
             self.api().admin_setup_devices()
+
+    def test_settings_wizards(self):
+        """The admin password window saves the new password (and doesn't keep it in clear), and the
+        device accounts menu opens Odoo's full user form (permissions + the Navitta tab)."""
+        w = self.env["navitta.admin.password.wizard"].with_user(self.boss).create({"password": "5555", "confirm": "5555"})
+        w.sudo().action_save()
+        self.assertTrue(self.company._navitta_verify_admin_password("5555"))
+        self.assertFalse(w.sudo().password)
+        with self.assertRaises(UserError):
+            self.env["navitta.admin.password.wizard"].create({"password": "5555", "confirm": "6666"}).action_save()
+        act = self.env.ref("navitta_ops.action_branch_users")
+        self.assertEqual(act.view_ids.filtered(lambda v: v.view_mode == "form").view_id, self.env.ref("base.view_users_form"))
 
     # ------------------------------------------------------------------ models file import and nightly summary
     def test_catalog_import_wizard(self):

@@ -20,10 +20,10 @@
         <field name="model">navitta.admin.password.wizard</field>
         <field name="arch" type="xml">
             <form>
-                <p>تنطلب في جهاز الفرع لتعديل التارقت، ولإلغاء انصراف سجلته موظفة بالغلط. أنت من لوحة الإدارة ما تحتاجها.</p>
+                <p>تُطلب في جهاز الفرع لتعديل التارقت، ولإلغاء انصراف سجلته موظفة بالغلط. أنت من لوحة الإدارة ما تحتاجها.</p>
                 <group>
-                    <field name="password" password="True"/>
-                    <field name="confirm" password="True"/>
+                    <field name="password" password="True" required="1"/>
+                    <field name="confirm" password="True" required="1"/>
                 </group>
                 <footer>
                     <button name="action_save" type="object" string="حفظ" class="btn-primary"/>
