@@ -532,10 +532,29 @@
                 <div class="fld"><span class="lab">اسم الموظفة *</span>
                     <div class="opts"><t t-foreach="d.employees" t-as="e" t-key="e.id"><label class="opt"><input type="radio" t-att-checked="f.employee_name === e.name" t-on-change="() => f.employee_name = e.name"/><span t-esc="e.name"/></label></t></div></div>
             </fieldset>
-            <fieldset><legend>المبيعات <small>من نظام الكاشير</small></legend>
-                <div class="fld"><label class="lab">إجمالي المبيعات (ر.س)</label><input class="ctl num" type="number" min="0" t-model.number="f.sales"/></div>
-                <div class="fld"><span class="lab">عدد الفواتير</span><t t-call="navitta_ops.Stepper"><t t-set="obj" t-value="f"/><t t-set="key" t-value="'invoices'"/><t t-set="label" t-value="'عدد الفواتير'"/></t></div>
-                <div class="fld"><span class="lab">عدد الأصناف المباعة</span><t t-call="navitta_ops.Stepper"><t t-set="obj" t-value="f"/><t t-set="key" t-value="'items'"/><t t-set="label" t-value="'عدد الأصناف'"/></t></div>
+            <fieldset t-if="d.system" class="sysbox"><legend>🧾 المبيعات من نقطة البيع <small>تلقائيًا من الفواتير، ما تحتاجين تكتبينها</small></legend>
+                <t t-set="sy" t-value="d.system"/>
+                <div class="sys-kpis num">
+                    <div><span>إجمالي المبيعات</span><b><t t-esc="f0(sy.sales)"/> ر.س</b></div>
+                    <div><span>الضريبة</span><b><t t-esc="f0(sy.tax)"/> ر.س</b></div>
+                    <div><span>الفواتير</span><b t-esc="sy.invoices"/></div>
+                    <div><span>متوسط الفاتورة</span><b><t t-esc="sy.invoices ? f0(sy.sales / sy.invoices) : 0"/> ر.س</b></div>
+                    <div><span>القطع المباعة</span><b t-esc="sy.items"/></div>
+                    <div><span>المرتجع</span><b><t t-esc="sy.returns"/> قطعة<t t-if="sy.returns_amount"> · <t t-esc="f0(sy.returns_amount)"/> ر.س</t></b></div>
+                    <div><span>💵 نقدي</span><b><t t-esc="f0(sy.cash)"/> ر.س</b></div>
+                    <div><span>💳 شبكة</span><b><t t-esc="f0(sy.card)"/> ر.س</b></div>
+                </div>
+                <div class="tscroll"><table class="nv-tbl"><thead><tr><th>الكاشير</th><th>المبيعات</th><th>الفواتير</th><th>القطع</th><th>المرتجع</th></tr></thead><tbody>
+                    <tr t-foreach="sy.emp" t-as="x" t-key="x_index"><td><b t-esc="x.name"/><span t-if="!x.employee_id" class="chip warn">غير مربوط بموظفة</span></td>
+                        <td class="n"><t t-esc="f0(x.amount)"/> ر.س</td><td class="n" t-esc="x.invoices"/><td class="n" t-esc="x.items"/><td class="n" t-esc="x.returns"/></tr>
+                    <tr t-if="!sy.emp.length"><td colspan="5" class="empty">لا توجد فواتير اليوم في نقطة البيع</td></tr>
+                </tbody></table></div>
+                <p class="hint">إذا شفتي «الحساب العام» أو «غير مربوط»: الفاتورة انعملت بدون اختيار اسمك ككاشير (Change Cashier) في نقطة البيع.</p>
+            </fieldset>
+            <fieldset><legend t-esc="d.system ? 'الاستبدال' : 'المبيعات'"/>
+                <div t-if="!d.system" class="fld"><label class="lab">إجمالي المبيعات (ر.س)</label><input class="ctl num" type="number" min="0" t-model.number="f.sales"/></div>
+                <div t-if="!d.system" class="fld"><span class="lab">عدد الفواتير</span><t t-call="navitta_ops.Stepper"><t t-set="obj" t-value="f"/><t t-set="key" t-value="'invoices'"/><t t-set="label" t-value="'عدد الفواتير'"/></t></div>
+                <div t-if="!d.system" class="fld"><span class="lab">عدد الأصناف المباعة</span><t t-call="navitta_ops.Stepper"><t t-set="obj" t-value="f"/><t t-set="key" t-value="'items'"/><t t-set="label" t-value="'عدد الأصناف'"/></t></div>
                 <div class="fld"><span class="lab">عدد المستبدل</span>
                     <div class="stepper"><button type="button" t-on-click="() => this.setExch(f.exch.length - 1)">−</button>
                         <input type="number" min="0" t-att-value="f.exch.length" t-on-change="(e) => this.setExch(e.target.value)"/>
@@ -548,11 +567,11 @@
                 </div></div>
             </fieldset>
             <fieldset><legend>💵 النقدية</legend>
-                <div class="fld"><label class="lab">مبيعات نقدية (ر.س)</label><input class="ctl num" type="number" min="0" t-model.number="f.cash"/></div>
-                <div class="fld"><label class="lab">مبيعات شبكة (ر.س)</label><input class="ctl num" type="number" min="0" t-model.number="f.card"/></div>
+                <div t-if="!d.system" class="fld"><label class="lab">مبيعات نقدية (ر.س)</label><input class="ctl num" type="number" min="0" t-model.number="f.cash"/></div>
+                <div t-if="!d.system" class="fld"><label class="lab">مبيعات شبكة (ر.س)</label><input class="ctl num" type="number" min="0" t-model.number="f.card"/></div>
                 <div class="fld"><label class="lab">إيداع البنك من الصندوق (ر.س)</label><input class="ctl num" type="number" min="0" t-model.number="f.deposit"/></div>
             </fieldset>
-            <fieldset><legend>💰 مبيعات كل موظفة <small>من تقرير الكاشير نهاية الدوام</small></legend>
+            <fieldset t-if="!d.system"><legend>💰 مبيعات كل موظفة <small>من تقرير الكاشير نهاية الدوام</small></legend>
                 <div class="es fld full">
                     <div t-foreach="f.emp" t-as="x" t-key="x.employee_id" class="es-c"><div class="es-h"><b t-esc="empName(x.employee_id)"/>
                         <span t-if="+f.sales &gt; 0 and +x.amount &gt; 0" class="chip neutral"><t t-esc="Math.round(+x.amount / +f.sales * 100)"/>%</span></div>

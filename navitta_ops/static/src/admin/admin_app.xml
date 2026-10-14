@@ -13,11 +13,64 @@
                     </nav>
                 </header>
                 <div class="sheen"/>
-                <Dashboard t-if="state.tab === 'dashboard'"/>
-                <Sales t-if="state.tab === 'sales'"/>
-                <Requests t-if="state.tab === 'requests'"/>
-                <Lost t-if="state.tab === 'lost'"/>
-                <Day t-if="state.tab === 'day'"/>
+                <FilterBar f="f" branches="state.branches" dates="withDates"/>
+                <Dashboard t-if="state.tab === 'dashboard'" f="f"/>
+                <Compare t-if="state.tab === 'compare'" f="f"/>
+                <Sales t-if="state.tab === 'sales'" f="f"/>
+                <Requests t-if="state.tab === 'requests'" f="f"/>
+                <Lost t-if="state.tab === 'lost'" f="f"/>
+                <Day t-if="state.tab === 'day'" f="f"/>
+            </div>
+        </div>
+    </t>
+
+    <!-- shared filter of the management screens: branch, period, days of the week -->
+    <t t-name="navitta_ops.FilterBar">
+        <div class="pfilter">
+            <select class="ctl" aria-label="الفرع" t-on-change="(e) => this.setBr(e.target.value)">
+                <option value="0" t-att-selected="!props.f.br">كل الفروع</option>
+                <t t-foreach="props.branches" t-as="b" t-key="b.id"><option t-att-value="b.id" t-att-selected="props.f.br === b.id" t-esc="b.name"/></t>
+            </select>
+            <t t-if="props.dates">
+                <div class="seg presets">
+                    <t t-foreach="PRESETS" t-as="p" t-key="p[0]">
+                        <button type="button" t-att-aria-pressed="props.f.preset === p[0] ? 'true' : 'false'" t-on-click="() => this.preset(p[0])" t-esc="p[1]"/>
+                    </t>
+                </div>
+                <label class="dr">من <input type="date" class="ctl num" t-att-value="props.f.from" t-on-change="(e) => this.setDate('from', e.target.value)"/></label>
+                <label class="dr">إلى <input type="date" class="ctl num" t-att-value="props.f.to" t-on-change="(e) => this.setDate('to', e.target.value)"/></label>
+                <div class="wd" role="group" aria-label="أيام الأسبوع">
+                    <span class="note">الأيام:</span>
+                    <t t-foreach="DAYS" t-as="n" t-key="n">
+                        <button type="button" t-att-class="props.f.wd.includes(n) ? 'on' : ''" t-att-aria-pressed="props.f.wd.includes(n) ? 'true' : 'false'"
+                                t-on-click="() => this.toggleDay(n)" t-esc="WD[n]"/>
+                    </t>
+                    <button t-if="props.f.wd.length" type="button" class="linkbtn" t-on-click="() => this.clearDays()">كل الأيام</button>
+                </div>
+                <span class="range-note">
+                    <t t-esc="props.f.from === props.f.to ? dmy(props.f.from) : dmy(props.f.from) + ' – ' + dmy(props.f.to)"/>
+                    <t t-if="props.f.wd.length"> · <t t-esc="props.f.wd.map((n) => WD[n]).join('، ')"/> فقط</t>
+                </span>
+            </t>
+        </div>
+    </t>
+
+    <!-- today's registers (point of sale): who opened them and when -->
+    <t t-name="navitta_ops.Registers">
+        <t t-set="regList" t-value="Object.entries(regs or {}).filter((x) => x[1].length)"/>
+        <div t-if="regList.length" class="nv-card regs">
+            <div class="nv-card-h"><div><h2>🧾 الكاشير اليوم</h2><p class="sub">من فتح نقطة البيع ومتى، والكاشير الحالي</p></div></div>
+            <div class="reg-row">
+                <t t-foreach="regList" t-as="x" t-key="x[0]">
+                    <div t-foreach="x[1]" t-as="r" t-key="r.session" t-att-class="'reg ' + r.state">
+                        <b t-esc="(branches.find((b) => b.id === +x[0]) || {}).name"/>
+                        <span class="meta" t-esc="r.name"/>
+                        <span t-if="r.opened_at">فتحت <b t-esc="r.opened_by"/> الساعة <b class="num" t-esc="clock(r.opened_at)"/>
+                            <span t-if="r.general" class="chip warn" title="انفتحت بحساب غير مربوط بموظفة (الحساب العام)">الحساب العام</span></span>
+                        <span t-if="r.cashier and r.state === 'opened'">الكاشير الحين: <b t-esc="r.cashier"/></span>
+                        <span t-att-class="'chip ' + (r.state === 'opened' ? 'good' : 'neutral')" t-esc="r.state_label"/>
+                    </div>
+                </t>
             </div>
         </div>
     </t>
@@ -64,6 +117,7 @@
                                     <button t-elif="it.key === 'email'" type="button" class="nv-btn" t-on-click="() => this.setupDo('email')">فتح الإعدادات</button>
                                     <button t-elif="it.key === 'mail_server'" type="button" class="nv-btn" t-on-click="() => this.setupDo('mail_server')">إعداد البريد</button>
                                     <button t-elif="it.key === 'catalog'" type="button" class="nv-btn" t-on-click="() => this.setupDo('catalog')">رفع الملف</button>
+                                    <button t-elif="it.action" type="button" class="nv-btn" t-on-click="() => this.setupDo(it.key)" t-esc="it.button or 'فتح'"/>
                                 </t>
                             </div>
                         </div>
@@ -98,19 +152,11 @@
                 </div>
             </NvModal>
             <DailyQuote admin="true" best="d.best"/>
-            <div class="filters">
-                <t t-call="navitta_ops.BranchSelect"><t t-set="branches" t-value="d.branches"/><t t-set="sel" t-value="state.br"/><t t-set="onChange" t-value="(e) => state.br = +e.target.value"/></t>
-                <div class="seg">
-                    <button type="button" t-att-aria-pressed="state.period === 1 ? 'true' : 'false'" t-on-click="() => this.setPeriod(1)">اليوم</button>
-                    <button type="button" t-att-aria-pressed="state.period === 7 ? 'true' : 'false'" t-on-click="() => this.setPeriod(7)">آخر 7 أيام</button>
-                    <button type="button" t-att-aria-pressed="state.period === 30 ? 'true' : 'false'" t-on-click="() => this.setPeriod(30)">آخر 30 يوم</button>
-                </div>
-                <span class="range-note" t-esc="longDate(d.day)"/>
-            </div>
+            <t t-call="navitta_ops.Registers"><t t-set="regs" t-value="d.registers"/><t t-set="branches" t-value="d.branches"/></t>
 
             <div class="kpis">
-                <div class="kpi"><span class="lbl">إجمالي المبيعات</span><span class="val num"><t t-esc="f0(w.sales)"/><small>ر.س</small></span><span class="small">من التقارير اليومية</span></div>
-                <div class="kpi"><span class="lbl">عدد الفواتير</span><span class="val num" t-esc="f0(w.inv)"/></div>
+                <div class="kpi"><span class="lbl">إجمالي المبيعات</span><span class="val num"><t t-esc="f0(w.sales)"/><small>ر.س</small></span><span class="small" t-esc="w.sys ? 'من نقطة البيع' : 'من التقارير اليومية'"/></div>
+                <div class="kpi"><span class="lbl">عدد الفواتير</span><span class="val num" t-esc="f0(w.inv)"/><span class="small">الضريبة <t t-esc="f0(w.tax)"/> ر.س</span></div>
                 <div class="kpi"><span class="lbl">متوسط الفاتورة</span><span class="val num"><t t-esc="w.inv ? f0(w.sales / w.inv) : 0"/><small>ر.س</small></span></div>
                 <div class="kpi"><span class="lbl">العميلات (العدّاد)</span><span class="val num" t-esc="f0(w.visits)"/></div>
                 <div class="kpi"><span class="lbl">نسبة الشراء</span><span class="val num"><t t-esc="w.buyPct"/>%</span></div>
@@ -118,7 +164,7 @@
             </div>
 
             <div class="grid">
-                <EmpBoard from="from" to="d.day" branchId="state.br" branches="d.branches"/>
+                <EmpBoard from="props.f.from" to="props.f.to" wd="props.f.wd" branchId="br" branches="d.branches"/>
 
                 <div class="nv-card c12">
                     <div class="nv-card-h"><div><h2>تنبيهات التأخير وفرص المسامحة</h2><p class="sub"><t t-esc="w.waiting.length"/> بانتظار سبب الموظفة</p></div>
@@ -183,7 +229,7 @@
                 </div>
 
                 <div class="nv-card c12">
-                    <h2>مقارنة الفروع (<t t-esc="state.period === 1 ? 'اليوم' : 'آخر ' + state.period + ' أيام'"/>)</h2>
+                    <div class="nv-card-h"><div><h2>الفروع في الفترة</h2><p class="sub">للمقارنة الكاملة (التارقت، الضريبة، المرتجع، مطابقة سجلات البيع): تبويب «مقارنة الفروع»</p></div></div>
                     <div class="tscroll"><table class="nv-tbl"><thead><tr><th>الفرع</th><th>المبيعات</th><th>الفواتير</th><th>العميلات</th><th>نسبة الشراء</th><th>متوسط الزيارة</th><th>تقرير اليوم</th></tr></thead><tbody>
                         <tr t-foreach="branchRows()" t-as="x" t-key="x.b.id"><td><b t-esc="x.b.name"/></td><td class="n" t-esc="f0(x.sales)"/><td class="n" t-esc="f0(x.inv)"/>
                             <td class="n" t-esc="x.visits"/><td class="n"><t t-esc="x.buyPct"/>%</td><td class="n" t-esc="mmss(x.avg)"/>
@@ -230,41 +276,95 @@
         </t>
     </t>
 
+    <!-- ============================================================ branches compared -->
+    <t t-name="navitta_ops.AdminCompare">
+        <div t-if="!state.d" class="empty">جارٍ التحميل…</div>
+        <t t-else="">
+            <t t-set="d" t-value="state.d"/>
+            <t t-set="T" t-value="total"/>
+            <t t-call="navitta_ops.Registers"><t t-set="regs" t-value="d.registers"/><t t-set="branches" t-value="d.branches"/></t>
+            <div class="kpis k7">
+                <div class="kpi"><span class="lbl">المبيعات</span><span class="val num"><t t-esc="f0(T.sales)"/><small>ر.س</small></span>
+                    <span class="small">التارقت <t t-esc="f0(T.target)"/> · <t t-esc="T.achieved === null ? '—' : T.achieved + '%'"/></span></div>
+                <div class="kpi"><span class="lbl">إجمالي الضريبة</span><span class="val num"><t t-esc="f0(T.tax)"/><small>ر.س</small></span><span class="small">الصافي <t t-esc="f0(T.net)"/></span></div>
+                <div class="kpi"><span class="lbl">الفواتير</span><span class="val num" t-esc="f0(T.invoices)"/><span class="small">متوسط الفاتورة <t t-esc="f0(T.avg_invoice)"/> ر.س</span></div>
+                <div class="kpi"><span class="lbl">🛍️ القطع المباعة</span><span class="val num" t-esc="f0(T.items)"/><span class="small"><t t-esc="T.items_per_invoice.toFixed(2)"/> قطعة للفاتورة</span></div>
+                <div class="kpi"><span class="lbl">🔄 المرتجع</span><span class="val num" t-esc="f0(T.returns)"/><span class="small"><t t-esc="f0(T.returns_amount)"/> ر.س</span></div>
+                <div class="kpi"><span class="lbl">🚪 عميلات العدّاد</span><span class="val num" t-esc="f0(T.visits)"/><span class="small">التحويل لفواتير <t t-esc="T.conversion === null ? '—' : T.conversion + '%'"/></span></div>
+                <div class="kpi"><span class="lbl">💵 نقدي / شبكة</span><span class="val num" t-esc="f0(T.cash)"/><span class="small">شبكة <t t-esc="f0(T.card)"/></span></div>
+            </div>
+            <div class="grid">
+                <div class="nv-card c12">
+                    <div class="nv-card-h"><div><h2>📊 مقارنة الفروع</h2>
+                        <p class="sub">الأرقام من نقطة البيع للفروع المربوطة، ومن التقرير اليومي للباقي. اضغط عنوان أي عمود للترتيب.</p></div>
+                        <button type="button" class="nv-btn" t-on-click="() => this.exportCsv()">⬇️ تحميل Excel (CSV)</button></div>
+                    <div class="tscroll"><table class="nv-tbl cmp"><thead><tr>
+                        <th>الفرع</th>
+                        <t t-foreach="[['target','التارقت'],['sales','المبيعات'],['achieved','التحقق'],['tax','الضريبة'],['invoices','الفواتير'],['avg_invoice','متوسط الفاتورة'],['items','القطع'],['returns','المرتجع'],['visits','عميلات العدّاد'],['conversion','التحويل'],['counter_gap','الفواتير − اشترت (عدّاد)'],['report_gap','التقرير − النظام']]" t-as="c" t-key="c[0]">
+                            <th><button type="button" t-att-class="'th-sort' + (state.sort === c[0] ? ' on' : '')" t-on-click="() => state.sort = c[0]" t-esc="c[1]"/></th>
+                        </t>
+                    </tr></thead><tbody>
+                        <tr t-foreach="rows" t-as="r" t-key="r.branch_id">
+                            <td><b t-esc="r.name"/><div class="meta"><span t-att-class="'chip ' + (r.system ? 'info' : 'neutral')" t-esc="r.system ? 'نقطة البيع' : 'التقرير اليومي'"/>
+                                <span t-if="r.missing_reports" class="chip warn" t-esc="r.missing_reports + ' يوم بدون تقرير'"/></div></td>
+                            <td class="n" t-esc="f0(r.target)"/>
+                            <td class="n"><b t-esc="f0(r.sales)"/><div class="pbar sm"><i t-att-style="'width:' + (r.sales / best * 100) + '%'"/></div></td>
+                            <td><span t-if="r.achieved !== null" t-att-class="'chip ' + (r.achieved &gt;= 100 ? 'good' : r.achieved &gt;= 70 ? 'neutral' : 'warn')"><t t-esc="r.achieved"/>%</span><t t-else="">—</t></td>
+                            <td class="n" t-esc="f0(r.tax)"/>
+                            <td class="n" t-esc="f0(r.invoices)"/>
+                            <td class="n" t-esc="f0(r.avg_invoice)"/>
+                            <td class="n"><t t-esc="f0(r.items)"/><div class="meta num"><t t-esc="r.items_per_invoice"/>/فاتورة</div></td>
+                            <td class="n"><t t-esc="f0(r.returns)"/><div t-if="r.returns_amount" class="meta num"><t t-esc="f0(r.returns_amount)"/> ر.س</div></td>
+                            <td class="n"><t t-esc="f0(r.visits)"/><div class="meta num">اشترت <t t-esc="r.bought"/></div></td>
+                            <td class="n" t-esc="r.conversion === null ? '—' : r.conversion + '%'"/>
+                            <td class="n"><span t-if="r.counter_gap" t-att-class="'chip ' + (Math.abs(r.counter_gap) &gt; Math.max(2, r.invoices * 0.1) ? 'bad' : 'warn')"
+                                    t-att-title="r.counter_gap &gt; 0 ? 'فواتير أكثر من زيارات «اشترت» في العدّاد: بيع بدون تسجيل زيارة' : 'زيارات «اشترت» أكثر من الفواتير'"
+                                    t-esc="(r.counter_gap &gt; 0 ? '+' : '') + r.counter_gap"/><span t-else="" class="chip good">✓ مطابق</span></td>
+                            <td class="n"><t t-if="r.report_gap === null">—</t>
+                                <span t-elif="Math.abs(r.report_gap) &lt; 1" class="chip good">✓ مطابق</span>
+                                <span t-else="" class="chip bad" t-att-title="'في ' + r.report_gap_days + ' يوم فيه تقرير: المكتوب في التقرير يختلف عن فواتير نقطة البيع'" t-esc="(r.report_gap &gt; 0 ? '+' : '') + f0(r.report_gap)"/></td>
+                        </tr>
+                        <tr class="tot"><td><b>الإجمالي</b></td><td class="n" t-esc="f0(T.target)"/><td class="n"><b t-esc="f0(T.sales)"/></td>
+                            <td t-esc="T.achieved === null ? '—' : T.achieved + '%'"/><td class="n" t-esc="f0(T.tax)"/><td class="n" t-esc="f0(T.invoices)"/>
+                            <td class="n" t-esc="f0(T.avg_invoice)"/><td class="n" t-esc="f0(T.items)"/><td class="n" t-esc="f0(T.returns)"/><td class="n" t-esc="f0(T.visits)"/>
+                            <td class="n" t-esc="T.conversion === null ? '—' : T.conversion + '%'"/><td class="n" t-esc="(T.counter_gap &gt; 0 ? '+' : '') + T.counter_gap"/><td/></tr>
+                    </tbody></table></div>
+                    <p class="note">
+                        <b>الفواتير − اشترت (عدّاد):</b> الفرق بين فواتير البيع والزيارات اللي سجلتها الموظفة «اشترت» في العدّاد. موجب = بيع بدون تسجيل زيارة، سالب = زيارات «اشترت» بدون فاتورة.
+                        <b>التقرير − النظام:</b> للفروع المربوطة بنقطة البيع، الفرق بين المبيعات المكتوبة في التقارير اليومية وفواتير النظام، في الأيام اللي فيها تقرير فقط.
+                    </p>
+                </div>
+                <EmpBoard from="props.f.from" to="props.f.to" wd="props.f.wd" branchId="br" branches="d.branches" title="'مبيعات الموظفات حسب الكاشير'"/>
+            </div>
+        </t>
+    </t>
+
     <!-- ============================================================ sales -->
     <t t-name="navitta_ops.AdminSales">
         <div t-if="!state.d" class="empty">جارٍ التحميل…</div>
         <t t-else="">
             <t t-set="d" t-value="state.d"/>
             <t t-set="rg" t-value="range"/>
-            <div class="filters">
-                <t t-call="navitta_ops.BranchSelect"><t t-set="branches" t-value="d.branches"/><t t-set="sel" t-value="state.br"/><t t-set="onChange" t-value="(e) => this.setBr(e.target.value)"/></t>
-                <select class="ctl" aria-label="الفترة" t-on-change="(e) => this.setPer(e.target.value)">
-                    <option value="ytd" t-att-selected="state.per === 'ytd'">من بداية <t t-esc="year"/> إلى اليوم</option>
-                    <t t-foreach="MONTHS" t-as="mn" t-key="mn_index"><option t-att-value="'' + (mn_index + 1)" t-att-selected="state.per === '' + (mn_index + 1)"><t t-esc="mn"/> <t t-esc="year"/></option></t>
-                    <option value="custom" t-att-selected="state.per === 'custom'">📅 فترة مخصصة</option>
-                </select>
-                <label class="dr">من <input type="date" class="ctl" t-att-value="rg.from" t-att-max="rg.to" t-on-change="(e) => this.setFrom(e.target.value)"/></label>
-                <label class="dr">إلى <input type="date" class="ctl" t-att-value="rg.to" t-att-min="rg.from" t-on-change="(e) => this.setTo(e.target.value)"/></label>
-                <button t-if="state.br" type="button" class="nv-btn" t-on-click="() => this.openEdit(state.br)">✏️ تعديل التارقت</button>
-            </div>
+            <div t-if="br" class="filters">
+                <button type="button" class="nv-btn" t-on-click="() => this.openEdit(br)">✏️ تعديل التارقت</button>            </div>
             <t t-set="T" t-value="tot('target_to_date')"/><t t-set="S" t-value="tot('sales')"/><t t-set="I" t-value="tot('invoices')"/><t t-set="IT" t-value="tot('items')"/><t t-set="R" t-value="tot('returns')"/>
             <div class="kpis k7">
                 <div class="kpi"><span class="lbl">التارقت حتى اليوم</span><span class="val num"><t t-esc="f0(T)"/><small>ر.س</small></span><span class="small">تارقت الفترة كاملة <t t-esc="f0(tot('target'))"/></span></div>
                 <div class="kpi"><span class="lbl">المبيعات الفعلية</span><span class="val num"><t t-esc="f0(S)"/><small>ر.س</small></span><span class="small">نسبة التحقق <t t-esc="pc(S, T)"/>%</span></div>
-                <div class="kpi"><span class="lbl">الضريبة <t t-esc="d.settings.vat_rate"/>%</span><span class="val num"><t t-esc="f0(vat(S))"/><small>ر.س</small></span></div>
-                <div class="kpi"><span class="lbl">💵 الصافي بعد الضريبة</span><span class="val num"><t t-esc="f0(S - vat(S))"/><small>ر.س</small></span><span class="small">المبيعات ناقص الضريبة</span></div>
+                <div class="kpi"><span class="lbl">إجمالي الضريبة</span><span class="val num"><t t-esc="f0(tot('tax'))"/><small>ر.س</small></span></div>
+                <div class="kpi"><span class="lbl">💵 الصافي بعد الضريبة</span><span class="val num"><t t-esc="f0(S - tot('tax'))"/><small>ر.س</small></span><span class="small">المبيعات ناقص الضريبة</span></div>
                 <div class="kpi"><span class="lbl">الفواتير</span><span class="val num" t-esc="f0(I)"/></div>
                 <div class="kpi"><span class="lbl">🧾 متوسط الفاتورة</span><span class="val num"><t t-esc="f0(I ? S / I : 0)"/><small>ر.س</small></span><span class="small"><t t-esc="f0(IT)"/> قطعة في <t t-esc="f0(I)"/> فاتورة</span></div>
                 <div class="kpi"><span class="lbl">🛍️ القطع المباعة</span><span class="val num" t-esc="f0(IT)"/></div>
-                <div class="kpi"><span class="lbl">🔄 المرتجع</span><span class="val num" t-esc="f0(R)"/><span class="small"><t t-esc="IT ? (R / IT * 100).toFixed(1) : 0"/>% من القطع</span></div>
+                <div class="kpi"><span class="lbl">🔄 المرتجع</span><span class="val num" t-esc="f0(R)"/><span class="small"><t t-esc="IT ? (R / IT * 100).toFixed(1) : 0"/>% من القطع<t t-if="tot('returns_amount')"> · <t t-esc="f0(tot('returns_amount'))"/> ر.س</t></span></div>
             </div>
             <div class="grid">
-                <div t-if="!state.br" class="nv-card c12"><h2>مقارنة الفروع</h2><div class="tscroll"><table class="nv-tbl"><thead><tr>
+                <div t-if="!br" class="nv-card c12"><h2>مقارنة الفروع</h2><div class="tscroll"><table class="nv-tbl"><thead><tr>
                     <th>الفرع</th><th>التارقت</th><th>المبيعات</th><th>الصافي بعد الضريبة</th><th>التحقق</th><th>الفواتير</th><th>متوسط الفاتورة</th><th>القطع</th><th>المرتجع</th><th/></tr></thead><tbody>
                     <t t-foreach="d.branches" t-as="b" t-key="b.id">
                         <t t-set="r" t-value="d.summary.find((x) => x.branch_id === b.id) or {}"/>
                         <t t-set="tg" t-value="+r.target_to_date or 0"/><t t-set="sl" t-value="+r.sales or 0"/>
-                        <tr><td><b t-esc="b.name"/></td><td class="n" t-esc="f0(tg)"/><td class="n"><b t-esc="f0(sl)"/></td><td class="n" t-esc="f0(sl - vat(sl))"/>
+                        <tr><td><b t-esc="b.name"/></td><td class="n" t-esc="f0(tg)"/><td class="n"><b t-esc="f0(sl)"/></td><td class="n" t-esc="f0(sl - (+r.tax or 0))"/>
                             <td><div class="pc"><div class="pbar"><i t-att-style="'width:' + Math.min(100, pc(sl, tg)) + '%'"/></div><span class="num"><t t-esc="pc(sl, tg)"/>%</span></div></td>
                             <td class="n" t-esc="f0(r.invoices)"/><td class="n" t-esc="f0(r.invoices ? sl / r.invoices : 0)"/><td class="n" t-esc="f0(r.items)"/><td class="n" t-esc="f0(r.returns)"/>
                             <td><button type="button" class="del" t-on-click="() => this.openEdit(b.id)">✏️ التارقت</button></td></tr>
@@ -272,7 +372,7 @@
                 </tbody></table></div></div>
 
                 <div class="nv-card c12">
-                    <div class="nv-card-h"><div><h2><t t-esc="state.br ? bName(state.br) : 'كل الفروع'"/>: التارقت مقابل المبيعات شهريًا · <t t-esc="year"/></h2><p class="sub">مرّر على أي شهر لعرض الأرقام</p></div>
+                    <div class="nv-card-h"><div><h2><t t-esc="br ? bName(br) : 'كل الفروع'"/>: التارقت مقابل المبيعات شهريًا · <t t-esc="year"/></h2><p class="sub">مرّر على أي شهر لعرض الأرقام</p></div>
                         <div class="lg"><span><i class="sw"/>المبيعات الفعلية</span><span><i class="tk"/>التارقت</span></div></div>
                     <div class="bars" role="img" aria-label="التارقت مقابل المبيعات شهريًا">
                         <t t-foreach="MONTHS" t-as="mn" t-key="mn_index">
@@ -288,21 +388,21 @@
                     </div>
                 </div>
 
-                <div class="nv-card c12"><h2><t t-esc="state.br ? bName(state.br) : 'كل الفروع'"/>: <t t-esc="rg.custom ? 'من ' + dmy(state.cf) + ' إلى ' + dmy(state.ct) : MONTHS[rg.m - 1]"/> يوم بيوم</h2>
-                    <div class="tscroll"><table class="nv-tbl dt"><thead><tr><th>التاريخ</th><th>اليوم</th><th>التارقت</th><th>المبيعات</th><th>التحقق</th><th>الفواتير</th><th>متوسط الفاتورة</th><th>القطع</th><th>المرتجع</th><th>نقدي</th><th>شبكة</th><th>الضريبة</th><th>الصافي</th><th t-if="state.br">سكّرت</th></tr></thead><tbody>
+                <div class="nv-card c12"><h2><t t-esc="br ? bName(br) : 'كل الفروع'"/>: <t t-esc="'من ' + dmy(rg.from) + ' إلى ' + dmy(rg.to)"/> يوم بيوم</h2>
+                    <div class="tscroll"><table class="nv-tbl dt"><thead><tr><th>التاريخ</th><th>اليوم</th><th>التارقت</th><th>المبيعات</th><th>التحقق</th><th>الفواتير</th><th>متوسط الفاتورة</th><th>القطع</th><th>المرتجع</th><th>نقدي</th><th>شبكة</th><th>الضريبة</th><th>الصافي</th><th t-if="br">سكّرت</th></tr></thead><tbody>
                         <t t-foreach="dayRows" t-as="x" t-key="x.day"><t t-set="p2" t-value="pc(x.sales, x.target)"/>
                             <tr><td class="num" t-esc="x.day.slice(5)"/><td t-esc="weekday(x.day)"/><td class="n" t-esc="f0(x.target)"/>
                                 <td class="n"><b t-if="x.has" t-esc="f0(x.sales)"/><t t-else="">—</t></td>
                                 <td><span t-if="x.has and x.target" t-att-class="'chip ' + (p2 &gt;= 100 ? 'good' : p2 &gt;= 50 ? 'neutral' : 'warn')"><t t-esc="p2"/>%</span><t t-else="">—</t></td>
                                 <td class="n" t-esc="x.has ? x.invoices : '—'"/><td class="n" t-esc="x.has and x.invoices ? f0(x.sales / x.invoices) : '—'"/>
                                 <td class="n" t-esc="x.has ? x.items : '—'"/><td class="n" t-esc="x.has ? x.returns : '—'"/><td class="n" t-esc="x.has ? f0(x.cash) : '—'"/>
-                                <td class="n" t-esc="x.has ? f0(x.card) : '—'"/><td class="n" t-esc="x.has ? f0(vat(x.sales)) : '—'"/><td class="n"><b t-if="x.has" t-esc="f0(x.sales - vat(x.sales))"/><t t-else="">—</t></td>
-                                <td t-if="state.br" t-esc="x.closed_by or '—'"/></tr>
+                                <td class="n" t-esc="x.has ? f0(x.card) : '—'"/><td class="n" t-esc="x.has ? f0(x.tax) : '—'"/><td class="n"><b t-if="x.has" t-esc="f0(x.sales - x.tax)"/><t t-else="">—</t></td>
+                                <td t-if="br" t-esc="x.closed_by or '—'"/></tr>
                         </t>
                         <tr t-if="!dayRows.length"><td colspan="14" class="empty" t-esc="rg.custom ? 'لا توجد بيانات لهذه الفترة' : 'لا توجد بيانات لهذا الشهر'"/></tr>
                     </tbody></table></div></div>
 
-                <EmpBoard from="rg.from" to="rg.to" branchId="state.br" branches="d.branches"/>
+                <EmpBoard from="rg.from" to="rg.to" wd="props.f.wd" branchId="br" branches="d.branches"/>
             </div>
             <TargetEditor t-if="state.edit" branchId="state.edit.id" branchName="state.edit.name" admin="true" rows="state.editRows" onClose="() => state.edit = null" onSaved="() => this.saved()"/>
         </t>
@@ -315,7 +415,6 @@
             <t t-set="d" t-value="state.d"/>
             <t t-set="w" t-value="this.v"/>
             <div class="filters">
-                <t t-call="navitta_ops.BranchSelect"><t t-set="branches" t-value="d.branches"/><t t-set="sel" t-value="state.br"/><t t-set="onChange" t-value="(e) => state.br = +e.target.value"/></t>
                 <div class="seg"><t t-foreach="[['all', 'الكل'], ['goods', 'نواقص بضاعة'], ['supply', 'مستلزمات'], ['expense', 'مصروفات']]" t-as="k" t-key="k[0]">
                     <button type="button" t-att-aria-pressed="state.kind === k[0] ? 'true' : 'false'" t-on-click="() => state.kind = k[0]" t-esc="k[1]"/></t></div>
             </div>
@@ -360,7 +459,7 @@
 
                 <div class="nv-card c12"><h2>📦 المستلزمات ورصيد الصندوق لكل فرع</h2><div class="tscroll"><table class="nv-tbl"><thead><tr>
                     <th>الفرع</th><th t-esc="SUP.roll_invoice"/><th t-esc="SUP.roll_card"/><th t-esc="SUP.bags"/><th>💰 رصيد الصندوق</th><th>مصروفات هذا الشهر</th></tr></thead><tbody>
-                    <t t-foreach="d.branches.filter((b) => !state.br or b.id === state.br)" t-as="b" t-key="b.id">
+                    <t t-foreach="d.branches.filter((b) => !br or b.id === br)" t-as="b" t-key="b.id">
                         <t t-set="bx" t-value="branchExp(b)"/>
                         <tr><td><b t-esc="b.name"/></td>
                             <t t-foreach="Object.keys(mins)" t-as="k" t-key="k"><td class="n"><t t-esc="bal(b.id, k)"/> <span t-if="bal(b.id, k) &lt; mins[k]" t-att-class="'chip ' + (k === 'bags' ? 'bad' : 'warn')">تحت الحد</span></td></t>
@@ -397,12 +496,6 @@
         <t t-else="">
             <t t-set="d" t-value="state.d"/>
             <t t-set="w" t-value="this.v"/>
-            <div class="filters">
-                <t t-call="navitta_ops.BranchSelect"><t t-set="branches" t-value="d.branches"/><t t-set="sel" t-value="state.br"/><t t-set="onChange" t-value="(e) => this.set('br', e.target.value)"/></t>
-                <label class="dr">من <input type="date" class="ctl" t-att-value="state.from" t-att-max="state.to" t-on-change="(e) => this.set('from', e.target.value)"/></label>
-                <label class="dr">إلى <input type="date" class="ctl" t-att-value="state.to" t-att-min="state.from" t-on-change="(e) => this.set('to', e.target.value)"/></label>
-                <button type="button" class="nv-btn" t-on-click="last90">آخر 3 شهور</button>
-            </div>
             <div class="kpis">
                 <div class="kpi"><span class="lbl">💸 مبيعات ضائعة</span><span class="val num" t-esc="f0(w.lost.length)"/><span class="small">زيارة ما اشترت فيها العميلة</span></div>
                 <div class="kpi"><span class="lbl">قيمتها التقريبية</span><span class="val num"><t t-esc="f0(w.value)"/><small>ر.س</small></span><span class="small">حسب سعر الموديل في الملف</span></div>
@@ -463,7 +556,6 @@
         <t t-else="">
             <t t-set="d" t-value="state.d"/>
             <div class="filters">
-                <t t-call="navitta_ops.BranchSelect"><t t-set="branches" t-value="d.branches"/><t t-set="sel" t-value="state.br"/><t t-set="onChange" t-value="(e) => state.br = +e.target.value"/></t>
                 <div class="seg"><button type="button" t-on-click="() => this.setDay(addDays(state.day, -1))">→ السابق</button>
                     <input type="date" class="ctl num" t-att-value="state.day" t-att-max="d.today" t-on-change="(e) => this.setDay(e.target.value)"/>
                     <button type="button" t-att-disabled="state.day &gt;= d.today" t-on-click="() => this.setDay(addDays(state.day, 1))">التالي ←</button></div>

@@ -11,7 +11,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 from odoo.tools import config
 
-from .common import (LEAVE_TYPES, LOST_REASONS, TOPICS, app_today, company_tz, hours_to_min, iso, label, new_pin)
+from .common import (LEAVE_TYPES, LOST_REASONS, TOPICS, app_today, company_tz, dow, hours_to_min, iso, label, new_pin)
 
 _logger = logging.getLogger(__name__)
 
@@ -29,6 +29,21 @@ class NavittaApiAdmin(models.AbstractModel):
         return fields.Date.to_date(s) if s else app_today(self.env)
 
     @api.model
+    def _wd(self, weekdays):
+        """Weekdays to keep (0 = Sunday … 6 = Saturday); [] = every day."""
+        wd = sorted({int(x) for x in (weekdays or []) if str(x).lstrip("-").isdigit() and 0 <= int(x) <= 6})
+        return wd if 0 < len(wd) < 7 else []
+
+    @api.model
+    def _day_filter(self, d0, d1, weekdays=None, field="day"):
+        dom = [(field, ">=", d0), (field, "<=", d1)]
+        wd = self._wd(weekdays)
+        if wd:
+            days = [d0 + timedelta(days=i) for i in range((d1 - d0).days + 1)]
+            dom.append((field, "in", [d for d in days if dow(d) in wd] or [False]))
+        return dom
+
+    @api.model
     def _branches(self):
         return [{"id": b.id, "name": b.name, "code": b.code} for b in self.env["navitta.branch"].sudo().search([])]
 
@@ -37,6 +52,11 @@ class NavittaApiAdmin(models.AbstractModel):
         return [{"id": e.id, "branch_id": e.branch_id.id, "slot": e.slot, "name": e.name, "email": e.email or "",
                  "weekly_off": e.weekly_off, "has_pin": e.has_pin}
                 for e in self.env["navitta.employee"].sudo().search([("active", "=", True)])]
+
+    @api.model
+    def admin_filters(self):
+        self._admin()
+        return {"branches": self._branches(), "settings": self._settings(), "day": fields.Date.to_string(app_today(self.env))}
 
     # ------------------------------------------------------------------ first-time setup
     @api.model
@@ -103,14 +123,21 @@ class NavittaApiAdmin(models.AbstractModel):
 
     # ------------------------------------------------------------------ dashboard
     @api.model
-    def admin_dashboard(self, period=7):
+    def admin_dashboard(self, date_from=7, date_to=None, weekdays=None):
+        """date_from / date_to: the period of the figures (an int = the last N days, as before)."""
         self._admin()
         day = app_today(self.env)
-        d0 = day - timedelta(days=max(1, int(period or 7)) - 1)
+        if isinstance(date_from, int) or not date_from:
+            d0, d1 = day - timedelta(days=max(1, int(date_from or 7)) - 1), day
+        else:
+            d0, d1 = self._d(date_from), self._d(date_to)
         S = self.env
+        S["navitta.branch"].sudo().search([])._system_sync([day])
+        dom = self._day_filter(d0, d1, weekdays)
         emps = S["navitta.employee"].sudo().search([("active", "=", True)])
-        reps = S["navitta.daily.report"].sudo().search([("day", ">=", d0), ("day", "<=", day)])
-        visits = S["navitta.visit"].sudo().search([("day", ">=", d0), ("day", "<=", day), ("saved", "=", True)])
+        reps = S["navitta.daily.report"].sudo().search(dom)
+        visits = S["navitta.visit"].sudo().search(dom + [("saved", "=", True)])
+        sales_rows = S["navitta.daily.sales"].sudo().search(dom + [("has_sales", "=", True)])
         att, brk = self._today_bits(emps, day)
         cases = S["navitta.late.case"].sudo().search([("state", "in", ("reply", "review"))])
         month_cases = S["navitta.late.case"].sudo().search([("day", ">=", day.replace(day=1))])
@@ -125,7 +152,10 @@ class NavittaApiAdmin(models.AbstractModel):
             if not best or p > best["p"]:
                 best = {"name": r.branch_id.name, "p": p}
         return {
-            "best": best,
+            "best": best, "from": fields.Date.to_string(d0), "to": fields.Date.to_string(d1),
+            "sales": [{"branch_id": r.branch_id.id, "day": fields.Date.to_string(r.day), "sales": r.sales, "invoices": r.invoices,
+                       "items": r.items, "tax": r.vat_amount, "returns": r.returns, "system": r._is_system()} for r in sales_rows],
+            "registers": {str(k): v for k, v in S["navitta.branch"].sudo().search([])._system_status(day).items()},
             "day": fields.Date.to_string(day), "settings": self._settings(), "branches": self._branches(),
             "employees": self._employees(), "off": {e.id: e._is_off(day) for e in emps},
             "reports": [{"branch_id": r.branch_id.id, "day": fields.Date.to_string(r.day), "employee_name": r.employee_name,
@@ -196,51 +226,150 @@ class NavittaApiAdmin(models.AbstractModel):
 
     # ------------------------------------------------------------------ sales and targets
     @api.model
-    def employee_summary(self, date_from, date_to, branch_id=False):
-        self._admin()
-        d0, d1 = self._d(date_from), self._d(date_to)
-        self.env["navitta.daily.report.employee"].flush_model()
-        self.env["navitta.daily.sales"].flush_model()
-        cr = self.env.cr
-        cr.execute("""
-            SELECT l.branch_id, l.employee_id, e.name, e.slot, SUM(l.amount), SUM(l.invoices), SUM(l.items), SUM(l.exchanged),
-                   COALESCE(SUM(l.amount) FILTER (WHERE l.invoices > 0), 0)
-              FROM navitta_daily_report_employee l JOIN navitta_employee e ON e.id = l.employee_id
-             WHERE l.day BETWEEN %s AND %s AND (%s IS NULL OR l.branch_id = %s)
-             GROUP BY 1, 2, 3, 4 ORDER BY 5 DESC""", [d0, d1, branch_id or None, branch_id or None])
-        rows = [{"branch_id": b, "employee_id": e, "name": n, "slot": s, "amount": a or 0, "invoices": i or 0, "items": it or 0,
-                 "exchanged": x or 0, "amount_inv": ai or 0} for b, e, n, s, a, i, it, x, ai in cr.fetchall()]
-        cr.execute("""SELECT branch_id, SUM(target) FROM navitta_daily_sales
-                       WHERE day BETWEEN %s AND %s AND day <= %s GROUP BY 1""", [d0, d1, app_today(self.env)])
-        targets = dict(cr.fetchall())
-        return {"rows": rows, "targets": targets}
+    def _cashier_label(self, cashier):
+        if not cashier:
+            return _("بدون كاشير (الحساب العام)")
+        return cashier if cashier.startswith(_("الحساب العام")) else _("%s (كاشير غير مربوط بموظفة)", cashier)
 
     @api.model
-    def admin_sales(self, branch_id, date_from, date_to, year, m_from, m_to):
+    def employee_summary(self, date_from, date_to, branch_id=False, weekdays=None):
+        """Each employee's sales in the period: from the cash register system (by the cashier who made the sale) when the
+        branch has one, else from the daily reports. Sales without a cashier are shown as «بدون كاشير». Also her counter
+        visits, to check the counter against the sales records."""
+        self._admin()
+        d0, d1 = self._d(date_from), self._d(date_to)
+        dom = self._day_filter(d0, d1, weekdays)
+        wd = self._wd(weekdays)
+        lines = self.env["navitta.employee.sales"]._preferred_domain(d0, d1, branch_id)
+        if wd:
+            lines = lines.filtered(lambda l: dow(l.day) in wd)
+        rows = {}
+        for l in lines:
+            key = (l.branch_id.id, l.employee_id.id or 0, "" if l.employee_id else (l.cashier or ""))
+            r = rows.setdefault(key, {"branch_id": l.branch_id.id, "employee_id": l.employee_id.id or False,
+                                      "name": l.employee_id.name or self._cashier_label(l.cashier),
+                                      "slot": l.employee_id.slot or 99, "amount": 0.0, "tax": 0.0, "invoices": 0, "items": 0,
+                                      "exchanged": 0, "returns_amount": 0.0, "amount_inv": 0.0, "source": l.source,
+                                      "visits": 0, "bought": 0})
+            r["amount"] += l.amount
+            r["tax"] += l.tax
+            r["invoices"] += l.invoices
+            r["items"] += l.items
+            r["exchanged"] += l.returns
+            r["returns_amount"] += l.returns_amount
+            r["amount_inv"] += l.amount if l.invoices else 0.0
+        vdom = self._day_filter(d0, d1, weekdays) + [("saved", "=", True)] + ([("branch_id", "=", int(branch_id))] if branch_id else [])
+        for v in self.env["navitta.visit"].sudo().search(vdom):
+            key = (v.branch_id.id, v.employee_id.id, "")
+            r = rows.get(key)
+            if r is None:
+                r = rows[key] = {"branch_id": v.branch_id.id, "employee_id": v.employee_id.id, "name": v.employee_id.name,
+                                 "slot": v.employee_id.slot, "amount": 0.0, "tax": 0.0, "invoices": 0, "items": 0, "exchanged": 0,
+                                 "returns_amount": 0.0, "amount_inv": 0.0, "source": False, "visits": 0, "bought": 0}
+            r["visits"] += 1
+            r["bought"] += 1 if v.bought else 0
+        today = app_today(self.env)
+        targets = {}
+        for ds in self.env["navitta.daily.sales"].sudo().search(dom + [("day", "<=", today)]):
+            targets[ds.branch_id.id] = targets.get(ds.branch_id.id, 0.0) + ds.target
+        return {"rows": sorted(rows.values(), key=lambda r: -r["amount"]), "targets": targets}
+
+    @api.model
+    def admin_sales(self, branch_id, date_from, date_to, year, m_from, m_to, weekdays=None):
         self._admin()
         d0, d1, m0, m1 = self._d(date_from), self._d(date_to), self._d(m_from), self._d(m_to)
         today = app_today(self.env)
+        branches = self.env["navitta.branch"].sudo().search([])
+        branches._system_sync([today])
+        wd = self._wd(weekdays) or None
         self.env["navitta.daily.sales"].flush_model()
         cr = self.env.cr
         cr.execute("""
             SELECT branch_id, SUM(target), COALESCE(SUM(target) FILTER (WHERE day <= %s), 0), COALESCE(SUM(sales), 0),
-                   COALESCE(SUM(invoices), 0), COALESCE(SUM(items), 0), COALESCE(SUM(returns), 0)
-              FROM navitta_daily_sales WHERE day BETWEEN %s AND %s GROUP BY branch_id""", [today, d0, d1])
+                   COALESCE(SUM(invoices), 0), COALESCE(SUM(items), 0), COALESCE(SUM(returns), 0),
+                   COALESCE(SUM(vat_amount), 0), COALESCE(SUM(returns_amount), 0), COALESCE(SUM(cash), 0), COALESCE(SUM(card), 0)
+              FROM navitta_daily_sales
+             WHERE day BETWEEN %s AND %s AND (%s::int[] IS NULL OR EXTRACT(dow FROM day)::int = ANY(%s::int[]))
+             GROUP BY branch_id""", [today, d0, d1, wd, wd])
         summary = [{"branch_id": b, "target": t or 0, "target_to_date": ttd or 0, "sales": s or 0, "invoices": i, "items": it,
-                    "returns": r} for b, t, ttd, s, i, it, r in cr.fetchall()]
+                    "returns": r, "tax": tx or 0, "returns_amount": ra or 0, "cash": ca or 0, "card": cd or 0}
+                   for b, t, ttd, s, i, it, r, tx, ra, ca, cd in cr.fetchall()]
         cr.execute("""
             SELECT EXTRACT(month FROM day)::int, SUM(target), COALESCE(SUM(target) FILTER (WHERE day <= %s), 0), COALESCE(SUM(sales), 0)
               FROM navitta_daily_sales WHERE EXTRACT(year FROM day) = %s AND (%s IS NULL OR branch_id = %s)
              GROUP BY 1 ORDER BY 1""", [today, int(year), branch_id or None, branch_id or None])
         monthly = [{"month": m, "target": t or 0, "target_to_date": ttd or 0, "sales": s or 0} for m, t, ttd, s in cr.fetchall()]
-        dom = [("day", ">=", m0), ("day", "<=", m1)] + ([("branch_id", "=", int(branch_id))] if branch_id else [])
+        dom = self._day_filter(m0, m1, weekdays) + ([("branch_id", "=", int(branch_id))] if branch_id else [])
         daily = [{"day": fields.Date.to_string(r.day), "branch_id": r.branch_id.id, "target": r.target,
                   "sales": r.sales if r.has_sales else None, "invoices": r.invoices, "items": r.items, "returns": r.returns,
-                  "cash": r.cash, "card": r.card, "closed_by": r.closed_by or ""}
+                  "tax": r.vat_amount, "cash": r.cash, "card": r.card, "closed_by": r.closed_by or "",
+                  "system": r._is_system()}
                  for r in self.env["navitta.daily.sales"].sudo().search(dom, order="day, branch_id")]
         return {"branches": self._branches(), "summary": summary, "monthly": monthly, "daily": daily,
-                "employees": self.employee_summary(date_from, date_to, branch_id), "settings": self._settings(),
+                "employees": self.employee_summary(date_from, date_to, branch_id, weekdays), "settings": self._settings(),
                 "day": fields.Date.to_string(today)}
+
+    @api.model
+    def admin_compare(self, date_from, date_to, weekdays=None):
+        """Branches side by side for the period: target, sales (cash register system or daily report), tax, invoices,
+        average invoice, items, returns, customers counted at the door, and checks between the three sources."""
+        self._admin()
+        d0, d1 = self._d(date_from), self._d(date_to)
+        today = app_today(self.env)
+        S = self.env
+        branches = S["navitta.branch"].sudo().search([])
+        branches._system_sync([today])
+        dom = self._day_filter(d0, d1, weekdays)
+        res = {b.id: {"branch_id": b.id, "name": b.name, "system": b._has_system(), "days": 0, "target": 0.0, "sales": 0.0,
+                      "tax": 0.0, "net": 0.0, "invoices": 0, "items": 0, "returns": 0, "returns_amount": 0.0, "cash": 0.0, "card": 0.0,
+                      "visits": 0, "bought": 0, "report_sales": 0.0, "report_invoices": 0, "report_days": 0, "sales_days": 0}
+               for b in branches}
+        n_days = len([1 for i in range((min(d1, today) - d0).days + 1)
+                      if not self._wd(weekdays) or dow(d0 + timedelta(days=i)) in self._wd(weekdays)]) if d0 <= today else 0
+        for r in S["navitta.daily.sales"].sudo().search(dom):
+            x = res.get(r.branch_id.id)
+            if not x:
+                continue
+            if r.day <= today:
+                x["target"] += r.target
+            if r.has_sales:
+                x["sales_days"] += 1
+            for k in ("sales", "invoices", "items", "returns", "returns_amount", "cash", "card"):
+                x[k] += r[k]
+            x["tax"] += r.vat_amount
+            x["net"] += r.net_sales
+        for v in S["navitta.visit"].sudo().search(dom + [("saved", "=", True)]):
+            x = res.get(v.branch_id.id)
+            if x:
+                x["visits"] += 1
+                x["bought"] += 1 if v.bought else 0
+        sys_rows = {(r.branch_id.id, r.day): r for r in S["navitta.daily.sales"].sudo().search(dom) if r._is_system()}
+        for rep in S["navitta.daily.report"].sudo().search(dom):
+            x = res.get(rep.branch_id.id)
+            if x:
+                x["report_sales"] += rep.sales
+                x["report_invoices"] += rep.invoices
+                x["report_days"] += 1
+                sr = sys_rows.get((rep.branch_id.id, rep.day))
+                if sr:          # only the days that have both: what was typed vs the invoices
+                    x["report_gap_sum"] = x.get("report_gap_sum", 0.0) + (rep.sales - sr.sales)
+                    x["report_gap_days"] = x.get("report_gap_days", 0) + 1
+        rows = []
+        for x in res.values():
+            x["days"] = n_days
+            x["achieved"] = round(x["sales"] * 100.0 / x["target"], 1) if x["target"] else None
+            x["avg_invoice"] = round(x["sales"] / x["invoices"], 2) if x["invoices"] else 0.0
+            x["items_per_invoice"] = round(x["items"] / x["invoices"], 2) if x["invoices"] else 0.0
+            x["conversion"] = round(x["invoices"] * 100.0 / x["visits"], 1) if x["visits"] else None
+            x["counter_gap"] = x["invoices"] - x["bought"]          # >0: invoices without a counter visit
+            x["report_gap"] = round(x.pop("report_gap_sum", 0.0), 2) if x.get("report_gap_days") else None
+            x["report_gap_days"] = x.get("report_gap_days", 0)
+            x["missing_reports"] = max(0, n_days - x["report_days"])
+            rows.append(x)
+        status = branches._system_status(today)
+        return {"rows": sorted(rows, key=lambda r: -r["sales"]), "branches": self._branches(), "settings": self._settings(),
+                "day": fields.Date.to_string(today), "from": fields.Date.to_string(d0), "to": fields.Date.to_string(d1),
+                "registers": {str(k): v for k, v in status.items()}}
 
     @api.model
     def admin_target_rows(self, branch_id):
@@ -295,9 +424,9 @@ class NavittaApiAdmin(models.AbstractModel):
 
     # ------------------------------------------------------------------ lost sales
     @api.model
-    def admin_lost(self, branch_id, date_from, date_to):
+    def admin_lost(self, branch_id, date_from, date_to, weekdays=None):
         self._admin()
-        dom = [("day", ">=", self._d(date_from)), ("day", "<=", self._d(date_to))] + ([("branch_id", "=", int(branch_id))] if branch_id else [])
+        dom = self._day_filter(self._d(date_from), self._d(date_to), weekdays) + ([("branch_id", "=", int(branch_id))] if branch_id else [])
         Lost = self.env["navitta.lost.sale"].sudo()
         wdom = [("waiting", "=", True)] + ([("branch_id", "=", int(branch_id))] if branch_id else [])
         return {"branches": self._branches(), "rows": [self._lost_dict(r) for r in Lost.search(dom)],
@@ -341,20 +470,24 @@ class NavittaApiAdmin(models.AbstractModel):
         branches = S["navitta.branch"].sudo().search([])
         emps = S["navitta.employee"].sudo().search([("active", "=", True)])
         reps = S["navitta.daily.report"].sudo().search([("day", "=", day)])
-        prev = S["navitta.daily.report"].sudo().search([("day", "=", day - timedelta(days=7))])
         visits = S["navitta.visit"].sudo().search([("day", "=", day), ("saved", "=", True)])
         cases = S["navitta.late.case"].sudo().search([("day", "=", day)])
         lreq = S["navitta.leave.request"].sudo().search([("state", "=", "pending")])
-        sales = sum(reps.mapped("sales"))
-        invoices = sum(reps.mapped("invoices"))
+        branches._system_sync([day])
+        Sales = S["navitta.daily.sales"].sudo()
+        ds = Sales.search([("day", "=", day), ("has_sales", "=", True)])
+        prev_ds = Sales.search([("day", "=", day - timedelta(days=7)), ("has_sales", "=", True)])
+        sales = sum(ds.mapped("sales"))
+        invoices = sum(ds.mapped("invoices"))
         buys = len(visits.filtered("bought"))
         rows = []
         for b in branches:
             rs = reps.filtered(lambda r: r.branch_id == b)
+            bs = ds.filtered(lambda r: r.branch_id == b)
             vs = visits.filtered(lambda v: v.branch_id == b)
             bc = cases.filtered(lambda c: c.employee_id.branch_id == b)
             rows.append({
-                "name": b.name, "sales": sum(rs.mapped("sales")), "invoices": sum(rs.mapped("invoices")), "visits": len(vs),
+                "name": b.name, "sales": sum(bs.mapped("sales")), "invoices": sum(bs.mapped("invoices")), "visits": len(vs),
                 "buy_pct": (100.0 * len(vs.filtered("bought")) / len(vs)) if vs else None, "sat": rs[:1].sat or None,
                 "late": len(bc.filtered(lambda c: c.kind == "late")), "over": len(bc.filtered(lambda c: c.kind == "break")),
                 "lost": sum(len(r.lost_ids) for r in rs) if rs else len(vs.filtered(lambda v: v.lost_color or v.lost_size)),
@@ -385,7 +518,7 @@ class NavittaApiAdmin(models.AbstractModel):
         c = self.env.company
         return {
             "day": day, "branches": rows, "missing": [b.name for b in branches if b not in reps.mapped("branch_id")],
-            "sales": sales, "prev_sales": sum(prev.mapped("sales")), "invoices": invoices, "visits": len(visits),
+            "sales": sales, "prev_sales": sum(prev_ds.mapped("sales")), "invoices": invoices, "visits": len(visits),
             "buy_pct": (100.0 * buys / len(visits)) if visits else None,
             "pending": len(cases.filtered(lambda x: x.state == "review")) + len(lreq),
             "late": len(cases.filtered(lambda x: x.kind == "late")), "over": len(cases.filtered(lambda x: x.kind == "break")),

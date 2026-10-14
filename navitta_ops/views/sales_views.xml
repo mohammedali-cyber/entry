@@ -202,9 +202,58 @@
             </search>
         </field>
     </record>
+    <record id="view_employee_sales_list" model="ir.ui.view">
+        <field name="name">navitta.employee.sales.list</field>
+        <field name="model">navitta.employee.sales</field>
+        <field name="arch" type="xml">
+            <list create="0" decoration-warning="not employee_id">
+                <field name="day"/>
+                <field name="branch_id"/>
+                <field name="employee_id"/>
+                <field name="cashier"/>
+                <field name="amount" sum="الإجمالي"/>
+                <field name="tax" sum="الإجمالي" optional="show"/>
+                <field name="invoices" sum="الإجمالي"/>
+                <field name="items" sum="الإجمالي"/>
+                <field name="returns" sum="الإجمالي" optional="show"/>
+                <field name="returns_amount" sum="الإجمالي" optional="hide"/>
+                <field name="source"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_employee_sales_pivot" model="ir.ui.view">
+        <field name="name">navitta.employee.sales.pivot</field>
+        <field name="model">navitta.employee.sales</field>
+        <field name="arch" type="xml">
+            <pivot string="مبيعات الموظفات">
+                <field name="employee_id" type="row"/>
+                <field name="day" interval="month" type="col"/>
+                <field name="amount" type="measure"/>
+                <field name="invoices" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+    <record id="view_employee_sales_search" model="ir.ui.view">
+        <field name="name">navitta.employee.sales.search</field>
+        <field name="model">navitta.employee.sales</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="cashier"/>
+                <field name="branch_id"/>
+                <filter name="no_emp" string="بدون كاشير مربوط" domain="[('employee_id', '=', False)]"/>
+                <filter name="f_day" string="اليوم" date="day"/>
+                <group>
+                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_source" string="المصدر" context="{'group_by': 'source'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
     <record id="action_employee_sales" model="ir.actions.act_window">
         <field name="name">مبيعات الموظفات</field>
-        <field name="res_model">navitta.daily.report.employee</field>
+        <field name="res_model">navitta.employee.sales</field>
         <field name="view_mode">pivot,list</field>
+        <field name="help" type="html"><p>من نقطة البيع (حسب الكاشير اللي باع) إذا الفرع مربوط بها، وإلا من التقرير اليومي.</p></field>
     </record>
 </odoo>

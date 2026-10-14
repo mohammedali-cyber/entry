@@ -1,5 +1,5 @@
 /** @odoo-module **/
-import { Component, onMounted, onWillStart, onWillUnmount, useState } from "@odoo/owl";
+import { Component, onMounted, onWillStart, onWillUnmount, useEffect, useState } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
@@ -13,12 +13,105 @@ const LEAVEADM = { pending: "بانتظار موافقتك", cover: "بانتظ�
 const NOTIF = { sent: ["good", "أُرسل"], no_email: ["bad", "لا يوجد إيميل"], exception: ["bad", "فشل الإرسال"], outgoing: ["info", "بانتظار الإرسال"] };
 const H = { jn, f0, mmss, clock, longDate, h12, dTxt, days, ago, pc, dmy, weekday, addDays, LOSTL, SUP, EXPICON, RQST, EXST, WD, MONTHS, LEAVEADM, NOTIF };
 
+// ---------------------------------------------------------------- shared period filter (every tab)
+const FKEY = "navitta_admin_filter";
+const PRESETS = [["today", "اليوم"], ["yesterday", "أمس"], ["last7", "آخر 7 أيام"], ["month", "هذا الشهر"], ["prevmonth", "الشهر الماضي"],
+    ["last30", "آخر 30 يوم"], ["year", "من بداية السنة"], ["custom", "📅 مخصص"]];
+function presetRange(k) {
+    const td = today();
+    const m0 = td.slice(0, 8) + "01";
+    switch (k) {
+        case "today": return [td, td];
+        case "yesterday": return [addDays(td, -1), addDays(td, -1)];
+        case "last7": return [addDays(td, -6), td];
+        case "last30": return [addDays(td, -29), td];
+        case "prevmonth": return [addDays(m0, -1).slice(0, 8) + "01", addDays(m0, -1)];
+        case "year": return [td.slice(0, 4) + "-01-01", td];
+        default: return [m0, td];
+    }
+}
+function loadFilter() {
+    let f = null;
+    try {
+        f = JSON.parse(localStorage.getItem(FKEY) || "null");
+    } catch {
+        f = null;
+    }
+    f = Object.assign({ br: 0, preset: "month", from: "", to: "", wd: [] }, f || {});
+    if (f.preset !== "custom" || !f.from || !f.to) {
+        [f.from, f.to] = presetRange(f.preset === "custom" ? "month" : f.preset);
+    }
+    return f;
+}
+
+class FilterBar extends Component {
+    static template = "navitta_ops.FilterBar";
+    static props = { f: Object, branches: Array, dates: Boolean };
+    setup() {
+        this.PRESETS = PRESETS;
+        this.WD = WD;
+        this.DAYS = [0, 1, 2, 3, 4, 5, 6];
+        this.dmy = dmy;
+    }
+    save() {
+        try {
+            localStorage.setItem(FKEY, JSON.stringify(this.props.f));
+        } catch {
+            // private mode: the filter is just not remembered
+        }
+    }
+    preset(k) {
+        const f = this.props.f;
+        if (k !== "custom") {
+            [f.from, f.to] = presetRange(k);
+        }
+        f.preset = k;
+        this.save();
+    }
+    setDate(k, v) {
+        const f = this.props.f;
+        if (!v) return;
+        f[k] = v;
+        if (f.from > f.to) {
+            f[k === "from" ? "to" : "from"] = v;
+        }
+        f.preset = "custom";
+        this.save();
+    }
+    toggleDay(n) {
+        const f = this.props.f;
+        f.wd = f.wd.includes(n) ? f.wd.filter((x) => x !== n) : [...f.wd, n].sort();
+        this.save();
+    }
+    setBr(v) {
+        this.props.f.br = +v || 0;
+        this.save();
+    }
+    clearDays() {
+        this.props.f.wd = [];
+        this.save();
+    }
+}
+
 class AdminBase extends Component {
-    static props = {};
+    static props = { f: Object };
     setup() {
         this.orm = useService("orm");
         this.notification = useService("notification");
         Object.assign(this, H);
+        // reload when the shared filter changes (not on the first run: onWillStart already loaded)
+        const f = this.props.f;
+        let first = true;
+        useEffect(() => {
+            if (first) {
+                first = false;
+            } else if (this.watchFilter) {
+                this.load();
+            }
+        }, () => [f.br, f.from, f.to, f.wd.join(",")]);
+    }
+    get br() {
+        return this.props.f.br;
     }
     toast(msg, type = "success") {
         this.notification.add(msg, { type });
@@ -44,14 +137,20 @@ class Dashboard extends AdminBase {
     static components = { DailyQuote, EmpBoard, NvModal, PhotoLink };
     setup() {
         super.setup();
-        this.state = useState({ d: null, br: 0, period: 7, notes: {}, openT: null, reply: "", setup: null, once: null, busy: false });
+        this.state = useState({ d: null, notes: {}, openT: null, reply: "", setup: null, once: null, busy: false });
+        this.watchFilter = true;
         this.action = useService("action");
         onWillStart(() => this.load());
         onMounted(() => (this.timer = setInterval(() => this.load(), 60000)));
         onWillUnmount(() => clearInterval(this.timer));
     }
     async load() {
-        const [d, setup] = await Promise.all([api(this.orm, "admin_dashboard", this.state.period), api(this.orm, "admin_setup")]);
+        const f = this.props.f;
+        const my = (this.req = (this.req || 0) + 1);
+        const [d, setup] = await Promise.all([api(this.orm, "admin_dashboard", f.from, f.to, f.wd), api(this.orm, "admin_setup")]);
+        if (my !== this.req) {
+            return;
+        }
         if (!setup.error) {
             this.state.setup = setup;
         }
@@ -81,6 +180,10 @@ class Dashboard extends AdminBase {
         if (key === "admin_pw") {
             return this.action.doAction({ type: "ir.actions.act_window", res_model: "navitta.admin.password.wizard", views: [[false, "form"]], target: "new", name: "كلمة سر الإدارة" }, reload);
         }
+        const item = (this.state.setup && this.state.setup.items.find((i) => i.key === key)) || {};
+        if (item.action) {
+            return this.action.doAction(item.action, reload);
+        }
         const xmlid = { email: "navitta_ops.action_navitta_settings", mail_server: "base.action_ir_mail_server_list",
             catalog: "navitta_ops.action_catalog_import", branch: "navitta_ops.action_branch_app", employees: "navitta_ops.action_employees" }[key];
         return this.action.doAction(xmlid, reload);
@@ -92,12 +195,8 @@ class Dashboard extends AdminBase {
             : [["الفرع", "اسم الدخول", "كلمة المرور"], ...o.rows.map((r) => [r.branch, r.login, r.password])];
         downloadCsv(o.kind === "pins" ? "navitta-pins.csv" : "navitta-devices.csv", rows);
     }
-    async setPeriod(n) {
-        this.state.period = n;
-        await this.load();
-    }
     inB(b) {
-        return !this.state.br || b === this.state.br;
+        return !this.br || b === this.br;
     }
     eB(id) {
         return (this.state.d.E[id] || {}).branch_id;
@@ -108,11 +207,13 @@ class Dashboard extends AdminBase {
     get v() {
         const d = this.state.d;
         const reps = d.reports.filter((r) => this.inB(r.branch_id)), vis = d.visits.filter((v) => this.inB(v.branch_id));
-        const sales = reps.reduce((t, r) => t + (+r.sales || 0), 0), inv = reps.reduce((t, r) => t + (+r.invoices || 0), 0);
+        const sl = d.sales.filter((r) => this.inB(r.branch_id));
+        const sales = sl.reduce((t, r) => t + (+r.sales || 0), 0), inv = sl.reduce((t, r) => t + (+r.invoices || 0), 0);
+        const tax = sl.reduce((t, r) => t + (+r.tax || 0), 0), sys = sl.some((r) => r.system);
         const buys = vis.filter((v) => v.bought).length;
         const sat = reps.length ? reps.reduce((t, r) => t + (+r.sat || 0), 0) / reps.length : 0;
         return {
-            sales, inv, visits: vis.length, buyPct: vis.length ? ((buys / vis.length) * 100).toFixed(1) : 0, sat: sat.toFixed(1),
+            sales, inv, tax, sys, visits: vis.length, buyPct: vis.length ? ((buys / vis.length) * 100).toFixed(1) : 0, sat: sat.toFixed(1),
             review: d.cases.filter((c) => c.state === "review" && this.inB(this.eB(c.employee_id))),
             waiting: d.cases.filter((c) => c.state === "reply" && this.inB(this.eB(c.employee_id))),
             lreq: d.leave_requests.filter((r) => this.inB(this.eB(r.employee_id)) && (["pending", "cover"].includes(r.state) ||
@@ -148,9 +249,10 @@ class Dashboard extends AdminBase {
         const d = this.state.d;
         return d.branches.map((b) => {
             const rs = d.reports.filter((r) => r.branch_id === b.id), vs = d.visits.filter((v) => v.branch_id === b.id);
+            const ss = d.sales.filter((r) => r.branch_id === b.id);
             const bb = vs.filter((v) => v.bought).length;
             return {
-                b, sales: rs.reduce((t, r) => t + (+r.sales || 0), 0), inv: rs.reduce((t, r) => t + (+r.invoices || 0), 0),
+                b, sales: ss.reduce((t, r) => t + (+r.sales || 0), 0), inv: ss.reduce((t, r) => t + (+r.invoices || 0), 0),
                 visits: vs.length, buyPct: vs.length ? Math.round((bb / vs.length) * 100) : 0,
                 avg: vs.length ? vs.reduce((t, v) => t + (v.duration_sec || 0), 0) / vs.length : 0,
                 sent: rs.some((r) => r.day === d.day),
@@ -182,9 +284,6 @@ class Dashboard extends AdminBase {
         await api(this.orm, "admin_thread_toggle", th.id);
         await this.load();
     }
-    get from() {
-        return addDays(this.state.d.day, -(this.state.period - 1));
-    }
 }
 
 // ---------------------------------------------------------------- sales and targets
@@ -193,57 +292,33 @@ class Sales extends AdminBase {
     static components = { EmpBoard, TargetEditor };
     setup() {
         super.setup();
-        const td = today();
-        this.state = useState({ d: null, br: 0, per: "ytd", cf: td.slice(0, 8) + "01", ct: td, edit: null, editRows: null });
+        this.state = useState({ d: null, edit: null, editRows: null });
+        this.watchFilter = true;
         onWillStart(() => this.load());
     }
     get year() {
-        return +today().slice(0, 4);
+        return +this.props.f.to.slice(0, 4);
     }
     get range() {
-        const s = this.state, td = today(), y = this.year, curM = +td.slice(5, 7);
-        const custom = s.per === "custom", m = s.per === "ytd" || custom ? curM : +s.per;
-        const last = (mm) => new Date(Date.UTC(y, mm, 0)).toISOString().slice(0, 10);
-        const from = custom ? s.cf : s.per === "ytd" ? `${y}-01-01` : `${y}-${String(m).padStart(2, "0")}-01`;
-        const to = custom ? s.ct : s.per === "ytd" ? td : last(m);
-        return { custom, m, from, to, mFrom: custom ? s.cf : `${y}-${String(m).padStart(2, "0")}-01`, mTo: custom ? s.ct : last(m), curM };
+        const f = this.props.f;
+        return { custom: true, m: +f.from.slice(5, 7), from: f.from, to: f.to, mFrom: f.from, mTo: f.to, curM: +today().slice(5, 7) };
     }
     async load() {
         const r = this.range;
         const my = (this.req = (this.req || 0) + 1);
-        const d = await api(this.orm, "admin_sales", this.state.br || false, r.from, r.to, this.year, r.mFrom, r.mTo);
+        const d = await api(this.orm, "admin_sales", this.br || false, r.from, r.to, this.year, r.mFrom, r.mTo, this.props.f.wd);
         if (d.error || my !== this.req) {
             return;
         }
         setClock(d.settings.tz);
         this.state.d = d;
     }
-    async setPer(v) {
-        this.state.per = v;
-        await this.load();
-    }
-    async setBr(v) {
-        this.state.br = +v || 0;
-        await this.load();
-    }
-    async setFrom(v) {
-        if (!v) return;
-        const r = this.range;
-        Object.assign(this.state, { cf: v, ct: r.to, per: "custom" });
-        await this.load();
-    }
-    async setTo(v) {
-        if (!v) return;
-        const r = this.range;
-        Object.assign(this.state, { cf: r.from, ct: v, per: "custom" });
-        await this.load();
-    }
     vat(x) {
         const rate = this.state.d.settings.vat_rate || 0;
         return (x * rate) / (100 + rate);
     }
     get rows() {
-        return this.state.d.summary.filter((r) => !this.state.br || r.branch_id === this.state.br);
+        return this.state.d.summary.filter((r) => !this.br || r.branch_id === this.br);
     }
     tot(k) {
         return this.rows.reduce((s, r) => s + +(r[k] || 0), 0);
@@ -257,8 +332,8 @@ class Sales extends AdminBase {
     get dayRows() {
         const byDay = {};
         for (const r of this.state.d.daily) {
-            const x = (byDay[r.day] ||= { day: r.day, target: 0, sales: 0, invoices: 0, items: 0, returns: 0, cash: 0, card: 0, has: false, closed_by: r.closed_by });
-            for (const k of ["target", "sales", "invoices", "items", "returns", "cash", "card"]) {
+            const x = (byDay[r.day] ||= { day: r.day, target: 0, sales: 0, invoices: 0, items: 0, returns: 0, cash: 0, card: 0, tax: 0, has: false, closed_by: r.closed_by });
+            for (const k of ["target", "sales", "invoices", "items", "returns", "cash", "card", "tax"]) {
                 x[k] += +(r[k] || 0);
             }
             if (r.sales !== null && r.sales !== false) {
@@ -284,7 +359,7 @@ class Requests extends AdminBase {
     static components = { PhotoLink };
     setup() {
         super.setup();
-        this.state = useState({ d: null, br: 0, kind: "all", notes: {}, open: null });
+        this.state = useState({ d: null, kind: "all", notes: {}, open: null });
         onWillStart(() => this.load());
         onMounted(() => (this.timer = setInterval(() => this.load(), 60000)));
         onWillUnmount(() => clearInterval(this.timer));
@@ -297,7 +372,7 @@ class Requests extends AdminBase {
         }
     }
     inB(b) {
-        return !this.state.br || b === this.state.br;
+        return !this.br || b === this.br;
     }
     nm(id) {
         return (this.state.d.employees.find((e) => e.id === id) || {}).name || "—";
@@ -346,26 +421,18 @@ class Lost extends AdminBase {
     static template = "navitta_ops.AdminLost";
     setup() {
         super.setup();
-        const td = today();
-        this.state = useState({ d: null, br: 0, from: td.slice(0, 8) + "01", to: td });
+        this.state = useState({ d: null });
         this.LOST = LOST;
+        this.watchFilter = true;
         onWillStart(() => this.load());
     }
     async load() {
+        const f = this.props.f;
         const my = (this.req = (this.req || 0) + 1);
-        const d = await api(this.orm, "admin_lost", this.state.br || false, this.state.from, this.state.to);
+        const d = await api(this.orm, "admin_lost", this.br || false, f.from, f.to, f.wd);
         if (!d.error && my === this.req) {
             this.state.d = d;
         }
-    }
-    async set(k, v) {
-        if (!v && k !== "br") return;
-        this.state[k] = k === "br" ? +v || 0 : v;
-        await this.load();
-    }
-    async last90() {
-        Object.assign(this.state, { from: addDays(today(), -89), to: today() });
-        await this.load();
     }
     get v() {
         const rows = this.state.d.rows, lost = rows.filter((r) => r.reason !== "browsing");
@@ -404,11 +471,11 @@ class Lost extends AdminBase {
         await this.act("admin_lost_contacted", [w.id], "تم");
     }
     dlNext(v) {
-        downloadCsv(`next-order-${this.state.from}-${this.state.to}.csv`, [["رقم المؤسسة", "الموديل", "اللون", "المقاس", "كم مرة", "الفروع", "الشرح"],
+        downloadCsv(`next-order-${this.props.f.from}-${this.props.f.to}.csv`, [["رقم المؤسسة", "الموديل", "اللون", "المقاس", "كم مرة", "الفروع", "الشرح"],
             ...v.next.map((x) => [x.item_no, x.model, x.color, x.size, x.n, this.brs(x.br), x.notes.join(" | ")])]);
     }
     dlAll(v) {
-        downloadCsv(`lost-sales-${this.state.from}-${this.state.to}.csv`, [["التاريخ", "الفرع", "الموظفة", "السبب", "رقم المؤسسة", "الموديل", "اللون", "المقاس", "السعر", "ملاحظة"],
+        downloadCsv(`lost-sales-${this.props.f.from}-${this.props.f.to}.csv`, [["التاريخ", "الفرع", "الموظفة", "السبب", "رقم المؤسسة", "الموديل", "اللون", "المقاس", "السعر", "ملاحظة"],
             ...v.rows.map((r) => [r.day, this.bName(r.branch_id), r.employee, LOSTL[r.reason] || r.reason, r.item_no, r.model, r.color, r.size, r.price, r.note])]);
     }
 }
@@ -418,7 +485,7 @@ class Day extends AdminBase {
     static template = "navitta_ops.AdminDay";
     setup() {
         super.setup();
-        this.state = useState({ d: null, day: today(), br: 0 });
+        this.state = useState({ d: null, day: today() });
         onWillStart(() => this.load());
     }
     async load() {
@@ -434,7 +501,7 @@ class Day extends AdminBase {
         await this.load();
     }
     get shownBranches() {
-        return this.state.d.branches.filter((b) => !this.state.br || b.id === this.state.br);
+        return this.state.d.branches.filter((b) => !this.br || b.id === this.br);
     }
     block(b) {
         const d = this.state.d;
@@ -462,14 +529,76 @@ class Day extends AdminBase {
     }
 }
 
+// ---------------------------------------------------------------- branches compared
+class Compare extends AdminBase {
+    static template = "navitta_ops.AdminCompare";
+    static components = { EmpBoard };
+    setup() {
+        super.setup();
+        this.state = useState({ d: null, sort: "sales" });
+        this.watchFilter = true;
+        onWillStart(() => this.load());
+    }
+    async load() {
+        const f = this.props.f;
+        const my = (this.req = (this.req || 0) + 1);
+        const d = await api(this.orm, "admin_compare", f.from, f.to, f.wd);
+        if (!d.error && my === this.req) {
+            setClock(d.settings.tz);
+            this.state.d = d;
+        }
+    }
+    get rows() {
+        const k = this.state.sort;
+        return this.state.d.rows.filter((r) => !this.br || r.branch_id === this.br)
+            .sort((a, b) => (+(b[k] ?? -1e9)) - (+(a[k] ?? -1e9)));
+    }
+    get total() {
+        const rows = this.rows, t = {};
+        for (const k of ["target", "sales", "tax", "net", "invoices", "items", "returns", "returns_amount", "cash", "card", "visits", "bought", "report_sales"]) {
+            t[k] = rows.reduce((s, r) => s + (+r[k] || 0), 0);
+        }
+        t.achieved = t.target ? +((t.sales * 100) / t.target).toFixed(1) : null;
+        t.avg_invoice = t.invoices ? t.sales / t.invoices : 0;
+        t.items_per_invoice = t.invoices ? t.items / t.invoices : 0;
+        t.conversion = t.visits ? +((t.invoices * 100) / t.visits).toFixed(1) : null;
+        t.counter_gap = t.invoices - t.bought;
+        return t;
+    }
+    get best() {
+        return Math.max(1, ...this.rows.map((r) => +r.sales || 0));
+    }
+    exportCsv() {
+        const head = ["الفرع", "التارقت", "المبيعات", "التحقق %", "الضريبة", "الصافي", "الفواتير", "متوسط الفاتورة", "القطع", "قطع/فاتورة",
+            "المرتجع (قطع)", "قيمة المرتجع", "نقدي", "شبكة", "عميلات العدّاد", "اشترت (العدّاد)", "التحويل %", "فرق الفواتير عن العدّاد", "مبيعات التقارير", "فرق التقرير عن النظام"];
+        const line = (r) => [r.name, r.target, r.sales, r.achieved ?? "", r.tax, r.net, r.invoices, r.avg_invoice, r.items, r.items_per_invoice,
+            r.returns, r.returns_amount, r.cash, r.card, r.visits, r.bought, r.conversion ?? "", r.counter_gap, r.report_sales, r.report_gap ?? ""];
+        downloadCsv(`branches-${this.props.f.from}-${this.props.f.to}.csv`, [head, ...this.rows.map(line), line(Object.assign({ name: "الإجمالي" }, this.total))]);
+    }
+}
+
 // ---------------------------------------------------------------- root
 export class AdminApp extends Component {
     static template = "navitta_ops.AdminApp";
-    static components = { Dashboard, Sales, Requests, Lost, Day };
+    static components = { Dashboard, Sales, Compare, Requests, Lost, Day, FilterBar };
     static props = { ...standardActionServiceProps };
     setup() {
-        this.state = useState({ tab: (this.props.action.params && this.props.action.params.tab) || "dashboard" });
-        this.tabs = [["dashboard", "لوحة الإدارة"], ["sales", "المبيعات والتارقت"], ["requests", "📦 طلبات الفروع"], ["lost", "💸 المبيعات الضائعة"], ["day", "سجل الأيام"]];
+        this.orm = useService("orm");
+        this.state = useState({ tab: (this.props.action.params && this.props.action.params.tab) || "dashboard", branches: [] });
+        this.f = useState(loadFilter());
+        this.tabs = [["dashboard", "لوحة الإدارة"], ["compare", "📊 مقارنة الفروع"], ["sales", "المبيعات والتارقت"], ["requests", "📦 طلبات الفروع"],
+            ["lost", "💸 المبيعات الضائعة"], ["day", "سجل الأيام"]];
+        onWillStart(async () => {
+            const d = await api(this.orm, "admin_filters");
+            if (!d.error) {
+                setClock(d.settings.tz);
+                this.state.branches = d.branches;
+                Object.assign(this.f, loadFilter());       // dates of the presets in the branches' time zone
+            }
+        });
+    }
+    get withDates() {
+        return !["requests", "day"].includes(this.state.tab);
     }
 }
 

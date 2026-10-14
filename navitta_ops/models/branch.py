@@ -35,6 +35,19 @@ class NavittaBranch(models.Model):
 
     _sql_constraints = [("code_uniq", "unique(code)", "رمز الفرع مستخدم")]
 
+    # ------------------------------------------------------------------ cash register system (overridden by navitta_ops_pos)
+    def _has_system(self):
+        """True when the branch's sales come from a linked cash register system (e.g. Odoo POS)."""
+        return False
+
+    def _system_sync(self, days):
+        """Refreshes the sales of these days from the cash register system. Nothing without one."""
+        return True
+
+    def _system_status(self, day):
+        """{branch_id: [{"name", "opened_at", "opened_by", "cashier", "state"}]}: the registers of the day."""
+        return {}
+
     def _cash_summary(self):
         """{branch_id: {'balance', 'month_expenses', 'pending_expenses'}} computed in SQL (one query per figure)."""
         res = {b.id: {"balance": b.cash_opening_balance or 0.0, "month_expenses": 0.0, "pending_expenses": 0.0} for b in self}

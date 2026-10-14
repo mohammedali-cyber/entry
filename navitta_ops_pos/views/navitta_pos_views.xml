@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- branch: its points of sale and buttons -->
+    <record id="view_branch_form_pos" model="ir.ui.view">
+        <field name="name">navitta.branch.form.pos</field>
+        <field name="model">navitta.branch</field>
+        <field name="inherit_id" ref="navitta_ops.view_branch_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='devices']" position="before">
+                <page string="نقطة البيع" name="pos">
+                    <div class="d-flex gap-2 mb-2">
+                        <button name="action_link_cashiers" type="object" string="ربط الموظفات بحسابات الكاشير" class="btn-primary"
+                                help="لكل موظفة بدون حساب كاشير: يربطها بموظف Odoo بنفس الاسم أو ينشئ واحد، ويحدّث قائمة كاشيرات نقاط بيع الفرع"/>
+                        <button name="action_pos_sync_month" type="object" string="مزامنة المبيعات (آخر 60 يوم)" class="btn-secondary"/>
+                    </div>
+                    <field name="pos_config_ids" context="{'default_navitta_branch_id': id}">
+                        <list create="0"><field name="name"/><field name="current_session_state"/></list>
+                    </field>
+                    <group><field name="pos_last_sync"/></group>
+                    <div class="text-muted">
+                        مبيعات الفرع وضريبتها ونقديتها ومبيعات كل موظفة تنحسب من فواتير نقاط البيع هذه (المدفوعة)، كل 10 دقائق وعند إغلاق الجلسة.
+                        لربط نقطة بيع: افتحها من «نقطة البيع ← الإعدادات ← نقاط البيع» واختر «فرع نافيتا».
+                        مبيعات كل موظفة بحساب الكاشير اللي باعت به (Change Cashier)، والمبيعات بدون كاشير تظهر «الحساب العام».
+                    </div>
+                </page>
+            </xpath>
+            <xpath expr="//field[@name='employee_ids']/list/field[@name='device_user_id']" position="after">
+                <field name="hr_employee_id" string="حساب الكاشير"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- employee: her cashier -->
+    <record id="view_employee_form_pos" model="ir.ui.view">
+        <field name="name">navitta.employee.form.pos</field>
+        <field name="model">navitta.employee</field>
+        <field name="inherit_id" ref="navitta_ops.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='device_user_id']" position="after">
+                <field name="hr_employee_id"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_employee_list_pos" model="ir.ui.view">
+        <field name="name">navitta.employee.list.pos</field>
+        <field name="model">navitta.employee</field>
+        <field name="inherit_id" ref="navitta_ops.view_employee_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='device_user_id']" position="after">
+                <field name="hr_employee_id" optional="show" string="حساب الكاشير"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- point of sale: its branch -->
+    <record id="view_pos_config_form_navitta" model="ir.ui.view">
+        <field name="name">pos.config.form.navitta</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@id='title']" position="after">
+                <group><field name="navitta_branch_id"/></group>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_pos_session_form_navitta" model="ir.ui.view">
+        <field name="name">pos.session.form.navitta</field>
+        <field name="model">pos.session</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_session_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='start_at']" position="before">
+                <field name="navitta_opened_by_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

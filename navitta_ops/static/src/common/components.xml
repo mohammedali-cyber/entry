@@ -294,17 +294,22 @@
 
     <t t-name="navitta_ops.EmpBoard">
         <div t-if="state.rows" class="nv-card c12">
-            <div class="nv-card-h"><div><h2>🏆 <t t-esc="props.title or 'مبيعات الموظفات'"/></h2><p class="sub">مرتبة من الأعلى · من التقرير اليومي</p></div></div>
-            <div class="tscroll"><table class="nv-tbl"><thead><tr><th>#</th><th>الموظفة</th><th>الفرع</th><th>الفواتير</th><th>🛍️ القطع المباعة</th><th>🔄 القطع المستبدلة</th><th>المبيعات</th><th>متوسط الفاتورة</th><th>من تارقت الفرع</th></tr></thead><tbody>
-                <tr t-foreach="state.rows" t-as="r" t-key="r.branch_id + '-' + r.employee_id">
+            <div class="nv-card-h"><div><h2>🏆 <t t-esc="props.title or 'مبيعات الموظفات'"/></h2>
+                <p class="sub">مرتبة من الأعلى · <t t-esc="fromSystem ? 'من فواتير نقطة البيع حسب الكاشير اللي باعت (وليس الحساب العام)' : 'من التقرير اليومي'"/> · ومعها زيارات العدّاد للمطابقة</p></div></div>
+            <div class="tscroll"><table class="nv-tbl"><thead><tr><th>#</th><th>الموظفة / الكاشير</th><th>الفرع</th><th>الفواتير</th><th>🛍️ القطع</th><th>🔄 المرتجع</th><th>المبيعات</th><th>متوسط الفاتورة</th><th>🚪 عميلات العدّاد</th><th>اشترت (عدّاد)</th><th>من تارقت الفرع</th></tr></thead><tbody>
+                <tr t-foreach="state.rows" t-as="r" t-key="r.branch_id + '-' + (r.employee_id or 'c' + r_index)" t-att-class="r.employee_id ? '' : 'unlinked'">
                     <td><span t-att-class="'rk' + (r_index &lt; 3 and r.amount &gt; 0 ? ' g' + (r_index + 1) : '')" t-esc="r_index + 1"/></td>
-                    <td><b t-esc="r.name"/></td><td t-esc="bName(r.branch_id)"/><td class="n" t-esc="f0(r.invoices)"/>
+                    <td><b t-esc="r.name"/><span t-if="!r.employee_id" class="chip warn" title="مبيعات بدون كاشير مربوط بموظفة">غير مربوط</span></td>
+                    <td t-esc="bName(r.branch_id)"/><td class="n" t-esc="f0(r.invoices)"/>
                     <td class="n"><b t-esc="f0(r.items)"/></td><td class="n"><span t-if="r.exchanged" class="chip warn" t-esc="r.exchanged"/><t t-else="">0</t></td>
                     <td class="n"><b t-esc="f0(r.amount)"/> ر.س</td>
                     <td class="n" t-esc="r.invoices and r.amount_inv ? f0(r.amount_inv / r.invoices) + ' ر.س' : '—'"/>
+                    <td class="n" t-esc="r.employee_id ? f0(r.visits) : '—'"/>
+                    <td class="n"><t t-if="r.employee_id"><t t-esc="f0(r.bought)"/>
+                        <span t-if="r.source and r.source !== 'report' and r.bought !== r.invoices" class="chip warn" t-att-title="'الفواتير ' + r.invoices + ' والعدّاد اشترت ' + r.bought" t-esc="(r.invoices - r.bought &gt; 0 ? '+' : '') + (r.invoices - r.bought)"/></t><t t-else="">—</t></td>
                     <td><div class="pc"><div class="pbar"><i t-att-style="'width:' + Math.min(100, pct(r)) + '%'"/></div><span class="num" t-esc="pct(r) + '%'"/></div></td>
                 </tr>
-                <tr t-if="!state.rows.length"><td colspan="9" class="empty">لا توجد مبيعات مسجلة للموظفات في هذه الفترة</td></tr>
+                <tr t-if="!state.rows.length"><td colspan="11" class="empty">لا توجد مبيعات مسجلة للموظفات في هذه الفترة</td></tr>
             </tbody></table></div>
         </div>
     </t>

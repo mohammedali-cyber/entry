@@ -528,6 +528,7 @@ class NavittaApi(models.AbstractModel):
     @api.model
     def _target_rows(self, branch):
         day = app_today(self.env)
+        branch._system_sync([day])
         m0 = day.replace(day=1)
         m1 = (m0 + timedelta(days=32)).replace(day=1) - timedelta(days=1)
         rows = self.env["navitta.daily.sales"].sudo().search([("branch_id", "=", branch.id), ("day", ">=", m0), ("day", "<=", m1)])
@@ -749,6 +750,7 @@ class NavittaApi(models.AbstractModel):
             "day": fields.Date.to_string(day),
             "employees": [{"id": e.id, "slot": e.slot, "name": e.name} for e in emps],
             "report": self._report_dict(rep) if rep else False,
+            "system": self._system_day(b, day),
             "from_visits": {
                 "visitors": len(visits), "invoices": buys, "nonBuy": len(visits) - buys,
                 "lost": [{"model": v.lost_model or "", "color": v.lost_color or "", "size": v.lost_size or ""}
@@ -759,10 +761,33 @@ class NavittaApi(models.AbstractModel):
         }
 
     @api.model
+    def _system_day(self, branch, day):
+        """The day's figures from the cash register system (synced now), or False when the branch has none.
+        The daily report then shows them read-only and saves them instead of what was typed."""
+        if not branch._has_system():
+            return False
+        branch._system_sync([day])
+        row = self.env["navitta.daily.sales"].sudo().search([("branch_id", "=", branch.id), ("day", "=", day)], limit=1)
+        lines = self.env["navitta.employee.sales"]._preferred_domain(day, day, branch.id).filtered(lambda l: l.source != "report")
+        return {
+            "sales": row.sales, "tax": row.vat_amount, "invoices": row.invoices, "items": row.items, "returns": row.returns,
+            "returns_amount": row.returns_amount, "cash": row.cash, "card": row.card,
+            "emp": [{"employee_id": l.employee_id.id or False, "name": l.employee_id.name or l.cashier or _("بدون كاشير"),
+                     "amount": l.amount, "invoices": l.invoices, "items": l.items, "returns": l.returns} for l in lines],
+        }
+
+    @api.model
     def report_save(self, data):
         b = self._branch()
         day = app_today(self.env)
-        data = data or {}
+        data = dict(data or {})
+        system = self._system_day(b, day)
+        if system:
+            # sales, cash and each employee's sales are taken from the system, not from what was typed
+            data.update({"sales": system["sales"], "invoices": system["invoices"], "items": system["items"],
+                         "cash": system["cash"], "card": system["card"],
+                         "emp": [{"employee_id": x["employee_id"], "amount": x["amount"], "invoices": x["invoices"],
+                                  "items": x["items"], "exchanged": x["returns"]} for x in system["emp"] if x["employee_id"]]})
         name = (data.get("employee_name") or "").strip()
         if not name:
             return self._err("name_required")

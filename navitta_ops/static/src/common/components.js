@@ -506,20 +506,29 @@ export class ModelPicker extends Component {
 /** Management: employees ranked by sales in a period. */
 export class EmpBoard extends Component {
     static template = "navitta_ops.EmpBoard";
-    static props = { from: String, to: String, branchId: { optional: true }, branches: Array, title: { type: String, optional: true } };
+    static props = { from: String, to: String, branchId: { optional: true }, branches: Array, title: { type: String, optional: true },
+        wd: { type: Array, optional: true } };
     setup() {
         this.orm = useService("orm");
         this.state = useState({ rows: null, targets: {} });
         this.f0 = f0;
         onWillStart(() => this.load(this.props));
         onWillUpdateProps((np) => {
-            if (np.from !== this.props.from || np.to !== this.props.to || np.branchId !== this.props.branchId) {
+            if (np.from !== this.props.from || np.to !== this.props.to || np.branchId !== this.props.branchId ||
+                (np.wd || []).join() !== (this.props.wd || []).join()) {
                 return this.load(np);
             }
         });
     }
+    get fromSystem() {
+        return (this.state.rows || []).some((r) => r.source && r.source !== "report");
+    }
     async load(p) {
-        const r = await api(this.orm, "employee_summary", p.from, p.to, p.branchId || false);
+        const my = (this.req = (this.req || 0) + 1);
+        const r = await api(this.orm, "employee_summary", p.from, p.to, p.branchId || false, p.wd || []);
+        if (my !== this.req) {
+            return;
+        }
         if (!r.error) {
             this.state.rows = r.rows;
             this.state.targets = r.targets;

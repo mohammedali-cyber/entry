@@ -20,7 +20,10 @@ class NavittaDailySales(models.Model):
     has_sales = fields.Boolean("فيه مبيعات مسجلة", compute="_compute_has_sales", store=True)
     invoices = fields.Integer("الفواتير")
     items = fields.Integer("القطع المباعة")
-    returns = fields.Integer("المرتجع / المستبدل")
+    returns = fields.Integer("المرتجع / المستبدل (قطع)")
+    returns_amount = fields.Float("قيمة المرتجع", digits=(12, 2))
+    tax_amount = fields.Float("الضريبة الفعلية", digits=(12, 2),
+                              help="الضريبة كما سجلها نظام الكاشير. إذا ما فيه، تنحسب من نسبة الضريبة في الإعدادات")
     cash = fields.Float("نقدي", digits=(12, 2))
     card = fields.Float("شبكة", digits=(12, 2))
     deposit = fields.Float("إيداع البنك", digits=(12, 2))
@@ -31,13 +34,18 @@ class NavittaDailySales(models.Model):
 
     _sql_constraints = [("branch_day_uniq", "unique(branch_id, day)", "يوجد سجل لنفس الفرع واليوم")]
 
-    @api.depends("sales", "branch_id.company_id.navitta_vat_rate")
+    @api.depends("sales", "tax_amount", "branch_id.company_id.navitta_vat_rate")
     def _compute_vat(self):
         for r in self:
             rate = r.branch_id.company_id.navitta_vat_rate or 0.0
             s = r.sales or 0.0
-            r.vat_amount = s * rate / (100.0 + rate) if rate else 0.0
+            r.vat_amount = r.tax_amount if r.tax_amount else (s * rate / (100.0 + rate) if rate else 0.0)
             r.net_sales = s - r.vat_amount
+
+    def _is_system(self):
+        """Figures that come from a cash register system (e.g. Odoo POS), not typed by people."""
+        self.ensure_one()
+        return bool(self.source) and self.source not in ("report", "manual")
 
     @api.depends("source")
     def _compute_has_sales(self):
@@ -46,7 +54,7 @@ class NavittaDailySales(models.Model):
 
     def write(self, vals):
         # figures typed by management in the backend
-        if not vals.get("source") and set(vals) & {"sales", "invoices", "items", "returns", "cash", "card", "deposit"}:
+        if not vals.get("source") and set(vals) & {"sales", "invoices", "items", "returns", "cash", "card"}:
             for r in self.filtered(lambda x: not x.source):
                 super(NavittaDailySales, r).write(dict(vals, source="manual"))
             self = self.filtered("source")
@@ -177,10 +185,19 @@ class NavittaDailyReport(models.Model):
         """Daily report -> branch daily sales and supplies used that day."""
         Sales = self.env["navitta.daily.sales"]
         Move = self.env["navitta.supply.move"].sudo()
+        EmpSales = self.env["navitta.employee.sales"].sudo()
         for r in self:
-            Sales._row(r.branch_id, r.day).write({
-                "sales": r.sales, "invoices": r.invoices, "items": r.items, "returns": len(r.exchange_ids),
-                "cash": r.cash, "card": r.card, "deposit": r.deposit, "closed_by": r.employee_name, "source": "report"})
+            row = Sales._row(r.branch_id, r.day)
+            if row._is_system():
+                # sales, cash and the employees' sales come from the cash register system: keep them
+                row.write({"deposit": r.deposit, "closed_by": r.employee_name})
+            else:
+                row.write({"sales": r.sales, "invoices": r.invoices, "items": r.items, "returns": len(r.exchange_ids),
+                           "cash": r.cash, "card": r.card, "deposit": r.deposit, "closed_by": r.employee_name, "source": "report"})
+            EmpSales.search([("branch_id", "=", r.branch_id.id), ("day", "=", r.day), ("source", "=", "report")]).unlink()
+            EmpSales.create([{"branch_id": r.branch_id.id, "day": r.day, "employee_id": l.employee_id.id, "cashier": l.employee_id.name,
+                              "amount": l.amount, "invoices": l.invoices, "items": l.items, "returns": l.exchanged, "source": "report"}
+                             for l in r.employee_line_ids])
             Move.search([("branch_id", "=", r.branch_id.id), ("day", "=", r.day), ("kind", "=", "used")]).unlink()
             for k in STOCK_SUPPLIES:
                 q = r["used_" + k]
@@ -231,6 +248,37 @@ class NavittaDailyReportEmployee(models.Model):
     invoices = fields.Integer("فواتيرها")
     items = fields.Integer("القطع المباعة")
     exchanged = fields.Integer("القطع المستبدلة")
+
+
+class NavittaEmployeeSales(models.Model):
+    """One employee's (cashier's) sales in a branch on a day.
+
+    From the daily report (source «report»), or from the cash register system when it is linked (e.g. Odoo POS,
+    module navitta_ops_pos): then every sale counts for the cashier who made it, and sales made under the shared
+    account without a cashier stay as a line without employee («بدون كاشير»)."""
+    _name = "navitta.employee.sales"
+    _description = "مبيعات الموظفة اليومية"
+    _order = "day desc, branch_id, amount desc"
+
+    branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="cascade")
+    day = fields.Date("اليوم", required=True, index=True)
+    employee_id = fields.Many2one("navitta.employee", "الموظفة", index=True, ondelete="set null")
+    cashier = fields.Char("اسم الكاشير")
+    amount = fields.Float("المبيعات (شامل الضريبة)", digits=(12, 2))
+    tax = fields.Float("الضريبة", digits=(12, 2))
+    invoices = fields.Integer("الفواتير")
+    items = fields.Integer("القطع المباعة")
+    returns = fields.Integer("المرتجع (قطع)")
+    returns_amount = fields.Float("قيمة المرتجع", digits=(12, 2))
+    source = fields.Selection([("report", "التقرير اليومي")], "المصدر", required=True, default="report")
+
+    @api.model
+    def _preferred_domain(self, d0, d1, branch_id=None):
+        """Lines of the period, the cash register system's lines replacing the daily report's for the same branch and day."""
+        dom = [("day", ">=", d0), ("day", "<=", d1)] + ([("branch_id", "=", int(branch_id))] if branch_id else [])
+        lines = self.sudo().search(dom)
+        sys_days = {(l.branch_id.id, l.day) for l in lines if l.source != "report"}
+        return lines.filtered(lambda l: l.source != "report" or (l.branch_id.id, l.day) not in sys_days)
 
 
 class NavittaDailyReportLost(models.Model):

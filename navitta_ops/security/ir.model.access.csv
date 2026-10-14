@@ -54,3 +54,5 @@ access_catalog_import_wizard_admin,navitta.catalog_import_wizard.admin,model_nav
 access_summary_wizard_admin,navitta.summary_wizard.admin,model_navitta_summary_wizard,group_navitta_admin,1,1,1,1
 access_device_admin,navitta.device.admin,model_navitta_device,group_navitta_admin,1,1,1,1
 access_device_punch_admin,navitta.device_punch.admin,model_navitta_device_punch,group_navitta_admin,1,1,0,1
+access_employee_sales_branch,navitta.employee_sales.branch,model_navitta_employee_sales,group_navitta_branch,1,0,0,0
+access_employee_sales_admin,navitta.employee_sales.admin,model_navitta_employee_sales,group_navitta_admin,1,1,1,1
