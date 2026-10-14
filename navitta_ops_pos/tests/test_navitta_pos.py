@@ -67,6 +67,11 @@ class NavittaPosCase(TransactionCase):
         self.assertEqual(self.cfg_dwd.basic_employee_ids, self.reem.hr_employee_id | self.shima.hr_employee_id)
         self.assertEqual(self.cfg_qsm.basic_employee_ids, self.qsm.employee_ids.mapped("hr_employee_id"))
         self.assertNotIn(self.reem.hr_employee_id, self.cfg_qsm.basic_employee_ids)
+        # Odoo's Employees app: a branch device sees its own branch's cashiers only, management sees all
+        mine = self.reem.hr_employee_id | self.shima.hr_employee_id
+        self.assertEqual(self.env["hr.employee"].with_user(self.dev).search([]), mine)
+        self.assertEqual(self.env["hr.employee.public"].with_user(self.dev).search([]).ids, mine.ids)
+        self.assertIn(self.hubour.hr_employee_id, self.env["hr.employee"].with_user(self.boss).search([]))
         self.shima.branch_id = self.qsm                                          # moves: her cashier moves too
         self.assertEqual(self.cfg_dwd.basic_employee_ids, self.reem.hr_employee_id)
         self.assertIn(self.shima.hr_employee_id, self.cfg_qsm.basic_employee_ids)

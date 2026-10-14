@@ -84,6 +84,50 @@ class NavittaCase(TransactionCase):
             with self.assertRaises(AccessError):
                 self.reem.with_user(self.dev).read(["email"])
 
+    def test_security_matrix(self):
+        """Same split as the old app's database policies: a branch device reads its own branch only and writes
+        nothing directly (everything goes through the screen API); management reads everything; the private
+        models (requests, threads, messages, notifications, devices, upload tokens) are management-only."""
+        with freeze_time(utc(15, 20)):
+            for dev, emp in ((self.dev, self.reem), (self.dev_qsm, self.hubour)):
+                self.assertTrue(self.api(dev).check_in(emp.id, "2468")["ok"])
+                self.api(dev).visit_start(emp.id)
+        Sales = self.env["navitta.daily.sales"]
+        for b in (self.dwd, self.qsm):
+            Sales._row(b, DAY).write({"sales": 100})
+            self.env["navitta.employee.sales"].create({"branch_id": b.id, "day": DAY, "amount": 100})
+        admin_only = {"navitta.leave.request", "navitta.thread", "navitta.message", "navitta.notification",
+                      "navitta.device", "navitta.device.punch", "navitta.upload.token"}
+        models = [m for m in self.env if m.startswith("navitta.") and not self.env[m]._abstract and not self.env[m]._transient]
+        for m in models:
+            with self.subTest(model=m):
+                everything = self.env[m].sudo().with_context(active_test=False).search([])
+                self.assertEqual(self.env[m].with_user(self.boss).with_context(active_test=False).search([]), everything)
+                Dev = self.env[m].with_user(self.dev).with_context(active_test=False)
+                for op in ("create", "write", "unlink"):
+                    self.assertFalse(Dev.has_access(op), "%s: a device may not %s directly" % (m, op))
+                if m in admin_only:
+                    self.assertFalse(Dev.has_access("read"))
+                    continue
+                seen = Dev.search([]).sudo()
+                if m == "navitta.branch":
+                    self.assertEqual(seen, self.dwd)
+                elif "branch_id" in seen._fields:
+                    self.assertFalse(seen.filtered(lambda r: r.branch_id != self.dwd), m)
+                    self.assertEqual(seen, everything.filtered(lambda r: r.branch_id == self.dwd), m)
+                elif "report_id" in seen._fields:
+                    self.assertFalse(seen.filtered(lambda r: r.report_id.branch_id != self.dwd), m)
+        # each branch saw its own rows of the data created above
+        for m in ("navitta.attendance", "navitta.visit", "navitta.daily.sales", "navitta.employee.sales"):
+            self.assertEqual(self.env[m].with_user(self.dev).search_count([]), 1, m)
+            self.assertEqual(self.env[m].with_user(self.dev_qsm).search_count([]), 1, m)
+            self.assertEqual(self.env[m].with_user(self.boss).search_count([]), 2, m)
+        # a device's screen always works on its own branch, whatever branch the request asks for
+        self.assertEqual(self.api(self.dev).with_context(navitta_branch=self.qsm.id)._branch(), self.dwd)
+        for f in ("pin_hash", "email", "photo"):
+            with self.assertRaises(AccessError):
+                self.reem.with_user(self.dev).read([f])
+
     def test_pin_lockout(self):
         with freeze_time(utc(15, 20)):
             for _i in range(4):

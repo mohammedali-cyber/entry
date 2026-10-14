@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Linking every employee to an Odoo employee (cashier) must not let a branch device read the other branches'
+         staff in Odoo's own Employees app: a device sees its branch's cashiers (and its own employee) only. -->
+    <record id="rule_branch_hr_employee" model="ir.rule">
+        <field name="name">Navitta: own branch Odoo employees</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="domain_force">['|', ('id', 'in', user.navitta_branch_id.employee_ids.hr_employee_id.ids), ('user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('navitta_ops.group_navitta_branch'))]"/>
+    </record>
+    <record id="rule_branch_hr_employee_public" model="ir.rule">
+        <field name="name">Navitta: own branch Odoo employees (public)</field>
+        <field name="model_id" ref="hr.model_hr_employee_public"/>
+        <field name="domain_force">['|', ('id', 'in', user.navitta_branch_id.employee_ids.hr_employee_id.ids), ('user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('navitta_ops.group_navitta_branch'))]"/>
+    </record>
+    <!-- management keeps everything (also an account that is in both groups) -->
+    <record id="rule_admin_hr_employee" model="ir.rule">
+        <field name="name">Navitta admin: all Odoo employees</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('navitta_ops.group_navitta_admin'))]"/>
+    </record>
+    <record id="rule_admin_hr_employee_public" model="ir.rule">
+        <field name="name">Navitta admin: all Odoo employees (public)</field>
+        <field name="model_id" ref="hr.model_hr_employee_public"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('navitta_ops.group_navitta_admin'))]"/>
+    </record>
+</odoo>
