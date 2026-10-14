@@ -122,7 +122,7 @@
                 <div t-else="" class="v" style="font-size:22px">لم يُحدد</div>
             </div>
             <div>
-                <div class="row"><span>المحقق حتى الآن <b class="num"><t t-esc="f0(tv.got)"/> ر.س</b></span><span t-if="tv.tgt" class="pct num"><t t-esc="tv.pct"/>%</span></div>
+                <div class="row"><span>المحقق حتى الآن <b class="num"><t t-esc="f0(tv.got)"/> ر.س</b></span><span t-if="tv.tgt" class="pct num"><bdi dir="ltr"><t t-esc="tv.pct"/>%</bdi></span></div>
                 <div class="bar"><i t-att-style="'width:' + Math.min(100, tv.pct) + '%'"/></div>
                 <div class="row sub">
                     <span>
@@ -137,7 +137,7 @@
                 <div class="l">📅 تارقت <t t-esc="tv.month"/></div>
                 <div class="mv num"><b t-esc="f0(tv.mS)"/> من <t t-esc="f0(tv.mT)"/> ر.س</div>
                 <div class="bar thin"><i t-att-style="'width:' + Math.min(100, tv.mP) + '%'"/></div>
-                <div class="sub"><t t-esc="tv.mP"/>%<t t-if="tv.mT &gt; tv.mS"> · المطلوب يوميًا لباقي الشهر <b class="num"><t t-esc="f0((tv.mT - tv.mS) / tv.daysLeft)"/> ر.س</b></t></div>
+                <div class="sub"><bdi dir="ltr"><t t-esc="tv.mP"/>%</bdi><t t-if="tv.mT &gt; tv.mS"> · المطلوب يوميًا لباقي الشهر <b class="num"><t t-esc="f0((tv.mT - tv.mS) / tv.daysLeft)"/> ر.س</b></t></div>
             </div>
             <TargetEditor t-if="state.edit" branchId="props.branchId" branchName="props.branchName" admin="props.admin" rows="state.d.rows" log="state.d.log"
                           onClose="() => state.edit = false" onSaved="() => this.onSaved()"/>
@@ -183,7 +183,7 @@
             <div>
                 <div class="qt"><t t-esc="dq.am ? 'صباح الخير ☀️' : 'مساء الخير 🌙'"/> · عبارة اليوم</div>
                 <div class="qq" t-esc="dq.text"/>
-                <span t-if="props.admin and props.best" class="hi"><t t-esc="props.best.p &gt;= 100 ? '🎉' : '🏆'"/> الأفضل أمس: <t t-esc="props.best.name"/> حقق <t t-esc="props.best.p"/>% من التارقت</span>
+                <span t-if="props.admin and props.best" class="hi"><t t-esc="props.best.p &gt;= 100 ? '🎉' : '🏆'"/> الأفضل أمس: <t t-esc="props.best.name"/> حقق <bdi dir="ltr"><t t-esc="props.best.p"/>%</bdi> من التارقت</span>
             </div>
             <span class="qd" t-esc="dq.date"/>
         </div>

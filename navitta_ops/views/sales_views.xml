@@ -9,15 +9,15 @@
                 <field name="day"/>
                 <field name="branch_id"/>
                 <field name="target" sum="الإجمالي"/>
-                <field name="sales" sum="الإجمالي"/>
+                <field name="sales" string="المبيعات" sum="الإجمالي"/>
                 <field name="invoices" sum="الإجمالي"/>
-                <field name="items" sum="الإجمالي"/>
-                <field name="returns" sum="الإجمالي"/>
+                <field name="items" string="القطع" sum="الإجمالي"/>
+                <field name="returns" string="المرتجع" sum="الإجمالي"/>
                 <field name="cash" sum="الإجمالي" optional="show"/>
                 <field name="card" sum="الإجمالي" optional="show"/>
                 <field name="deposit" sum="الإجمالي" optional="hide"/>
                 <field name="vat_amount" sum="الإجمالي" optional="hide"/>
-                <field name="net_sales" sum="الإجمالي" optional="show"/>
+                <field name="net_sales" string="الصافي" sum="الإجمالي" optional="show"/>
                 <field name="closed_by" optional="hide"/>
                 <field name="source" readonly="1"/>
             </list>
@@ -113,7 +113,7 @@
         <field name="arch" type="xml">
             <form create="0">
                 <sheet>
-                    <div class="oe_title"><h2><field name="branch_id" readonly="1"/> · <field name="day" readonly="1"/></h2></div>
+                    <div class="oe_title"><h2><field name="branch_id" readonly="1"/> – <field name="day" readonly="1"/></h2></div>
                     <group>
                         <group string="المبيعات"><field name="employee_name"/><field name="sales"/><field name="invoices"/><field name="items"/>
                             <field name="cash"/><field name="card"/><field name="deposit"/></group>
@@ -226,7 +226,7 @@
         <field name="model">navitta.employee.sales</field>
         <field name="arch" type="xml">
             <pivot string="مبيعات الموظفات">
-                <field name="employee_id" type="row"/>
+                <field name="cashier" type="row"/>
                 <field name="day" interval="month" type="col"/>
                 <field name="amount" type="measure"/>
                 <field name="invoices" type="measure"/>

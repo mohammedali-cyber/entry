@@ -63,8 +63,8 @@
                 <div t-if="s['missing']" class="alert"><t t-esc="'، '.join(s['missing'])"/>: لم يُرسل التقرير اليومي حتى وقت الإرسال</div>
                 <table class="kpis"><tr>
                     <td class="kpi"><span>إجمالي المبيعات</span><b class="num"><t t-esc="f0(s['sales'])"/> ر.س</b>
-                        <t t-if="s['prev_sales']"><br/><i t-att-class="'num ' + (s['sales'] &gt;= s['prev_sales'] and 'up' or 'down')"
-                            t-esc="('▲ ' if s['sales'] &gt;= s['prev_sales'] else '▼ ') + '%.1f%%' % abs((s['sales'] - s['prev_sales']) * 100.0 / s['prev_sales'])"/></t></td>
+                        <t t-if="s['prev_sales']"><br/><i dir="ltr" t-att-class="'num ' + (s['sales'] &gt;= s['prev_sales'] and 'up' or 'down')"
+                            t-esc="('▲ ' if s['sales'] &gt;= s['prev_sales'] else '▼ ') + ('%.1f' % abs((s['sales'] - s['prev_sales']) * 100.0 / s['prev_sales'])) + '%'"/></t></td>
                     <td class="kpi"><span>الفواتير</span><b class="num" t-esc="s['invoices']"/></td>
                     <td class="kpi"><span>متوسط الفاتورة</span><b class="num"><t t-esc="f0(s['invoices'] and s['sales'] / s['invoices'] or 0)"/> ر.س</b></td>
                     <td class="kpi"><span>العميلات</span><b class="num" t-esc="s['visits']"/></td>

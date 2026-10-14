@@ -1,7 +1,9 @@
 from datetime import timedelta
 
-from odoo import _, api, fields, models
+from odoo import api, fields, models
 from odoo.addons.navitta_ops.models.common import iso, local_dt
+
+SESSION_STATES = {"opening_control": "قيد الفتح", "opened": "مفتوحة", "closing_control": "قيد الإغلاق", "closed": "مغلقة"}
 
 
 class PosConfig(models.Model):
@@ -9,6 +11,13 @@ class PosConfig(models.Model):
 
     navitta_branch_id = fields.Many2one("navitta.branch", "فرع نافيتا", index=True, ondelete="set null",
                                         help="مبيعات نقطة البيع هذه تنحسب لهذا الفرع، وكاشيراتها موظفات الفرع")
+    navitta_session_label = fields.Char("حالة الجلسة الحالية", compute="_compute_navitta_session_label")
+
+    @api.depends("current_session_state")
+    def _compute_navitta_session_label(self):
+        for c in self:
+            st = c.current_session_state
+            c.navitta_session_label = SESSION_STATES.get(st, st) if st else "لا توجد جلسة"
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -53,10 +62,9 @@ class PosSession(models.Model):
                 return False
             e = nav.search([("hr_employee_id", "=", hr.id)], limit=1)
             return e.name if e else hr.name
-        states = {"opening_control": _("قيد الفتح"), "opened": _("مفتوحة"), "closing_control": _("قيد الإغلاق"), "closed": _("مغلقة")}
         opener = self.navitta_opened_by_id
         linked = bool(opener) and bool(nav.search_count([("hr_employee_id", "=", opener.id)], limit=1))
-        return {"name": self.config_id.name, "session": self.name, "state": self.state, "state_label": states.get(self.state, self.state),
+        return {"name": self.config_id.name, "session": self.name, "state": self.state, "state_label": SESSION_STATES.get(self.state, self.state),
                 "opened_at": iso(self.start_at), "closed_at": iso(self.stop_at),
                 "opened_by": who(opener) or self.user_id.name, "cashier": who(self.employee_id) or "",
                 "general": not linked}

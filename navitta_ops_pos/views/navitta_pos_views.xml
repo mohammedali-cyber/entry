@@ -14,7 +14,7 @@
                         <button name="action_pos_sync_month" type="object" string="مزامنة المبيعات (آخر 60 يوم)" class="btn-secondary"/>
                     </div>
                     <field name="pos_config_ids" context="{'default_navitta_branch_id': id}">
-                        <list create="0"><field name="name"/><field name="current_session_state"/></list>
+                        <list create="0"><field name="name"/><field name="navitta_session_label"/></list>
                     </field>
                     <group><field name="pos_last_sync"/></group>
                     <div class="text-muted">

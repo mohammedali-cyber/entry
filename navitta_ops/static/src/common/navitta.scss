@@ -1,4 +1,6 @@
 // Navitta screens (ported from the ops-app design). Everything is scoped under .o_navitta so Odoo's own UI is untouched.
+/*rtl:begin:ignore*/
+// The screens are written right-to-left already (dir="rtl"); stop Odoo's rtlcss from flipping them back for Arabic users.
 .o_navitta {
   --bg:#F3F3F4; --surface:#FFFFFF; --surface-2:#F7F7F8; --fg:#0B0B0C; --fg-2:#45474C; --fg-3:#73777E; --muted:#73777E;
   --line:#E2E3E6; --grid:#ECEDEF; --mark:#1E1E21; --mark-2:#A9ADB3; --mark-fill:#1E1E21; --track:#EEEFF1;
@@ -687,3 +689,4 @@ td .m,td.m{font-size:12px;color:var(--fg-2)}
   &::-webkit-scrollbar { display: block !important; width: 8px; }
   &::-webkit-scrollbar-thumb { background: #c4c6cb; border-radius: 8px; }
 }
+/*rtl:end:ignore*/

@@ -103,12 +103,12 @@
                             <div class="hstats num">
                                 <div><b t-esc="p.saved.length"/><span>عميلة اليوم</span></div>
                                 <div><b t-esc="mmss(p.avg)"/><span>متوسط المدة</span></div>
-                                <div><b><t t-esc="p.buyPct"/>%</b><span>اشترت</span></div>
+                                <div><b><bdi dir="ltr"><t t-esc="p.buyPct"/>%</bdi></b><span>اشترت</span></div>
                             </div>
                         </div>
 
                         <div t-if="p.mySales &gt; 0" class="emp-t">💰 مبيعاتها اليوم <b class="num"><t t-esc="f0(p.mySales)"/> ر.س</b>
-                            <t t-if="d.day_target"> · <t t-esc="Math.round(p.mySales / d.day_target * 100)"/>% من تارقت الفرع</t></div>
+                            <span t-if="d.day_target">· <bdi dir="ltr"><t t-esc="Math.round(p.mySales / d.day_target * 100)"/>%</bdi> من تارقت الفرع</span></div>
                         <div t-foreach="p.covers" t-as="c" t-key="c.id" class="nfy coverbox"><p>🏖️ <b t-esc="c.requester"/> تطلب تغطيتك من <t t-esc="c.from_day"/> إلى <t t-esc="c.to_day"/>. ردّي من «تنبيهاتي».</p>
                             <button type="button" class="nv-btn" t-on-click="() => props.goto('inbox', {emp: emp.id})">فتح تنبيهاتي</button></div>
                         <div t-foreach="p.replyCases" t-as="c" t-key="c.id" class="nfy warnbox">
@@ -574,7 +574,7 @@
             <fieldset t-if="!d.system"><legend>💰 مبيعات كل موظفة <small>من تقرير الكاشير نهاية الدوام</small></legend>
                 <div class="es fld full">
                     <div t-foreach="f.emp" t-as="x" t-key="x.employee_id" class="es-c"><div class="es-h"><b t-esc="empName(x.employee_id)"/>
-                        <span t-if="+f.sales &gt; 0 and +x.amount &gt; 0" class="chip neutral"><t t-esc="Math.round(+x.amount / +f.sales * 100)"/>%</span></div>
+                        <span t-if="+f.sales &gt; 0 and +x.amount &gt; 0" class="chip neutral"><bdi dir="ltr"><t t-esc="Math.round(+x.amount / +f.sales * 100)"/>%</bdi></span></div>
                         <div class="es-row">
                             <label>مبيعاتها (ر.س)<input class="ctl num" type="number" min="0" t-model="x.amount"/></label>
                             <label>عدد فواتيرها<input class="ctl num" type="number" min="0" t-model="x.invoices"/></label>

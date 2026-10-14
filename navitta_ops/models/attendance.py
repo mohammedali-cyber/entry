@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import format_date
 
 from .common import app_minute, fmt_time, hours_to_min, local_dt
 
@@ -36,7 +37,7 @@ class NavittaAttendance(models.Model):
     @api.depends("employee_id", "day")
     def _compute_display_name(self):
         for a in self:
-            a.display_name = "%s · %s" % (a.employee_id.name or "", a.day or "")
+            a.display_name = "%s – %s" % (a.employee_id.name or "", format_date(self.env, a.day) if a.day else "")
 
     @api.depends("in_source", "in_photo_id", "out_source", "out_photo_id", "check_out")
     def _compute_no_photo(self):

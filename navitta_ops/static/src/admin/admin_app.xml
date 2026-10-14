@@ -159,7 +159,7 @@
                 <div class="kpi"><span class="lbl">عدد الفواتير</span><span class="val num" t-esc="f0(w.inv)"/><span class="small">الضريبة <t t-esc="f0(w.tax)"/> ر.س</span></div>
                 <div class="kpi"><span class="lbl">متوسط الفاتورة</span><span class="val num"><t t-esc="w.inv ? f0(w.sales / w.inv) : 0"/><small>ر.س</small></span></div>
                 <div class="kpi"><span class="lbl">العميلات (العدّاد)</span><span class="val num" t-esc="f0(w.visits)"/></div>
-                <div class="kpi"><span class="lbl">نسبة الشراء</span><span class="val num"><t t-esc="w.buyPct"/>%</span></div>
+                <div class="kpi"><span class="lbl">نسبة الشراء</span><span class="val num"><bdi dir="ltr"><t t-esc="w.buyPct"/>%</bdi></span></div>
                 <div class="kpi"><span class="lbl">رضا العملاء</span><span class="val num"><t t-esc="w.sat"/><small>من 5</small></span></div>
             </div>
 
@@ -232,7 +232,7 @@
                     <div class="nv-card-h"><div><h2>الفروع في الفترة</h2><p class="sub">للمقارنة الكاملة (التارقت، الضريبة، المرتجع، مطابقة سجلات البيع): تبويب «مقارنة الفروع»</p></div></div>
                     <div class="tscroll"><table class="nv-tbl"><thead><tr><th>الفرع</th><th>المبيعات</th><th>الفواتير</th><th>العميلات</th><th>نسبة الشراء</th><th>متوسط الزيارة</th><th>تقرير اليوم</th></tr></thead><tbody>
                         <tr t-foreach="branchRows()" t-as="x" t-key="x.b.id"><td><b t-esc="x.b.name"/></td><td class="n" t-esc="f0(x.sales)"/><td class="n" t-esc="f0(x.inv)"/>
-                            <td class="n" t-esc="x.visits"/><td class="n"><t t-esc="x.buyPct"/>%</td><td class="n" t-esc="mmss(x.avg)"/>
+                            <td class="n" t-esc="x.visits"/><td class="n"><bdi dir="ltr"><t t-esc="x.buyPct"/>%</bdi></td><td class="n" t-esc="mmss(x.avg)"/>
                             <td><span t-if="x.sent" class="chip good">✓ أُرسل</span><span t-else="" class="chip warn">لم يُرسل بعد</span></td></tr>
                     </tbody></table></div>
                 </div>
@@ -285,12 +285,12 @@
             <t t-call="navitta_ops.Registers"><t t-set="regs" t-value="d.registers"/><t t-set="branches" t-value="d.branches"/></t>
             <div class="kpis k7">
                 <div class="kpi"><span class="lbl">المبيعات</span><span class="val num"><t t-esc="f0(T.sales)"/><small>ر.س</small></span>
-                    <span class="small">التارقت <t t-esc="f0(T.target)"/> · <t t-esc="T.achieved === null ? '—' : T.achieved + '%'"/></span></div>
+                    <span class="small">التارقت <t t-esc="f0(T.target)"/> · <bdi dir="ltr"><t t-esc="T.achieved === null ? '—' : T.achieved + '%'"/></bdi></span></div>
                 <div class="kpi"><span class="lbl">إجمالي الضريبة</span><span class="val num"><t t-esc="f0(T.tax)"/><small>ر.س</small></span><span class="small">الصافي <t t-esc="f0(T.net)"/></span></div>
                 <div class="kpi"><span class="lbl">الفواتير</span><span class="val num" t-esc="f0(T.invoices)"/><span class="small">متوسط الفاتورة <t t-esc="f0(T.avg_invoice)"/> ر.س</span></div>
                 <div class="kpi"><span class="lbl">🛍️ القطع المباعة</span><span class="val num" t-esc="f0(T.items)"/><span class="small"><t t-esc="T.items_per_invoice.toFixed(2)"/> قطعة للفاتورة</span></div>
                 <div class="kpi"><span class="lbl">🔄 المرتجع</span><span class="val num" t-esc="f0(T.returns)"/><span class="small"><t t-esc="f0(T.returns_amount)"/> ر.س</span></div>
-                <div class="kpi"><span class="lbl">🚪 عميلات العدّاد</span><span class="val num" t-esc="f0(T.visits)"/><span class="small">التحويل لفواتير <t t-esc="T.conversion === null ? '—' : T.conversion + '%'"/></span></div>
+                <div class="kpi"><span class="lbl">🚪 عميلات العدّاد</span><span class="val num" t-esc="f0(T.visits)"/><span class="small">التحويل لفواتير <bdi dir="ltr"><t t-esc="T.conversion === null ? '—' : T.conversion + '%'"/></bdi></span></div>
                 <div class="kpi"><span class="lbl">💵 نقدي / شبكة</span><span class="val num" t-esc="f0(T.cash)"/><span class="small">شبكة <t t-esc="f0(T.card)"/></span></div>
             </div>
             <div class="grid">
@@ -309,7 +309,7 @@
                                 <span t-if="r.missing_reports" class="chip warn" t-esc="r.missing_reports + ' يوم بدون تقرير'"/></div></td>
                             <td class="n" t-esc="f0(r.target)"/>
                             <td class="n"><b t-esc="f0(r.sales)"/><div class="pbar sm"><i t-att-style="'width:' + (r.sales / best * 100) + '%'"/></div></td>
-                            <td><span t-if="r.achieved !== null" t-att-class="'chip ' + (r.achieved &gt;= 100 ? 'good' : r.achieved &gt;= 70 ? 'neutral' : 'warn')"><t t-esc="r.achieved"/>%</span><t t-else="">—</t></td>
+                            <td><span t-if="r.achieved !== null" t-att-class="'chip ' + (r.achieved &gt;= 100 ? 'good' : r.achieved &gt;= 70 ? 'neutral' : 'warn')"><bdi dir="ltr"><t t-esc="r.achieved"/>%</bdi></span><t t-else="">—</t></td>
                             <td class="n" t-esc="f0(r.tax)"/>
                             <td class="n" t-esc="f0(r.invoices)"/>
                             <td class="n" t-esc="f0(r.avg_invoice)"/>
@@ -350,13 +350,13 @@
             <t t-set="T" t-value="tot('target_to_date')"/><t t-set="S" t-value="tot('sales')"/><t t-set="I" t-value="tot('invoices')"/><t t-set="IT" t-value="tot('items')"/><t t-set="R" t-value="tot('returns')"/>
             <div class="kpis k7">
                 <div class="kpi"><span class="lbl">التارقت حتى اليوم</span><span class="val num"><t t-esc="f0(T)"/><small>ر.س</small></span><span class="small">تارقت الفترة كاملة <t t-esc="f0(tot('target'))"/></span></div>
-                <div class="kpi"><span class="lbl">المبيعات الفعلية</span><span class="val num"><t t-esc="f0(S)"/><small>ر.س</small></span><span class="small">نسبة التحقق <t t-esc="pc(S, T)"/>%</span></div>
+                <div class="kpi"><span class="lbl">المبيعات الفعلية</span><span class="val num"><t t-esc="f0(S)"/><small>ر.س</small></span><span class="small">نسبة التحقق <bdi dir="ltr"><t t-esc="pc(S, T)"/>%</bdi></span></div>
                 <div class="kpi"><span class="lbl">إجمالي الضريبة</span><span class="val num"><t t-esc="f0(tot('tax'))"/><small>ر.س</small></span></div>
                 <div class="kpi"><span class="lbl">💵 الصافي بعد الضريبة</span><span class="val num"><t t-esc="f0(S - tot('tax'))"/><small>ر.س</small></span><span class="small">المبيعات ناقص الضريبة</span></div>
                 <div class="kpi"><span class="lbl">الفواتير</span><span class="val num" t-esc="f0(I)"/></div>
                 <div class="kpi"><span class="lbl">🧾 متوسط الفاتورة</span><span class="val num"><t t-esc="f0(I ? S / I : 0)"/><small>ر.س</small></span><span class="small"><t t-esc="f0(IT)"/> قطعة في <t t-esc="f0(I)"/> فاتورة</span></div>
                 <div class="kpi"><span class="lbl">🛍️ القطع المباعة</span><span class="val num" t-esc="f0(IT)"/></div>
-                <div class="kpi"><span class="lbl">🔄 المرتجع</span><span class="val num" t-esc="f0(R)"/><span class="small"><t t-esc="IT ? (R / IT * 100).toFixed(1) : 0"/>% من القطع<t t-if="tot('returns_amount')"> · <t t-esc="f0(tot('returns_amount'))"/> ر.س</t></span></div>
+                <div class="kpi"><span class="lbl">🔄 المرتجع</span><span class="val num" t-esc="f0(R)"/><span class="small"><bdi dir="ltr"><t t-esc="IT ? (R / IT * 100).toFixed(1) : 0"/>%</bdi> من القطع<t t-if="tot('returns_amount')"> · <t t-esc="f0(tot('returns_amount'))"/> ر.س</t></span></div>
             </div>
             <div class="grid">
                 <div t-if="!br" class="nv-card c12"><h2>مقارنة الفروع</h2><div class="tscroll"><table class="nv-tbl"><thead><tr>
@@ -365,7 +365,7 @@
                         <t t-set="r" t-value="d.summary.find((x) => x.branch_id === b.id) or {}"/>
                         <t t-set="tg" t-value="+r.target_to_date or 0"/><t t-set="sl" t-value="+r.sales or 0"/>
                         <tr><td><b t-esc="b.name"/></td><td class="n" t-esc="f0(tg)"/><td class="n"><b t-esc="f0(sl)"/></td><td class="n" t-esc="f0(sl - (+r.tax or 0))"/>
-                            <td><div class="pc"><div class="pbar"><i t-att-style="'width:' + Math.min(100, pc(sl, tg)) + '%'"/></div><span class="num"><t t-esc="pc(sl, tg)"/>%</span></div></td>
+                            <td><div class="pc"><div class="pbar"><i t-att-style="'width:' + Math.min(100, pc(sl, tg)) + '%'"/></div><span class="num"><bdi dir="ltr"><t t-esc="pc(sl, tg)"/>%</bdi></span></div></td>
                             <td class="n" t-esc="f0(r.invoices)"/><td class="n" t-esc="f0(r.invoices ? sl / r.invoices : 0)"/><td class="n" t-esc="f0(r.items)"/><td class="n" t-esc="f0(r.returns)"/>
                             <td><button type="button" class="del" t-on-click="() => this.openEdit(b.id)">✏️ التارقت</button></td></tr>
                     </t>
@@ -379,7 +379,7 @@
                             <t t-set="x" t-value="month(mn_index)"/><t t-set="ref" t-value="mn_index + 1 === rg.curM ? +x.target_to_date : +x.target"/>
                             <div class="bcol">
                                 <span class="tip num"><t t-esc="mn"/>: <t t-esc="f0(x.sales)"/> / <t t-esc="f0(x.target)"/> ر.س</span>
-                                <div t-if="+x.sales &gt; 0" class="bpct num"><t t-esc="pc(+x.sales, ref)"/>%</div>
+                                <div t-if="+x.sales &gt; 0" class="bpct num"><bdi dir="ltr"><t t-esc="pc(+x.sales, ref)"/>%</bdi></div>
                                 <div class="bar" t-att-style="'height:' + (x.sales / mx * 200) + 'px'"/>
                                 <div t-if="+x.target &gt; 0" class="tick" t-att-style="'bottom:' + (x.target / mx * 200 + 22) + 'px'"/>
                                 <div class="blab" t-esc="mn"/>
@@ -393,7 +393,7 @@
                         <t t-foreach="dayRows" t-as="x" t-key="x.day"><t t-set="p2" t-value="pc(x.sales, x.target)"/>
                             <tr><td class="num" t-esc="x.day.slice(5)"/><td t-esc="weekday(x.day)"/><td class="n" t-esc="f0(x.target)"/>
                                 <td class="n"><b t-if="x.has" t-esc="f0(x.sales)"/><t t-else="">—</t></td>
-                                <td><span t-if="x.has and x.target" t-att-class="'chip ' + (p2 &gt;= 100 ? 'good' : p2 &gt;= 50 ? 'neutral' : 'warn')"><t t-esc="p2"/>%</span><t t-else="">—</t></td>
+                                <td><span t-if="x.has and x.target" t-att-class="'chip ' + (p2 &gt;= 100 ? 'good' : p2 &gt;= 50 ? 'neutral' : 'warn')"><bdi dir="ltr"><t t-esc="p2"/>%</bdi></span><t t-else="">—</t></td>
                                 <td class="n" t-esc="x.has ? x.invoices : '—'"/><td class="n" t-esc="x.has and x.invoices ? f0(x.sales / x.invoices) : '—'"/>
                                 <td class="n" t-esc="x.has ? x.items : '—'"/><td class="n" t-esc="x.has ? x.returns : '—'"/><td class="n" t-esc="x.has ? f0(x.cash) : '—'"/>
                                 <td class="n" t-esc="x.has ? f0(x.card) : '—'"/><td class="n" t-esc="x.has ? f0(x.tax) : '—'"/><td class="n"><b t-if="x.has" t-esc="f0(x.sales - x.tax)"/><t t-else="">—</t></td>
@@ -473,7 +473,7 @@
                                 </tbody></table></div>
                                 <p class="note">الإجمالي بدون المرفوض: <t t-esc="f0(bx.total)"/> ر.س</p></div>
                             <div class="cat"><b>حسب النوع</b>
-                                <div t-foreach="bx.cats" t-as="c" t-key="c[0]"><div class="r"><span><t t-esc="EXPICON[c[0]] or '📦'"/> <t t-esc="c[1].label"/></span><b class="num"><t t-esc="f0(c[1].v)"/> ر.س · <t t-esc="pc(c[1].v, bx.total)"/>%</b></div>
+                                <div t-foreach="bx.cats" t-as="c" t-key="c[0]"><div class="r"><span><t t-esc="EXPICON[c[0]] or '📦'"/> <t t-esc="c[1].label"/></span><b class="num"><t t-esc="f0(c[1].v)"/> ر.س · <bdi dir="ltr"><t t-esc="pc(c[1].v, bx.total)"/>%</bdi></b></div>
                                     <div class="pbar"><i t-att-style="'width:' + pc(c[1].v, bx.total) + '%'"/></div></div>
                                 <div class="r note"><span>الشهر اللي قبله</span><span class="num"><t t-esc="f0(bx.prevT)"/> ر.س</span></div>
                                 <button type="button" class="nv-btn" t-on-click="() => this.csv(b)">⬇️ تحميل Excel (CSV)</button>
@@ -506,7 +506,7 @@
             <div class="grid">
                 <div class="nv-card c6"><h2>الأسباب</h2><div class="tscroll"><table class="nv-tbl"><tbody>
                     <tr t-foreach="w.reasons" t-as="x" t-key="x.r"><td t-esc="LOSTL[x.r]"/><td class="n"><b t-esc="x.n"/></td>
-                        <td><div class="pc"><div class="pbar"><i t-att-style="'width:' + pc(x.n, w.rows.length) + '%'"/></div><span class="num"><t t-esc="pc(x.n, w.rows.length)"/>%</span></div></td></tr>
+                        <td><div class="pc"><div class="pbar"><i t-att-style="'width:' + pc(x.n, w.rows.length) + '%'"/></div><span class="num"><bdi dir="ltr"><t t-esc="pc(x.n, w.rows.length)"/>%</bdi></span></div></td></tr>
                     <tr t-if="!w.rows.length"><td class="empty">لا توجد مبيعات ضائعة في هذه الفترة</td></tr>
                 </tbody></table></div></div>
 

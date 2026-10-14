@@ -2,6 +2,7 @@ import math
 from datetime import timedelta
 
 from odoo import _, api, fields, models
+from odoo.tools import format_date
 
 from .common import EMERGENCIES, EXCHANGE_REASONS, SHELF, STOCK_SUPPLIES, app_today
 
@@ -12,6 +13,11 @@ class NavittaDailySales(models.Model):
     _description = "التارقت والمبيعات اليومية"
     _order = "day desc, branch_id"
     _rec_name = "day"
+
+    @api.depends("branch_id", "day")
+    def _compute_display_name(self):
+        for r in self:
+            r.display_name = "%s – %s" % (r.branch_id.name or "", format_date(self.env, r.day) if r.day else "")
 
     branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="restrict")
     day = fields.Date("اليوم", required=True, index=True)
@@ -124,6 +130,11 @@ class NavittaDailyReport(models.Model):
     _order = "day desc, branch_id"
     _rec_name = "day"
 
+    @api.depends("branch_id", "day")
+    def _compute_display_name(self):
+        for r in self:
+            r.display_name = "%s – %s" % (r.branch_id.name or "", format_date(self.env, r.day) if r.day else "")
+
     branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="restrict")
     day = fields.Date("اليوم", required=True, index=True)
     employee_id = fields.Many2one("navitta.employee", "كتبته", ondelete="set null")
@@ -195,6 +206,8 @@ class NavittaDailyReport(models.Model):
                 row.write({"sales": r.sales, "invoices": r.invoices, "items": r.items, "returns": len(r.exchange_ids),
                            "cash": r.cash, "card": r.card, "deposit": r.deposit, "closed_by": r.employee_name, "source": "report"})
             EmpSales.search([("branch_id", "=", r.branch_id.id), ("day", "=", r.day), ("source", "=", "report")]).unlink()
+            if row._is_system():
+                continue        # the system already has each cashier's line for this day: don't count it twice
             EmpSales.create([{"branch_id": r.branch_id.id, "day": r.day, "employee_id": l.employee_id.id, "cashier": l.employee_id.name,
                               "amount": l.amount, "invoices": l.invoices, "items": l.items, "returns": l.exchanged, "source": "report"}
                              for l in r.employee_line_ids])

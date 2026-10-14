@@ -125,6 +125,8 @@ class NavittaBranch(models.Model):
                         "amount": round(t["sales"], 2), "tax": round(t["tax"], 2), "invoices": t["invoices"], "items": t["items"],
                         "returns": t["returns"], "returns_amount": round(t["returns_amount"], 2), "source": "pos"})
         EmpSales = self.env["navitta.employee.sales"].sudo()
+        # the daily report's lines for the same day would count every sale twice
+        EmpSales.search([("branch_id", "=", self.id), ("day", "=", day), ("source", "=", "report")]).unlink()
         old = EmpSales.search([("branch_id", "=", self.id), ("day", "=", day), ("source", "=", "pos")])
         keys = ("employee_id", "cashier", "amount", "tax", "invoices", "items", "returns", "returns_amount")
         same = sorted((tuple((l[k].id if k == "employee_id" else l[k]) or False for k in keys) for l in old)) == \

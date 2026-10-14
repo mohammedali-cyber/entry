@@ -106,6 +106,9 @@ class NavittaPosCase(TransactionCase):
         self.assertEqual((ds.sales, ds.cash, ds.deposit, ds.source), (920, 460, 300, "pos"))
         rep = self.env["navitta.daily.report"].search([("branch_id", "=", self.dwd.id), ("day", "=", self.day)])
         self.assertEqual(rep.sales, 920)
+        self.assertEqual(self.env["navitta.employee.sales"].search_count(          # not counted twice
+            [("branch_id", "=", self.dwd.id), ("day", "=", self.day), ("source", "=", "report")]), 0)
+        self.assertEqual(self.cfg_dwd.navitta_session_label, "مفتوحة")
         # management: employees by cashier, branches compared, weekday filter
         boss = self.env["navitta.api"].with_user(self.boss)
         names = {r["name"] for r in boss.employee_summary(self.day, self.day, self.dwd.id)["rows"]}

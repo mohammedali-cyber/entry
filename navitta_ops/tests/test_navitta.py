@@ -327,9 +327,12 @@ class NavittaCase(TransactionCase):
             self.assertTrue(self.api().branch_state()["attendance"])
             self.assertTrue(self.api().requests_state())
             self.assertTrue(self.api().report_get())
+            # same weekday last week had sales: the PDF shows the change in percent
+            self.env["navitta.daily.sales"]._row(self.dwd, date(2026, 10, 6)).write({"sales": 1000})
             html = self.env["ir.actions.report"].with_user(self.boss)._render_qweb_html(
                 "navitta_ops.report_daily_summary", [], data={"day": "2026-10-13"})[0]
             self.assertIn("ملخص الفروع اليومي", html.decode())
+            self.assertRegex(html.decode(), r"[▲▼] \d+\.\d%")
             with self.assertRaises(AccessError):
                 self.env["ir.actions.report"].with_user(self.dev)._render_qweb_html(
                     "navitta_ops.report_daily_summary", [], data={"day": "2026-10-13"})

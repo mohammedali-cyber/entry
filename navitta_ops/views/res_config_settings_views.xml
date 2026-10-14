@@ -38,7 +38,7 @@
                         <setting string="صورة مع البصمة في الآيباد" help="لحظة كتابة الرمز للحضور أو الانصراف يصوّر الآيباد الموظفة بالكاميرا الأمامية، وتقارن الإدارة الصورة بصورتها المرجعية. إذا رفض الآيباد الكاميرا تنسجل البصمة وتنعلّم «بدون صورة».">
                             <field name="navitta_checkin_photo"/>
                         </setting>
-                        <setting string="أجهزة البصمة (ZKTeco)" help="أجهزة بصمة حقيقية ترسل الحضور لـ Odoo عبر الإنترنت (ADMS / Cloud Server)">
+                        <setting string="أجهزة البصمة (ZKTeco)" help="أجهزة بصمة حقيقية ترسل الحضور إلى النظام مباشرة عبر الإنترنت، بخاصية «الخادم السحابي» في الجهاز.">
                             <button name="%(navitta_ops.action_devices)d" type="action" string="أجهزة البصمة" class="btn-link" icon="fa-hand-pointer-o"/>
                         </setting>
                         <setting string="كلمة سر الإدارة" help="تُطلب في جهاز الفرع لتعديل التارقت ولإلغاء انصراف سجلته موظفة بالغلط">
