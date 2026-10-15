@@ -1,11 +1,13 @@
 /** @odoo-module **/
 import { Component, onMounted, onWillStart, onWillUnmount, useExternalListener, useState } from "@odoo/owl";
+import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 import {
     CASEST, COLORS, EXPICON, LEAVEST, LOST, LOSTL, NOBUY, LOSTFULL, OUTOF, QBREAK, QLATE, RQST, EXST, SAT, SIZES, SUP, TRIED, TYPES,
     CTX, addDays, api, clock, dTxt, days, f0, h12, jn, longDate, minuteNow, mmss, now, photoUrl, setClock, sizesOf, swatch, today, ago, icon, dcsText,
+    DIR, LANG, vlabel,
 } from "../common/utils";
 import {
     DailyQuote, FaceCam, ModelPicker, ModelSearch, NvModal, PhotoLink, PhotoPicker, PinPad, SignModal, TargetBar,
@@ -16,7 +18,9 @@ const newDraft = (buy = false) => ({
     buy, exch: false, no: false, reason: "", other: "", note: "", m: null, manual: "", color: "", colorOther: "", size: "", sizeOther: "",
     mfgNote: "", call: false, phone: "", cname: "", req: false, err: "",
 });
-const H = { jn, f0, minuteNow, mmss, clock, longDate, h12, dTxt, days, ago, photoUrl, swatch, icon, dcsText, LOSTL, LOST, LOSTFULL, SUP, EXPICON, RQST, EXST, CASEST, LEAVEST };
+// cash difference chip: "Short 50 SAR" / "Over 50 SAR"
+const diffTxt = (n) => (n < 0 ? _t("Short %s SAR", f0(Math.abs(n))) : _t("Over %s SAR", f0(Math.abs(n))));
+const H = { jn, f0, minuteNow, mmss, clock, longDate, h12, dTxt, days, ago, photoUrl, swatch, icon, dcsText, vlabel, diffTxt, LOSTL, LOST, LOSTFULL, SUP, EXPICON, RQST, EXST, CASEST, LEAVEST };
 
 // ---------------------------------------------------------------- visit outcome (bought / exchange / didn't buy + lost sale)
 class Outcome extends Component {
@@ -75,11 +79,11 @@ class EditReq extends Component {
         const st = this.state;
         const ns = +st.m * 60 + Math.min(59, +st.s);
         if (!st.why.trim()) {
-            st.err = "اذكري سبب التعديل";
+            st.err = _t("Give the reason for the edit");
             return;
         }
         if (ns <= 0 || ns === this.props.v.duration_sec) {
-            st.err = "اكتبي المدة الصحيحة، ولازم تختلف عن الحالية";
+            st.err = _t("Enter the correct duration; it must differ from the current one");
             return;
         }
         const r = await api(this.orm, "visit_edit_request", this.props.v.id, ns, st.why.trim());
@@ -87,7 +91,7 @@ class EditReq extends Component {
             st.err = r.message;
             return;
         }
-        this.notification.add("تم إرسال طلب تعديل المدة للإدارة", { type: "success" });
+        this.notification.add(_t("Duration edit request sent to Management"), { type: "success" });
         this.props.done();
     }
 }
@@ -135,7 +139,17 @@ class CashCount extends Component {
         return this.props.denoms.reduce((t, d) => t + this.line(d), 0) + Math.round(this.n(this.state.coins) * 100) / 100;
     }
     get title() {
-        return (this.props.kind === "open" ? "عدّ العهدة: " : "كاش الإغلاق: ") + this.props.emp.name;
+        const name = this.props.emp.name;
+        return this.props.kind === "open" ? _t("Opening cash count: %s", name) : _t("Closing cash count: %s", name);
+    }
+    get totalTxt() {
+        return _t("Total %s SAR", f0(this.total));
+    }
+    get savedTitle() {
+        return this.props.kind === "open" ? _t("Opening cash count saved") : _t("Closing cash count saved");
+    }
+    noteLabel(dn) {
+        return _t("Number of %s riyal notes", dn);
     }
     async pinDone(code) {
         const s = this.state, counts = { coins: this.n(s.coins) };
@@ -284,11 +298,30 @@ class Counter extends Component {
     outcomeChips(v) {
         return v.outcomes.map((o) => ({
             k: o, cls: o === "buy" ? "good" : "neutral",
-            text: o === "buy" ? "شراء" : o === "exchange" ? "استبدال" : o === "other" && v.other_text ? "أخرى: " + v.other_text : LOSTL[o] || o,
+            text: o === "buy" ? _t("Purchase") : o === "exchange" ? _t("Exchange") : o === "other" && v.other_text ? _t("Other: %s", v.other_text) : LOSTL[o] || o,
         }));
     }
     lostChip(v) {
-        return [v.lost_model, v.lost_color, v.lost_size && "مقاس " + v.lost_size].filter(Boolean).join(" · ");
+        return [v.lost_model, v.lost_color, v.lost_size && _t("Size %s", v.lost_size)].filter(Boolean).join(" · ");
+    }
+    // ----- texts shown by the template
+    visitTitle(v) {
+        return v.ended_at ? _t("Visit %s – %s", clock(v.started_at), clock(v.ended_at)) : _t("Visit running since %s", clock(v.started_at));
+    }
+    visitHint(v) {
+        return v.ended_at ? _t("Outcome not chosen yet (Bought / Didn't buy and the reason)") : _t("Tap “Customer out” and choose the outcome");
+    }
+    caseTitle(c) {
+        return c.kind === "break" ? _t("☕ You exceeded the break by %s min", c.minutes) : _t("You were %s min late", c.minutes);
+    }
+    breakHint(left, max) {
+        return left < 0 ? _t("Break time exceeded") : _t("Time left of today's break (%s min)", max);
+    }
+    editReqLabel(rq) {
+        return rq.state === "pending" ? _t("Edit request awaiting reply") : rq.state === "approved" ? _t("Edit approved") : _t("Edit rejected");
+    }
+    pinTitle(pin) {
+        return pin.mode === "in" ? _t("Check-in: %s", pin.emp.name) : _t("Check-out: %s", pin.emp.name);
     }
     // ----- actions
     async call(method, ...args) {
@@ -314,7 +347,7 @@ class Counter extends Component {
     }
     async breakStart(emp, open) {
         if (open.length) {
-            this.toast("أوقفي واحفظي الزيارات المفتوحة قبل الاستراحة", "warning");
+            this.toast(_t("Stop and save your open visits before the break"), "warning");
             return;
         }
         await this.call("break_start", emp.id);
@@ -323,7 +356,7 @@ class Counter extends Component {
     async breakEnd(b) {
         const r = await this.call("break_end", b.id);
         if (r) {
-            this.toast(r.over ? `تجاوزتِ الاستراحة ${r.over} دقيقة، اذكري السبب من «تنبيهاتي»` : "انتهت الاستراحة", r.over ? "warning" : "success");
+            this.toast(r.over ? _t("You exceeded the break by %s min; give the reason in “My alerts”", r.over) : _t("Break ended"), r.over ? "warning" : "success");
         }
         await this.load();
     }
@@ -334,15 +367,15 @@ class Counter extends Component {
         const color = (colorCustom || !x.m ? x.colorOther : x.color).trim(), size = (sizeCustom || !x.m ? x.sizeOther : x.size).trim();
         const model = (x.m && x.m.model) || x.manual.trim(), r = x.reason, phone = x.phone.replace(/\D/g, "");
         let err = "";
-        if (!x.buy && !x.exch && !x.no) err = "اختاري نتيجة الزيارة";
-        else if (x.no && !r) err = "اختاري سبب إنها ما اشترت";
-        else if (x.no && r === "other" && !x.other.trim()) err = "اكتبي السبب في خانة «أخرى»";
-        else if (x.no && (OUTOF.includes(r) || r === MFG) && !model) err = "اختاري الموديل اللي طلبته العميلة";
-        else if (x.no && r === "color_na" && !color) err = "اختاري اللون المطلوب";
-        else if (x.no && r === "size_na" && !size) err = "اختاري المقاس المطلوب";
-        else if (x.no && r === MFG && !colorCustom && !sizeCustom && !x.manual) err = "اختاري «أخرى» في اللون أو المقاس واكتبي المطلوب";
-        else if (x.no && r === MFG && !x.mfgNote.trim()) err = "اشرحي وش تبي العميلة بالضبط";
-        else if (x.no && OUTOF.includes(r) && x.call && !/^(05\d{8}|9665\d{8})$/.test(phone)) err = "رقم الجوال غير صحيح، اكتبيه مثل 05XXXXXXXX";
+        if (!x.buy && !x.exch && !x.no) err = _t("Choose the visit outcome");
+        else if (x.no && !r) err = _t("Choose why she didn't buy");
+        else if (x.no && r === "other" && !x.other.trim()) err = _t("Type the reason in the “Other” box");
+        else if (x.no && (OUTOF.includes(r) || r === MFG) && !model) err = _t("Choose the model the customer asked for");
+        else if (x.no && r === "color_na" && !color) err = _t("Choose the requested color");
+        else if (x.no && r === "size_na" && !size) err = _t("Choose the requested size");
+        else if (x.no && r === MFG && !colorCustom && !sizeCustom && !x.manual) err = _t("Choose “Other” for color or size and type what is needed");
+        else if (x.no && r === MFG && !x.mfgNote.trim()) err = _t("Explain exactly what the customer wants");
+        else if (x.no && OUTOF.includes(r) && x.call && !/^(05\d{8}|9665\d{8})$/.test(phone)) err = _t("Invalid mobile number; enter it like 05XXXXXXXX");
         if (err) {
             x.err = err;
             return;
@@ -361,7 +394,7 @@ class Counter extends Component {
             x.err = res.message;
             return;
         }
-        this.toast(x.no && x.req && OUTOF.includes(r) ? "تم حفظ الزيارة وإرسال طلب النواقص" : "تم حفظ الزيارة", "success");
+        this.toast(x.no && x.req && OUTOF.includes(r) ? _t("Visit saved and Out-of-stock request sent") : _t("Visit saved"), "success");
         await this.load();
     }
     out(emp) {
@@ -402,16 +435,16 @@ class Counter extends Component {
         }
         this.state.pin = null;
         if (p.mode === "in") {
-            this.toast(r.late ? `تم تسجيل حضورك بتأخير ${r.late} دقيقة، اذكري السبب من «تنبيهاتي»` : `أهلًا ${p.emp.name}، تم تسجيل حضورك`, r.late ? "warning" : "success");
+            this.toast(r.late ? _t("Checked in %s min late; give the reason in “My alerts”", r.late) : _t("Welcome %s, you are checked in", p.emp.name), r.late ? "warning" : "success");
         } else {
-            this.toast(`تم تسجيل انصراف ${p.emp.name}`, "success");
+            this.toast(_t("%s checked out", p.emp.name), "success");
         }
         await this.load();
         return null;
     }
     async undone() {
         this.state.undo = null;
-        this.toast("رجعتِ للدوام، العدّاد مفتوح", "success");
+        this.toast(_t("You are back at work; the counter is open"), "success");
         await this.load();
     }
 }
@@ -428,7 +461,21 @@ class InboxCase extends Component {
     send() {
         const s = this.state;
         this.props.call("reply_case", [this.props.c.id, s.why, s.req, s.req === "edit" ? +s.mins : null],
-            s.req === "edit" ? "تم رفع طلب تعديل المدة للإدارة" : "تم إرسال السبب للإدارة");
+            s.req === "edit" ? _t("Duration edit request submitted to Management") : _t("Reason sent to Management"));
+    }
+    get kindLabel() {
+        return this.props.c.kind === "break" ? _t("☕ Break overrun") : _t("Late arrival");
+    }
+    get stateLabel() {
+        const c = this.props.c;
+        return c.state === "review" && c.request === "edit" ? _t("Duration edit awaiting Management") : CASEST[c.state][1];
+    }
+    get detail() {
+        const c = this.props.c;
+        if (c.kind === "break") {
+            return _t("☕ Break %s min · over by %s min", c.break_used, c.minutes);
+        }
+        return c.check_in ? _t("Checked in %s · late by %s min", clock(c.check_in), c.minutes) : _t("Not checked in (%s min late at alert time)", c.minutes);
     }
 }
 
@@ -493,6 +540,18 @@ class Inbox extends Component {
         await this.load();
         return true;
     }
+    get pinTitle() {
+        return _t("Alerts for %s", this.state.emp.name);
+    }
+    lockLabel(e) {
+        return this.state.emp && this.state.emp.id === e.id && this.state.box ? _t("Unlocked") : _t("Locked 🔒");
+    }
+    threadState(th) {
+        return th.state === "open" ? _t("Open") : _t("Resolved");
+    }
+    senderName(m) {
+        return m.sender === "admin" ? _t("Management") : _t("You");
+    }
     get chanceDots() {
         return Array.from({ length: this.state.box.chances.max }, (_, i) => i);
     }
@@ -503,31 +562,31 @@ class Inbox extends Component {
     async sendLeave() {
         const lv = this.state.lv;
         if (this.state.box.mates.length && lv.cover === "") {
-            this.notification.add("اختاري الزميلة اللي بتغطي الفرع", { type: "warning" });
+            this.notification.add(_t("Choose the colleague who will cover the Branch"), { type: "warning" });
             return;
         }
         const cover = +lv.cover || false;
         if (await this.call("leave_request", [lv.type, lv.from, lv.to, lv.why, cover],
-            cover ? "تم إرسال الطلب لزميلتك لتوافق على التغطية، وبعدها يوصل للإدارة" : "تم إرسال طلب الإجازة للإدارة")) {
+            cover ? _t("Request sent to your colleague to approve the cover; then it goes to Management") : _t("Leave request sent to Management"))) {
             this.state.leaveForm = false;
             lv.why = "";
         }
     }
     async sendMsg() {
         const m = this.state.msg;
-        if (await this.call("send_message", [m.topic, m.body], "تم إرسال رسالتك للإدارة")) {
+        if (await this.call("send_message", [m.topic, m.body], _t("Your message was sent to Management"))) {
             m.body = "";
             this.state.msgForm = false;
         }
     }
     async replyThread(th) {
-        if (await this.call("reply_thread", [th.id, this.state.rep[th.id] || ""], "تم إرسال ردك")) {
+        if (await this.call("reply_thread", [th.id, this.state.rep[th.id] || ""], _t("Your reply was sent"))) {
             this.state.rep[th.id] = "";
         }
     }
     cover(r, ok) {
         this.call("cover_respond", [r.id, ok, this.state.coverNote[r.id] || ""],
-            ok ? "تم: وافقتِ على التغطية، وانرسل الطلب للإدارة" : "تم إبلاغ زميلتك باعتذارك");
+            ok ? _t("Done: you accepted the cover and the request was sent to Management") : _t("Your colleague was told you declined"));
     }
 }
 
@@ -548,8 +607,17 @@ class Requests extends Component {
         this.COLORS = COLORS;
         this.SIZES = SIZES;
         this.STEPS = ["pending", "approved", "shipped", "received"];
-        this.STEPL = { pending: "انطلب", approved: "وافقت الإدارة", shipped: "انشحن", received: "وصل" };
+        this.STEPL = { pending: _t("Requested"), approved: _t("Approved by Management"), shipped: _t("Shipped"), received: _t("Arrived") };
         onWillStart(() => this.load());
+    }
+    get photoLabel() {
+        return _t("📷 Item photo (optional)");
+    }
+    get receiptLabel() {
+        return _t("🧾 Receipt photo");
+    }
+    waitTitle(w) {
+        return jn([w.item_no && "🏷️ " + w.item_no, w.model, w.color, w.size && _t("Size %s", w.size)], " · ");
     }
     blankGoods() {
         return { model: "", color: "", size: "", qty: 1, reason: "asked", note: "", urgent: false, photo: null };
@@ -601,37 +669,37 @@ class Requests extends Component {
     }
     submitGoods() {
         const g = this.state.g;
-        if (!g.model.trim()) return (this.state.err = "اكتبي رقم الموديل");
-        if (!(+g.qty > 0)) return (this.state.err = "الكمية غير صحيحة");
+        if (!g.model.trim()) return (this.state.err = _t("Enter the model number"));
+        if (!(+g.qty > 0)) return (this.state.err = _t("Invalid quantity"));
         this.state.err = "";
-        this.sign("طلب نواقص", "create_request", () => [{ kind: "goods", model: g.model, color: g.color, size: g.size, qty: +g.qty,
-            reason: g.reason, note: g.note, urgent: g.urgent, photo_id: g.photo }], "تم إرسال الطلب للإدارة", () => (this.state.g = this.blankGoods()));
+        this.sign(_t("Out-of-stock request"), "create_request", () => [{ kind: "goods", model: g.model, color: g.color, size: g.size, qty: +g.qty,
+            reason: g.reason, note: g.note, urgent: g.urgent, photo_id: g.photo }], _t("Request sent to Management"), () => (this.state.g = this.blankGoods()));
     }
     submitSupply() {
         const s = this.state.s;
-        if (!(+s.qty > 0)) return (this.state.err = "الكمية غير صحيحة");
-        if (s.supply === "other" && !s.what.trim()) return (this.state.err = "اكتبي وش تحتاجين");
+        if (!(+s.qty > 0)) return (this.state.err = _t("Invalid quantity"));
+        if (s.supply === "other" && !s.what.trim()) return (this.state.err = _t("Type what you need"));
         this.state.err = "";
-        this.sign("طلب مستلزمات", "create_request", () => [{ kind: "supply", supply: s.supply, model: s.supply === "other" ? s.what : null,
-            qty: +s.qty, note: s.note }], "تم إرسال الطلب للإدارة", () => Object.assign(s, { qty: 1, what: "", note: "" }));
+        this.sign(_t("Supplies request"), "create_request", () => [{ kind: "supply", supply: s.supply, model: s.supply === "other" ? s.what : null,
+            qty: +s.qty, note: s.note }], _t("Request sent to Management"), () => Object.assign(s, { qty: 1, what: "", note: "" }));
     }
     submitExpense() {
         const x = this.state.x;
-        if (!(+x.amount > 0)) return (this.state.err = "المبلغ غير صحيح");
-        if (!x.details.trim()) return (this.state.err = "اكتبي التفاصيل");
+        if (!(+x.amount > 0)) return (this.state.err = _t("Invalid amount"));
+        if (!x.details.trim()) return (this.state.err = _t("Enter the details"));
         this.state.err = "";
-        this.sign("تسجيل مصروف", "create_expense", () => [+x.amount, x.category, x.details, x.receipt], "تم تسجيل المصروف وانرسل للإدارة",
+        this.sign(_t("Record an expense"), "create_expense", () => [+x.amount, x.category, x.details, x.receipt], _t("Expense recorded and sent to Management"),
             () => Object.assign(x, { amount: "", details: "", receipt: null }));
     }
     receive(r) {
-        this.sign("استلام الطلب", "request_received", () => [r.id], "تم تسجيل الاستلام");
+        this.sign(_t("Confirm receipt"), "request_received", () => [r.id], _t("Receipt recorded"));
     }
     async contacted(w, e) {
         const r = await api(this.orm, "lost_contacted", w.id, e.name);
         if (r.error) {
             this.notification.add(r.message, { type: "danger" });
         } else {
-            this.notification.add("تم", { type: "success" });
+            this.notification.add(_t("Done"), { type: "success" });
             await this.load();
         }
     }
@@ -647,6 +715,20 @@ class Report extends Component {
         this.state = useState({ d: null, f: null, saved: false, err: "" });
         Object.assign(this, H);
         Object.assign(this, { COLORS, SIZES, TYPES, TRIED, SAT, NOBUY, LOSTFULL });
+        // aria-labels of the +/- steppers
+        this.L = {
+            invoices: _t("Number of invoices"), items: _t("Number of items"), roll_invoice: _t("Receipt roll"), roll_card: _t("Card roll"),
+            bags: _t("Bags"), visitors: _t("Customers"), nonBuy: _t("Did not buy"),
+        };
+        // yes/no questions: [flag field, text field, question, placeholder]
+        this.QA = [
+            ["complaint", "complaint_text", _t("Did a customer make a complaint?"), _t("Write the complaint")],
+            ["influ", "influ_text", _t("Did an influencer customer visit?"), _t("Who is she? What did she buy?")],
+        ];
+        this.QB = [
+            ["short", "short_text", _t("Stock shortage that may cause lost sales tomorrow?"), _t("Model, color and size")],
+            ["damage", "damage_text", _t("Damaged, broken or faulty item?"), _t("Describe the problem")],
+        ];
         onWillStart(() => this.load());
     }
     async load() {
@@ -686,6 +768,12 @@ class Report extends Component {
     step(obj, key, d) {
         obj[key] = Math.max(0, (+obj[key] || 0) + d);
     }
+    get salesLegend() {
+        return this.state.d.system ? _t("Exchanges") : _t("Sales");
+    }
+    get submitLabel() {
+        return this.state.saved ? _t("Update report") : _t("Send report");
+    }
     get nobuySum() {
         return Object.values(this.state.f.noBuy).reduce((t, x) => t + (+x || 0), 0);
     }
@@ -698,11 +786,11 @@ class Report extends Component {
     async submit(ev) {
         ev.preventDefault();
         const f = this.state.f;
-        if (!f.employee_name) return (this.state.err = "اختاري اسم الموظفة اللي تكتب التقرير");
+        if (!f.employee_name) return (this.state.err = _t("Choose the name of the employee writing the report"));
         const bad = f.exch.findIndex((x) => !String(x.detail || "").trim() || !x.soldBy || !x.by);
-        if (bad > -1) return (this.state.err = `استبدال رقم ${bad + 1}: اكتبي السبب بالتفصيل ومن باعت ومن استبدلت`);
+        if (bad > -1) return (this.state.err = _t("Exchange %s: give the detailed reason, who sold and who exchanged", bad + 1));
         const lb = f.lost.findIndex((x) => !x.color && !x.size);
-        if (lb > -1) return (this.state.err = `المبيعات الضائعة رقم ${lb + 1}: اكتبي اللون أو المقاس`);
+        if (lb > -1) return (this.state.err = _t("Lost sale %s: enter the color or size", lb + 1));
         this.state.err = "";
         const r = await api(this.orm, "report_save", JSON.parse(JSON.stringify(f)));
         if (r.error) {
@@ -710,7 +798,7 @@ class Report extends Component {
             return;
         }
         this.state.saved = true;
-        this.notification.add("تم إرسال التقرير اليومي للإدارة", { type: "success" });
+        this.notification.add(_t("Daily report sent to Management"), { type: "success" });
     }
 }
 
@@ -722,6 +810,8 @@ export class BranchApp extends Component {
     setup() {
         this.state = useState({ tab: "counter", inboxOpen: "", inboxEmp: null, reqTab: "", branch: "", key: 1, branches: null, bid: 0 });
         this.orm = useService("orm");
+        this.DIR = DIR;
+        this.LANG = LANG;
         onWillStart(async () => {
             const a = await api(this.orm, "branch_access");
             if (a.error) {
@@ -746,6 +836,9 @@ export class BranchApp extends Component {
             }
         });
         onWillUnmount(() => (CTX.branch = 0));
+    }
+    get title() {
+        return this.state.branch || _t("Branch device");
     }
     pick(id) {
         id = +id || 0;

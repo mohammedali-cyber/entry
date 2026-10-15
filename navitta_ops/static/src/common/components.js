@@ -1,10 +1,37 @@
 /** @odoo-module **/
 import { Component, onMounted, onWillStart, onWillUnmount, onWillUpdateProps, useExternalListener, useRef, useState } from "@odoo/owl";
+import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
 import {
-    api, addDays, ago, barcodeUrl, compress, dcsText, f0, hourNow, icon, isBag, jn, longDate, minuteNow, mmss, monthEnd, monthName,
+    LANG, api, addDays, ago, barcodeUrl, compress, dcsText, f0, hourNow, icon, isBag, jn, longDate, minuteNow, mmss, monthEnd, monthName,
     monthStart, photoUrl, pc, sizesOf, swatch, today,
 } from "./utils";
+
+/** Texts used inside template expressions (OWL only translates static text nodes and attributes). */
+const TX = {
+    get enterPin() { return _t("Enter your PIN"); },
+    ofFour: (n) => _t("%s of 4", n),
+    get viewReceipt() { return _t("View receipt"); },
+    get uploading() { return _t("Uploading…"); },
+    get chooseFile() { return _t("Choose file"); },
+    get loading() { return _t("Loading…"); },
+    get management() { return _t("Management"); },
+    get branch() { return _t("Branch"); },
+    get month() { return _t("Month"); },
+    get goodMorning() { return _t("Good morning ☀️"); },
+    get goodEvening() { return _t("Good evening 🌙"); },
+    get searchPh() { return _t("Item number (8 digits) or scan the barcode"); },
+    get pickPh() { return _t("Item number, model, or scan the barcode"); },
+    get noSize() { return _t("No size"); },
+    get showLess() { return _t("Show less ▴"); },
+    moreColors: (n) => _t("+ %s more colors ▾", n),
+    size: (x) => _t("Size %s", x),
+    get empSales() { return _t("Employee sales"); },
+    get fromPos() { return _t("From Point of Sale invoices, by the cashier who made the sale (not the shared account)"); },
+    get fromReport() { return _t("From the daily report"); },
+    get sar() { return _t("SAR"); },
+    invVsCounter: (inv, bought) => _t("Invoices %(inv)s, counter says bought %(bought)s", { inv, bought }),
+};
 
 export class NvModal extends Component {
     static template = "navitta_ops.NvModal";
@@ -19,6 +46,7 @@ export class NvModal extends Component {
 /** 4-digit PIN pad. onDone(pin) returns an error message to show, or null on success. */
 export class PinPad extends Component {
     static template = "navitta_ops.PinPad";
+    TX = TX;
     static props = { title: String, sub: { type: String, optional: true }, onDone: Function, onCancel: { type: Function, optional: true } };
     setup() {
         this.state = useState({ buf: "", err: "", busy: false });
@@ -124,6 +152,7 @@ export class SignModal extends Component {
 /** "📎 view" link that opens a stored photo. */
 export class PhotoLink extends Component {
     static template = "navitta_ops.PhotoLink";
+    TX = TX;
     static components = { NvModal };
     static props = { id: Number, label: { type: String, optional: true } };
     setup() {
@@ -135,6 +164,7 @@ export class PhotoLink extends Component {
 /** Receipt / item photo: phone via QR code, a file from this device, or the device camera. */
 export class PhotoPicker extends Component {
     static template = "navitta_ops.PhotoPicker";
+    TX = TX;
     static components = { NvModal };
     static props = { value: { optional: true }, onChange: Function, label: String };
     setup() {
@@ -162,7 +192,7 @@ export class PhotoPicker extends Component {
     async upload(b64) {
         const r = await api(this.orm, "photo_upload", b64, "image/jpeg");
         if (r.error) {
-            this.notification.add(r.message || "تعذر رفع الصورة", { type: "danger" });
+            this.notification.add(r.message || _t("Couldn't upload the photo"), { type: "danger" });
             return;
         }
         this.props.onChange(r.id);
@@ -212,7 +242,7 @@ export class PhotoPicker extends Component {
                 v.play();
             }
         } catch {
-            this.state.camErr = "ما قدرنا نفتح الكاميرا. استخدمي الجوال أو اختاري ملف.";
+            this.state.camErr = _t("Couldn't open the camera. Use your phone or choose a file.");
         }
     }
     async shot() {
@@ -273,6 +303,7 @@ export class TargetBar extends Component {
 
 export class TargetEditor extends Component {
     static template = "navitta_ops.TargetEditor";
+    TX = TX;
     static components = { NvModal };
     static props = {
         branchId: { type: Number, optional: true }, branchName: { type: String, optional: true }, admin: { type: Boolean, optional: true },
@@ -315,7 +346,7 @@ export class TargetEditor extends Component {
             s.err = r.message;
             return;
         }
-        this.notification.add("تم حفظ التارقت", { type: "success" });
+        this.notification.add(_t("Target saved"), { type: "success" });
         this.props.onSaved();
     }
     async saveMonth() {
@@ -327,48 +358,75 @@ export class TargetEditor extends Component {
             s.err = r.message;
             return;
         }
-        this.notification.add(`تم حفظ تارقت الشهر: ${f0(r.per_day)} ر.س يوميًا للأيام الباقية`, { type: "success" });
+        this.notification.add(_t("Monthly target saved: %s SAR per day for the remaining days", f0(r.per_day)), { type: "success" });
         this.props.onSaved();
     }
 }
 TargetBar.components = { TargetEditor };
 
-// daily quotes: employees (feminine, evening shift) and management (morning / evening)
+// daily quotes: employees (feminine, evening shift) and management (morning / evening); [Arabic, English] pairs picked by LANG
 const EMPQ = [
-    "كل عميلة تدخل فرصة جديدة، وابتسامتك أول خطوة للبيع 🤍", "التارقت مو رقم بعيد، هو عميلات اليوم وحدة وحدة 💪",
-    "العميلة تشتري من اللي ترتاح له، خليها ترتاح معك ✨", "اسألي العميلة وش المناسبة، وبتعرفين وش يناسبها 👠",
-    "لا تقولين «مخلص» وبس، اقترحي البديل اللي يعجبها 🔄", "الشنطة تكمّل الجزمة، اعرضيها عليها 👜",
-    "كل «لا» تقربك من «نعم» الجاية 🌟", "العميلة الراضية ترجع ومعها صديقتها 💕", "ترتيب الرف يبيع قبل لا تتكلمين 🛍️",
-    "خلي آخر ساعة مثل أول ساعة، نشاط وابتسامة ⏰", "كل قطعة تبيعينها تقربك من تارقتك 🎯", "تعبك ما يروح، الإدارة تشوفه وتقدّره 🙏",
-    "الكلمة الحلوة ما تكلف شي، وتسوي فرق كبير 🌸", "سجلي كل زيارة بصدق، أرقامك تساعدنا نجيب اللي تبيه العميلات 📋",
+    ["كل عميلة تدخل فرصة جديدة، وابتسامتك أول خطوة للبيع 🤍", "Every customer who walks in is a new chance, and your smile is the first step to a sale 🤍"],
+    ["التارقت مو رقم بعيد، هو عميلات اليوم وحدة وحدة 💪", "The target isn't a distant number, it's today's customers, one by one 💪"],
+    ["العميلة تشتري من اللي ترتاح له، خليها ترتاح معك ✨", "Customers buy from people they feel comfortable with, so make her feel at ease ✨"],
+    ["اسألي العميلة وش المناسبة، وبتعرفين وش يناسبها 👠", "Ask the customer about the occasion, and you'll know what suits her 👠"],
+    ["لا تقولين «مخلص» وبس، اقترحي البديل اللي يعجبها 🔄", "Don't just say “sold out”, suggest an alternative she'll like 🔄"],
+    ["الشنطة تكمّل الجزمة، اعرضيها عليها 👜", "A bag completes the shoes, show her one 👜"],
+    ["كل «لا» تقربك من «نعم» الجاية 🌟", "Every “no” brings you closer to the next “yes” 🌟"],
+    ["العميلة الراضية ترجع ومعها صديقتها 💕", "A happy customer comes back with a friend 💕"],
+    ["ترتيب الرف يبيع قبل لا تتكلمين 🛍️", "A tidy shelf sells before you say a word 🛍️"],
+    ["خلي آخر ساعة مثل أول ساعة، نشاط وابتسامة ⏰", "Make the last hour like the first: energy and a smile ⏰"],
+    ["كل قطعة تبيعينها تقربك من تارقتك 🎯", "Every item you sell brings you closer to your target 🎯"],
+    ["تعبك ما يروح، الإدارة تشوفه وتقدّره 🙏", "Your hard work isn't wasted, management sees it and values it 🙏"],
+    ["الكلمة الحلوة ما تكلف شي، وتسوي فرق كبير 🌸", "A kind word costs nothing and makes a big difference 🌸"],
+    ["سجلي كل زيارة بصدق، أرقامك تساعدنا نجيب اللي تبيه العميلات 📋", "Log every visit honestly, your numbers help us stock what customers want 📋"],
 ];
 const AMQ = [
-    "اجتهادك اليوم له ثمرته بكرة، استمر 🌱", "كل يوم جديد فرصة لبداية أفضل ☀️", "ابدأ يومك بنية طيبة، والباقي على الله 🤲",
-    "خلك متفائل، الأيام الحلوة جاية ✨", "اليوم صفحة جديدة، اكتب فيها إنجاز 📖", "الهدف الكبير يبدأ بخطوة صغيرة الصبح 👣",
-    "النجاح الكبير مجموع أيام صغيرة منتظمة 📈", "فريقك ينتظر منك الحماس، وزّعه عليهم 🔥", "الفرص ما تجي مرتين، اغتنم يومك ⏳",
-    "التوفيق من الله، والسعي علينا 🤲", "الفريق المرتاح يبيع أكثر، كلمة شكر اليوم تفرق 🙏", "ما فيه شي مستحيل مع الصبر والعزيمة 💪",
+    ["اجتهادك اليوم له ثمرته بكرة، استمر 🌱", "Today's effort pays off tomorrow, keep going 🌱"],
+    ["كل يوم جديد فرصة لبداية أفضل ☀️", "Every new day is a chance for a better start ☀️"],
+    ["ابدأ يومك بنية طيبة، والباقي على الله 🤲", "Start your day with good intentions, and leave the rest to God 🤲"],
+    ["خلك متفائل، الأيام الحلوة جاية ✨", "Stay optimistic, good days are coming ✨"],
+    ["اليوم صفحة جديدة، اكتب فيها إنجاز 📖", "Today is a new page, write an achievement on it 📖"],
+    ["الهدف الكبير يبدأ بخطوة صغيرة الصبح 👣", "A big goal starts with a small step in the morning 👣"],
+    ["النجاح الكبير مجموع أيام صغيرة منتظمة 📈", "Big success is the sum of small, steady days 📈"],
+    ["فريقك ينتظر منك الحماس، وزّعه عليهم 🔥", "Your team is looking to you for energy, share it with them 🔥"],
+    ["الفرص ما تجي مرتين، اغتنم يومك ⏳", "Opportunities don't come twice, make the most of your day ⏳"],
+    ["التوفيق من الله، والسعي علينا 🤲", "Success comes from God, the effort is ours 🤲"],
+    ["الفريق المرتاح يبيع أكثر، كلمة شكر اليوم تفرق 🙏", "A happy team sells more, a thank-you today makes a difference 🙏"],
+    ["ما فيه شي مستحيل مع الصبر والعزيمة 💪", "Nothing is impossible with patience and determination 💪"],
 ];
 const PMQ = [
-    "الرزق مقسوم، والسعي مشكور 🤲", "ما فيه تعب يضيع، كل خطوة تقربك من هدفك 🎯", "اللي يزرع بصبر يحصد بفرح 🌾",
-    "يومك ما راح عبث، كل جهد له أثر 🌙", "الحمد لله على يوم ثاني من الرزق والعمل 🤍", "المبيعات الضائعة كنز: كل طلب ما توفر فرصة للطلبية الجاية 💡",
-    "الموظفة اللي تحس إنها مسموعة، تعطي أكثر 🤝", "اللي ما تحقق اليوم، بكرة فرصته أكبر 🌅", "تعبك اليوم استثمار في بكرة 📈",
-    "ارتاح الليلة، وبكرة نكمل بقوة 😌", "كل فرع حقق اليوم شي، ولو بسيط، يستاهل شكر 🙏", "النهاية الحلوة تبدأ بصبر جميل 🌟",
+    ["الرزق مقسوم، والسعي مشكور 🤲", "Provision is written, and effort is appreciated 🤲"],
+    ["ما فيه تعب يضيع، كل خطوة تقربك من هدفك 🎯", "No effort is wasted, every step brings you closer to your goal 🎯"],
+    ["اللي يزرع بصبر يحصد بفرح 🌾", "Those who sow with patience reap with joy 🌾"],
+    ["يومك ما راح عبث، كل جهد له أثر 🌙", "Your day wasn't in vain, every effort leaves its mark 🌙"],
+    ["الحمد لله على يوم ثاني من الرزق والعمل 🤍", "Thank God for another day of work and provision 🤍"],
+    ["المبيعات الضائعة كنز: كل طلب ما توفر فرصة للطلبية الجاية 💡", "Lost sales are a treasure: every unavailable request is a chance for the next order 💡"],
+    ["الموظفة اللي تحس إنها مسموعة، تعطي أكثر 🤝", "An employee who feels heard gives more 🤝"],
+    ["اللي ما تحقق اليوم، بكرة فرصته أكبر 🌅", "What wasn't achieved today has a better chance tomorrow 🌅"],
+    ["تعبك اليوم استثمار في بكرة 📈", "Today's hard work is an investment in tomorrow 📈"],
+    ["ارتاح الليلة، وبكرة نكمل بقوة 😌", "Rest tonight, tomorrow we carry on strong 😌"],
+    ["كل فرع حقق اليوم شي، ولو بسيط، يستاهل شكر 🙏", "Every branch that achieved something today, however small, deserves thanks 🙏"],
+    ["النهاية الحلوة تبدأ بصبر جميل 🌟", "A happy ending starts with graceful patience 🌟"],
 ];
 const START = Date.UTC(2026, 9, 13) / 864e5;
 const pick = (list, day) => list[((((Date.parse(day + "T00:00:00Z") / 864e5 - START) % list.length) + list.length) % list.length)];
 
 export class DailyQuote extends Component {
     static template = "navitta_ops.DailyQuote";
+    TX = TX;
     static props = { admin: { type: Boolean, optional: true }, best: { optional: true } };
     get q() {
         const day = today(), am = hourNow() < 12;
-        return { am, text: this.props.admin ? pick(am ? AMQ : PMQ, day) : pick(EMPQ, day), date: longDate(day) };
+        const quote = this.props.admin ? pick(am ? AMQ : PMQ, day) : pick(EMPQ, day);
+        return { am, text: quote[LANG === "ar" ? 0 : 1], date: longDate(day) };
     }
 }
 
 /** Search the models file: 8-digit item number, model name, or a scanned barcode (scanners end with Enter). */
 export class ModelSearchBox extends Component {
     static template = "navitta_ops.ModelSearchBox";
+    TX = TX;
     static props = { onResult: Function, placeholder: { type: String, optional: true }, big: { type: Boolean, optional: true } };
     setup() {
         this.orm = useService("orm");
@@ -419,6 +477,7 @@ export class CartonLabel extends Component {
 
 export class ModelCard extends Component {
     static template = "navitta_ops.ModelCard";
+    TX = TX;
     static props = { m: Object, hi: { optional: true } };
     setup() {
         this.state = useState({ more: false });
@@ -441,6 +500,7 @@ export class ModelCard extends Component {
 /** Customers waiting for one of these models (with a phone number, not contacted yet). */
 export class Waiting extends Component {
     static template = "navitta_ops.Waiting";
+    TX = TX;
     static props = { nos: Array };
     setup() {
         this.orm = useService("orm");
@@ -486,6 +546,7 @@ export class ModelSearch extends Component {
 /** Picks the model a customer asked for; a scan also gives the color and size. */
 export class ModelPicker extends Component {
     static template = "navitta_ops.ModelPicker";
+    TX = TX;
     static components = { ModelSearchBox };
     static props = { onPick: Function, onManual: Function };
     setup() {
@@ -506,6 +567,7 @@ export class ModelPicker extends Component {
 /** Management: employees ranked by sales in a period. */
 export class EmpBoard extends Component {
     static template = "navitta_ops.EmpBoard";
+    TX = TX;
     static props = { from: String, to: String, branchId: { optional: true }, branches: Array, title: { type: String, optional: true },
         wd: { type: Array, optional: true } };
     setup() {

@@ -14,19 +14,20 @@
     </record>
 
     <record id="action_report_daily_summary" model="ir.actions.report">
-        <field name="name">ملخص الفروع اليومي</field>
+        <field name="name">Daily branches summary</field>
         <field name="model">navitta.summary.wizard</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">navitta_ops.report_daily_summary</field>
         <field name="report_file">navitta_ops.report_daily_summary</field>
-        <field name="print_report_name">'ملخص-الفروع'</field>
+        <field name="print_report_name">'Branches-Summary'</field>
         <field name="paperformat_id" ref="paperformat_navitta_a4"/>
         <field name="binding_type">report</field>
     </record>
 
     <template id="report_daily_summary">
         <t t-call="web.html_container">
-            <div class="article nv" dir="rtl" lang="ar">
+            <t t-set="nv_rtl" t-value="(env.lang or '').startswith('ar')"/>
+            <div class="article nv" t-att-dir="'rtl' if nv_rtl else 'ltr'" t-att-lang="'ar' if nv_rtl else 'en'">
                 <style>
                     .nv{font-family:Tahoma,"DejaVu Sans",Arial,sans-serif;color:#0B0B0C;font-size:10.5pt;line-height:1.55;direction:rtl;text-align:right}
                     .nv .num{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:embed}
@@ -53,29 +54,35 @@
                     .nv ul{margin:0;padding-right:16px}.nv li{margin:2px 0}
                     .nv .note{font-size:8.5pt;color:#5C5F65;border-top:1px solid #DCDEE2;margin-top:14px;padding-top:6px}
                     .nv .alert{border:1.5px solid #A3242B;background:#F8E5E6;border-radius:6px;padding:6px 10px;font-weight:600;color:#A3242B;margin-bottom:8px}
+                    .nv[dir=ltr]{direction:ltr;text-align:left}
+                    .nv[dir=ltr] .brand{text-align:left}
+                    .nv[dir=ltr] .meta{text-align:right}
+                    .nv[dir=ltr] table.t th{text-align:left}
+                    .nv[dir=ltr] .two > div{padding-left:0;padding-right:12px}
+                    .nv[dir=ltr] ul{padding-right:0;padding-left:16px}
                 </style>
                 <div class="head">
-                    <div><div class="brand">NAVITTA</div><h1>ملخص الفروع اليومي</h1></div>
+                    <div><div class="brand">NAVITTA</div><h1>Daily branches summary</h1></div>
                     <div class="meta"><span t-esc="s['day'].strftime('%Y-%m-%d')" class="num"/><br/>
-                        <t t-esc="len(s['branches'])"/> فروع · الدوام <t t-esc="s['shift']"/></div>
+                        <t t-esc="len(s['branches'])"/> branches · Shift <t t-esc="s['shift']"/></div>
                 </div>
                 <div class="sheen"/>
-                <div t-if="s['missing']" class="alert"><t t-esc="'، '.join(s['missing'])"/>: لم يُرسل التقرير اليومي حتى وقت الإرسال</div>
+                <div t-if="s['missing']" class="alert"><t t-esc="('\u060c ' if nv_rtl else ', ').join(s['missing'])"/>: daily report not sent by sending time</div>
                 <table class="kpis"><tr>
-                    <td class="kpi"><span>إجمالي المبيعات</span><b class="num"><t t-esc="f0(s['sales'])"/> ر.س</b>
+                    <td class="kpi"><span>Total sales</span><b class="num"><t t-esc="f0(s['sales'])"/> SAR</b>
                         <t t-if="s['prev_sales']"><br/><i dir="ltr" t-att-class="'num ' + (s['sales'] &gt;= s['prev_sales'] and 'up' or 'down')"
                             t-esc="('▲ ' if s['sales'] &gt;= s['prev_sales'] else '▼ ') + ('%.1f' % abs((s['sales'] - s['prev_sales']) * 100.0 / s['prev_sales'])) + '%'"/></t></td>
-                    <td class="kpi"><span>الفواتير</span><b class="num" t-esc="s['invoices']"/></td>
-                    <td class="kpi"><span>متوسط الفاتورة</span><b class="num"><t t-esc="f0(s['invoices'] and s['sales'] / s['invoices'] or 0)"/> ر.س</b></td>
-                    <td class="kpi"><span>العميلات</span><b class="num" t-esc="s['visits']"/></td>
-                    <td class="kpi"><span>نسبة الشراء</span><b class="num" t-esc="pct(s['buy_pct'])"/></td>
-                    <td class="kpi"><span>قرارات معلقة</span><b class="num" t-esc="s['pending']"/></td>
+                    <td class="kpi"><span>Invoices</span><b class="num" t-esc="s['invoices']"/></td>
+                    <td class="kpi"><span>Average invoice</span><b class="num"><t t-esc="f0(s['invoices'] and s['sales'] / s['invoices'] or 0)"/> SAR</b></td>
+                    <td class="kpi"><span>Customers</span><b class="num" t-esc="s['visits']"/></td>
+                    <td class="kpi"><span>Purchase rate</span><b class="num" t-esc="pct(s['buy_pct'])"/></td>
+                    <td class="kpi"><span>Pending decisions</span><b class="num" t-esc="s['pending']"/></td>
                 </tr></table>
-                <div style="font-size:8pt;color:#5C5F65;margin-top:4px">▲▼ مقارنة بنفس اليوم من الأسبوع الماضي</div>
+                <div style="font-size:8pt;color:#5C5F65;margin-top:4px">▲▼ compared with the same day last week</div>
 
-                <h2>مقارنة الفروع</h2>
+                <h2>Branch comparison</h2>
                 <table class="t">
-                    <thead><tr><th>الفرع</th><th>المبيعات</th><th>الفواتير</th><th>العميلات</th><th>نسبة الشراء</th><th>الرضا</th><th>تأخير</th><th>تجاوز استراحة</th><th>مبيعات ضائعة</th><th>التقرير</th></tr></thead>
+                    <thead><tr><th>Branch</th><th>Sales</th><th>Invoices</th><th>Customers</th><th>Purchase rate</th><th>Satisfaction</th><th>Late</th><th>Break overrun</th><th>Lost sales</th><th>Report</th></tr></thead>
                     <tbody>
                         <tr t-foreach="s['branches']" t-as="b">
                             <td><b t-esc="b['name']"/></td><td class="num" t-esc="f0(b['sales'])"/><td class="num" t-esc="b['invoices']"/>
@@ -83,37 +90,37 @@
                             <td><span t-if="b['late']" class="chip warn" t-esc="b['late']"/><t t-else="">—</t></td>
                             <td><span t-if="b['over']" class="chip warn" t-esc="b['over']"/><t t-else="">—</t></td>
                             <td class="num" t-esc="b['lost']"/>
-                            <td><span t-if="b['sent']" class="chip good">✓ أُرسل</span><span t-else="" class="chip bad">لم يُرسل</span></td>
+                            <td><span t-if="b['sent']" class="chip good">✓ Sent</span><span t-else="" class="chip bad">Not sent</span></td>
                         </tr>
                     </tbody>
-                    <tfoot><tr><td>الإجمالي</td><td class="num" t-esc="f0(s['sales'])"/><td class="num" t-esc="s['invoices']"/><td class="num" t-esc="s['visits']"/>
+                    <tfoot><tr><td>Total</td><td class="num" t-esc="f0(s['sales'])"/><td class="num" t-esc="s['invoices']"/><td class="num" t-esc="s['visits']"/>
                         <td class="num" t-esc="pct(s['buy_pct'])"/><td/><td class="num" t-esc="s['late']"/><td class="num" t-esc="s['over']"/><td/><td/></tr></tfoot>
                 </table>
 
                 <div class="two">
                     <div>
-                        <h2>يحتاج قرارك</h2>
-                        <table t-if="s['review']" class="t"><thead><tr><th>الموظفة</th><th>النوع</th><th>السبب</th></tr></thead><tbody>
+                        <h2>Needs your decision</h2>
+                        <table t-if="s['review']" class="t"><thead><tr><th>Employee</th><th>Type</th><th>Reason</th></tr></thead><tbody>
                             <tr t-foreach="s['review']" t-as="r"><td t-esc="r['who']"/>
                                 <td><span t-att-class="'chip ' + (r['state'] == 'reply' and 'bad' or r['state'] == 'leave' and 'info' or 'warn')" t-esc="r['what']"/></td>
                                 <td t-esc="r['reason']"/></tr>
                         </tbody></table>
-                        <p t-else="">لا يوجد</p>
+                        <p t-else="">None</p>
                     </div>
                     <div>
-                        <h2>أهم أحداث اليوم</h2>
+                        <h2>Key events of the day</h2>
                         <ul t-if="s['events']"><li t-foreach="s['events']" t-as="e"><span t-att-class="'chip ' + e['level']" t-esc="e['title']"/> <t t-esc="e['text']"/></li></ul>
-                        <p t-else="">لا توجد أحداث</p>
+                        <p t-else="">No events</p>
                     </div>
                 </div>
 
-                <h2>المبيعات الضائعة الأكثر تكرارًا</h2>
-                <table t-if="s['lost']" class="t"><thead><tr><th>الموديل</th><th>اللون</th><th>المقاس</th><th>مرات</th><th>الفروع</th></tr></thead><tbody>
+                <h2>Most frequent lost sales</h2>
+                <table t-if="s['lost']" class="t"><thead><tr><th>Model</th><th>Color</th><th>Size</th><th>Times</th><th>Branches</th></tr></thead><tbody>
                     <tr t-foreach="s['lost']" t-as="l"><td class="num" t-esc="l['model']"/><td t-esc="l['color']"/><td class="num" t-esc="l['size']"/>
                         <td class="num"><b t-esc="l['n']"/></td><td t-esc="l['branches']"/></tr>
                 </tbody></table>
-                <p t-else="">لا توجد</p>
-                <div class="note">يُرسل تلقائيًا كل ليلة من نظام فروع نافيتا في Odoo</div>
+                <p t-else="">None</p>
+                <div class="note">Sent automatically every night by the Navitta Branches system in Odoo</div>
             </div>
         </t>
     </template>

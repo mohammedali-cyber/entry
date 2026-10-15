@@ -6,11 +6,11 @@
         <field name="arch" type="xml">
             <form>
                 <div class="text-center">
-                    <p>الرمز السري الجديد لـ <b><field name="employee_id" readonly="1" class="d-inline"/></b></p>
+                    <p>New PIN for <b><field name="employee_id" readonly="1" class="d-inline"/></b></p>
                     <h1 style="font-size:48px;letter-spacing:.3em" dir="ltr"><field name="pin" readonly="1"/></h1>
-                    <p class="text-muted">يظهر مرة وحدة بس. اكتبه وأعطه للموظفة بشكل خاص. الرمز القديم توقف.</p>
+                    <p class="text-muted">Shown only once. Write it down and give it to the employee privately. The old PIN no longer works.</p>
                 </div>
-                <footer><button string="تم" special="cancel" class="btn-primary"/></footer>
+                <footer><button string="Done" special="cancel" class="btn-primary"/></footer>
             </form>
         </field>
     </record>
@@ -20,14 +20,14 @@
         <field name="model">navitta.admin.password.wizard</field>
         <field name="arch" type="xml">
             <form>
-                <p>تُطلب في جهاز الفرع لتعديل التارقت، ولإلغاء انصراف سجلته موظفة بالغلط. أنت من لوحة الإدارة ما تحتاجها.</p>
+                <p>Required on the branch device to change the target and to cancel a check-out an employee recorded by mistake. You don't need it in the Dashboard.</p>
                 <group>
                     <field name="password" password="True" required="1"/>
                     <field name="confirm" password="True" required="1"/>
                 </group>
                 <footer>
-                    <button name="action_save" type="object" string="حفظ" class="btn-primary"/>
-                    <button string="إلغاء" special="cancel"/>
+                    <button name="action_save" type="object" string="Save" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
                 </footer>
             </form>
         </field>
@@ -38,19 +38,19 @@
         <field name="model">navitta.catalog.import.wizard</field>
         <field name="arch" type="xml">
             <form>
-                <p>ملف Excel فيه الأعمدة: ALU (الباركود)، Desc4 (الموديل)، Desc1 (رقم المؤسسة)، Attr (اللون)، Size، Price WT، DCS، heel، material.
-                    <b>رفع ملف جديد يستبدل القديم كامل.</b></p>
+                <p>An Excel file with the columns: ALU (barcode), Desc4 (model), Desc1 (item number), Attr (color), Size, Price WT, DCS, heel, material.
+                    <b>Uploading a new file fully replaces the old one.</b></p>
                 <p class="text-muted"><field name="info"/></p>
                 <group><field name="file" filename="filename"/><field name="filename" invisible="1"/></group>
                 <footer>
-                    <button name="action_import" type="object" string="رفع واستبدال" class="btn-primary"/>
-                    <button string="إلغاء" special="cancel"/>
+                    <button name="action_import" type="object" string="Upload &amp; replace" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
                 </footer>
             </form>
         </field>
     </record>
     <record id="action_catalog_import" model="ir.actions.act_window">
-        <field name="name">رفع ملف الموديلات</field>
+        <field name="name">Upload models file</field>
         <field name="res_model">navitta.catalog.import.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
@@ -63,15 +63,15 @@
             <form>
                 <group><field name="day"/></group>
                 <footer>
-                    <button name="action_print" type="object" string="عرض PDF" class="btn-primary"/>
-                    <button name="action_send" type="object" string="إرسال بالإيميل الآن"/>
-                    <button string="إلغاء" special="cancel"/>
+                    <button name="action_print" type="object" string="View PDF" class="btn-primary"/>
+                    <button name="action_send" type="object" string="Send by email now"/>
+                    <button string="Cancel" special="cancel"/>
                 </footer>
             </form>
         </field>
     </record>
     <record id="action_summary_wizard" model="ir.actions.act_window">
-        <field name="name">ملخص الفروع اليومي (PDF)</field>
+        <field name="name">Daily branches summary (PDF)</field>
         <field name="res_model">navitta.summary.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>

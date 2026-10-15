@@ -12,8 +12,8 @@
                 <field name="email"/>
                 <field name="weekly_off"/>
                 <field name="has_pin" widget="boolean"/>
-                <button name="action_new_pin" type="object" string="رمز جديد" icon="fa-key"
-                        confirm="سيتم إلغاء الرمز الحالي وإنشاء رمز جديد يظهر مرة واحدة. متابعة؟"/>
+                <button name="action_new_pin" type="object" string="New PIN" icon="fa-key"
+                        confirm="The current PIN will be cancelled and a new PIN will be created and shown only once. Continue?"/>
             </list>
         </field>
     </record>
@@ -24,35 +24,35 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_new_pin" type="object" string="إنشاء رمز سري جديد" class="btn-primary"
-                            confirm="سيتم إلغاء الرمز الحالي وإنشاء رمز جديد يظهر مرة واحدة. متابعة؟"/>
+                    <button name="action_new_pin" type="object" string="Generate new PIN" class="btn-primary"
+                            confirm="The current PIN will be cancelled and a new PIN will be created and shown only once. Continue?"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_attendance" type="object" class="oe_stat_button" icon="fa-clock-o" string="الحضور"/>
-                        <button name="action_sales" type="object" class="oe_stat_button" icon="fa-shopping-bag" string="المبيعات"/>
-                        <button name="action_cash_counts" type="object" class="oe_stat_button" icon="fa-money" string="عدّ العهدة"/>
+                        <button name="action_attendance" type="object" class="oe_stat_button" icon="fa-clock-o" string="Check-ins"/>
+                        <button name="action_sales" type="object" class="oe_stat_button" icon="fa-shopping-bag" string="Sales"/>
+                        <button name="action_cash_counts" type="object" class="oe_stat_button" icon="fa-money" string="Opening cash count"/>
                     </div>
-                    <widget name="web_ribbon" title="مؤرشفة" bg_color="text-bg-danger" invisible="active"/>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
                     <field name="photo" widget="image" class="oe_avatar" options="{'preview_image': 'photo'}"/>
-                    <div class="oe_title"><h1><field name="name" placeholder="اسم الموظفة"/></h1></div>
+                    <div class="oe_title"><h1><field name="name" placeholder="Employee name"/></h1></div>
                     <group>
-                        <group string="الفرع">
+                        <group string="Branch">
                             <field name="branch_id"/>
-                            <field name="slot" string="ترتيبها في الشاشة"/>
+                            <field name="slot" string="Order on screen"/>
                             <field name="weekly_off"/>
                             <field name="active" invisible="1"/>
                         </group>
-                        <group string="البصمة">
+                        <group string="Punch">
                             <field name="has_pin"/>
-                            <field name="device_user_id" placeholder="مثال: 5"/>
+                            <field name="device_user_id" placeholder="e.g. 5"/>
                             <field name="email" widget="email"/>
                         </group>
                     </group>
                     <div class="text-muted">
-                        <b>بصمة الآيباد:</b> رمز سري من 4 أرقام (محفوظ مشفّرًا ولا يمكن عرضه، «إنشاء رمز سري جديد» يعطي رمزًا جديدًا)، ومعه صورة من كاميرا الآيباد إذا كانت مفعّلة في الإعدادات.
-                        <br/><b>جهاز البصمة (ZKTeco):</b> سجّل الموظفة في الجهاز برقم، واكتب نفس الرقم في «رقم البصمة في الجهاز». بصماتها السابقة اللي ما انربطت تنحسب تلقائيًا بعد الحفظ.
-                        <br/><b>الصورة المرجعية:</b> صورة واضحة لوجهها تقارن بها صور البصمة. تقدر تعتمد صورة حضور من «الحضور والانصراف».
+                        <b>iPad punch:</b> a 4-digit PIN (stored encrypted and cannot be shown; "Generate new PIN" gives a new one), plus a photo from the iPad camera if enabled in the settings.
+                        <br/><b>Fingerprint device (ZKTeco):</b> enroll the employee on the device with a number and enter the same number in "Fingerprint device ID". Her earlier unlinked punches are counted automatically after saving.
+                        <br/><b>Reference photo:</b> a clear photo of her face to compare punch photos with. You can use a check-in photo from "Attendance".
                     </div>
                 </sheet>
             </form>
@@ -66,14 +66,14 @@
             <search>
                 <field name="name"/>
                 <field name="branch_id"/>
-                <filter name="archived" string="مؤرشفة" domain="[('active', '=', False)]"/>
-                <group><filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/></group>
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+                <group><filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/></group>
             </search>
         </field>
     </record>
 
     <record id="action_employees" model="ir.actions.act_window">
-        <field name="name">الموظفات</field>
+        <field name="name">Employees</field>
         <field name="res_model">navitta.employee</field>
         <field name="view_mode">list,form</field>
     </record>
@@ -83,7 +83,7 @@
         <field name="model">navitta.notification</field>
         <field name="arch" type="xml">
             <list create="0" edit="0" decoration-danger="state in ('exception', 'no_email')" decoration-muted="state == 'sent'">
-                <field name="create_date" string="الوقت"/>
+                <field name="create_date" string="Time"/>
                 <field name="employee_id"/>
                 <field name="to_email"/>
                 <field name="subject"/>
@@ -98,7 +98,7 @@
         <field name="arch" type="xml">
             <form create="0" edit="0">
                 <sheet>
-                    <group><field name="create_date" string="الوقت"/><field name="employee_id"/><field name="to_email"/><field name="state"/><field name="failure_reason"/></group>
+                    <group><field name="create_date" string="Time"/><field name="employee_id"/><field name="to_email"/><field name="state"/><field name="failure_reason"/></group>
                     <h3><field name="subject"/></h3>
                     <field name="body"/>
                 </sheet>
@@ -106,7 +106,7 @@
         </field>
     </record>
     <record id="action_notifications" model="ir.actions.act_window">
-        <field name="name">الإشعارات بالإيميل</field>
+        <field name="name">Email notifications</field>
         <field name="res_model">navitta.notification</field>
         <field name="view_mode">list,form</field>
     </record>

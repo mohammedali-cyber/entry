@@ -6,22 +6,22 @@ from odoo import api, fields, models
 class NavittaCatalogItem(models.Model):
     """One line of the models file: a model in one color and one size, with its barcode (ALU)."""
     _name = "navitta.catalog.item"
-    _description = "قطعة في ملف الموديلات"
+    _description = "Models file item"
     _order = "sequence, id"
     _rec_name = "model"
 
-    alu = fields.Char("الباركود (ALU)", required=True, index=True, help="بدون الأصفار في البداية")
-    item_no = fields.Char("رقم المؤسسة", required=True, index=True)
-    model = fields.Char("الموديل", required=True, index=True)
-    color = fields.Char("اللون", required=True)
-    size = fields.Char("المقاس")
-    price = fields.Float("السعر شامل الضريبة", digits=(10, 2))
+    alu = fields.Char("Barcode (ALU)", required=True, index=True, help="Without leading zeros")
+    item_no = fields.Char("Item number", required=True, index=True)
+    model = fields.Char("Model", required=True, index=True)
+    color = fields.Char("Color", required=True)
+    size = fields.Char("Size")
+    price = fields.Float("Price incl. VAT", digits=(10, 2))
     dcs = fields.Char("DCS")
-    heel = fields.Char("الكعب")
-    material = fields.Char("الخامة")
-    sequence = fields.Integer("ترتيب الملف")
+    heel = fields.Char("Heel")
+    material = fields.Char("Material")
+    sequence = fields.Integer("File order")
 
-    _sql_constraints = [("alu_uniq", "unique(alu)", "الباركود مكرر")]
+    _sql_constraints = [("alu_uniq", "unique(alu)", "Duplicate barcode")]
 
     @staticmethod
     def _size_key(s):

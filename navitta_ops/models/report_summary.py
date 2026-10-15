@@ -5,7 +5,7 @@ from .common import app_today
 
 class ReportDailySummary(models.AbstractModel):
     _name = "report.navitta_ops.report_daily_summary"
-    _description = "ملخص الفروع اليومي (PDF)"
+    _description = "Daily branches summary (PDF)"
 
     @api.model
     def _get_report_values(self, docids, data=None):

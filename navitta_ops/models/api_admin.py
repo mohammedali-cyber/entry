@@ -11,7 +11,8 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 from odoo.tools import config
 
-from .common import (LEAVE_TYPES, LOST_REASONS, TOPICS, app_today, company_tz, dow, hours_to_min, iso, label, new_pin)
+from .common import (app_today, cashier_text, company_tz, dow, fmt_time, hours_to_min, iso,
+                     is_shared_cashier, new_pin, sel_label, selection)
 
 _logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class NavittaApiAdmin(models.AbstractModel):
     @api.model
     def _admin(self):
         if not self.env.user.has_group("navitta_ops.group_navitta_admin"):
-            raise AccessError(_("هذه الشاشة لإدارة الفروع فقط"))
+            raise AccessError(_("This screen is for branch management only"))
 
     @api.model
     def _d(self, s):
@@ -68,18 +69,18 @@ class NavittaApiAdmin(models.AbstractModel):
         no_dev = S["navitta.branch"].sudo().search([]).filtered(lambda b: not b.user_ids)
         smtp = S["ir.mail_server"].sudo().search_count([]) or (config.get("smtp_server") not in (False, None, "", "localhost"))
         items = [
-            {"key": "pins", "done": not no_pin, "title": _("الرموز السرية للموظفات"),
-             "text": _("%s موظفة بدون رمز (ما تقدر تسجل حضورها)", len(no_pin)) if no_pin else _("كل الموظفات لهن رموز")},
-            {"key": "devices", "done": not no_dev, "title": _("حسابات أجهزة الفروع"),
-             "text": _("فروع بدون حساب جهاز: %s", "، ".join(no_dev.mapped("name"))) if no_dev else _("كل فرع له حساب جهاز")},
-            {"key": "admin_pw", "done": c._navitta_admin_password_is_set(), "title": _("كلمة سر الإدارة"),
-             "text": _("تُستخدم في جهاز الفرع لتعديل التارقت وإلغاء الانصراف")},
-            {"key": "email", "done": bool(c.navitta_report_email), "title": _("إيميل الإدارة"),
-             "text": _("يوصله الملخص اليومي وتنبيهات الطلبات")},
-            {"key": "mail_server", "done": bool(smtp), "title": _("خادم البريد الصادر"),
-             "text": _("بدونه ما تنرسل الإيميلات (Gmail بكلمة مرور تطبيق)")},
-            {"key": "catalog", "done": bool(S["navitta.catalog.item"].sudo().search_count([], limit=1)), "title": _("ملف الموديلات"),
-             "text": _("لبحث الموديل والباركود في المبيعات الضائعة")},
+            {"key": "pins", "done": not no_pin, "title": _("Employees' PINs"),
+             "text": _("%s employees without a PIN (they can't check in)", len(no_pin)) if no_pin else _("All employees have PINs")},
+            {"key": "devices", "done": not no_dev, "title": _("Branch device accounts"),
+             "text": _("Branches without a device account: %s", _(", ").join(no_dev.mapped("name"))) if no_dev else _("Every branch has a device account")},
+            {"key": "admin_pw", "done": c._navitta_admin_password_is_set(), "title": _("Management password"),
+             "text": _("Used on the branch device to change targets and undo a check-out")},
+            {"key": "email", "done": bool(c.navitta_report_email), "title": _("Management email"),
+             "text": _("Receives the daily summary and request alerts")},
+            {"key": "mail_server", "done": bool(smtp), "title": _("Outgoing mail server"),
+             "text": _("Without it no emails are sent (Gmail with an app password)")},
+            {"key": "catalog", "done": bool(S["navitta.catalog.item"].sudo().search_count([], limit=1)), "title": _("Models file"),
+             "text": _("To search models and barcodes in lost sales")},
         ]
         return {"items": items, "done": all(i["done"] for i in items)}
 
@@ -112,7 +113,7 @@ class NavittaApiAdmin(models.AbstractModel):
                 login = "%s-%s" % (base, n)
             pw = "".join(secrets.choice("abcdefghjkmnpqrstuvwxyz23456789") for _i in range(8))  # no look-alike characters
             Users.create({
-                "name": _("جهاز %s", b.name), "login": login, "password": pw, "navitta_branch_id": b.id,
+                "name": _("%s device", b.name), "login": login, "password": pw, "navitta_branch_id": b.id,
                 "company_id": b.company_id.id or S.company.id, "company_ids": [(6, 0, [b.company_id.id or S.company.id])],
                 "groups_id": [(6, 0, groups)], "tz": S.company.navitta_tz or "Asia/Riyadh", "lang": S.user.lang,
                 "action_id": S.ref("navitta_ops.action_branch_app").id,
@@ -166,13 +167,13 @@ class NavittaApiAdmin(models.AbstractModel):
             "cases": [self._case_dict(c) for c in cases],
             "month_cases": [{"employee_id": c.employee_id.id, "state": c.state, "kind": c.kind} for c in month_cases],
             "leave_requests": [{
-                "id": r.id, "employee_id": r.employee_id.id, "type": label(LEAVE_TYPES, r.type),
+                "id": r.id, "employee_id": r.employee_id.id, "type": sel_label(self.env, "navitta.leave.request", "type", r.type),
                 "from_day": fields.Date.to_string(r.from_day), "to_day": fields.Date.to_string(r.to_day), "reason": r.reason,
                 "state": r.state, "cover_employee_id": r.cover_employee_id.id or False, "cover_note": r.cover_note or "",
                 "decided_at": iso(r.decided_at)} for r in lreq],
             "edit_requests": [{"id": r.id, "employee_id": r.employee_id.id, "old_sec": r.old_sec, "new_sec": r.new_sec,
                                "reason": r.reason, "started_at": iso(r.visit_id.started_at)} for r in ereq],
-            "threads": [{"id": t.id, "employee_id": t.employee_id.id, "topic": label(TOPICS, t.topic), "state": t.state,
+            "threads": [{"id": t.id, "employee_id": t.employee_id.id, "topic": sel_label(self.env, "navitta.thread", "topic", t.topic), "state": t.state,
                          "unread": t.unread, "last_at": iso(t.last_at),
                          "messages": [{"id": m.id, "sender": m.sender, "body": m.body, "created_at": iso(m.create_date)}
                                       for m in t.message_ids]} for t in threads],
@@ -228,8 +229,10 @@ class NavittaApiAdmin(models.AbstractModel):
     @api.model
     def _cashier_label(self, cashier):
         if not cashier:
-            return _("بدون كاشير (الحساب العام)")
-        return cashier if cashier.startswith(_("الحساب العام")) else _("%s (كاشير غير مربوط بموظفة)", cashier)
+            return _("No cashier (shared account)")
+        if is_shared_cashier(cashier):
+            return cashier_text(self.env, cashier)
+        return _("%s (cashier not linked to an employee)", cashier_text(self.env, cashier))
 
     @api.model
     def employee_summary(self, date_from, date_to, branch_id=False, weekdays=None):
@@ -431,13 +434,13 @@ class NavittaApiAdmin(models.AbstractModel):
         wdom = [("waiting", "=", True)] + ([("branch_id", "=", int(branch_id))] if branch_id else [])
         return {"branches": self._branches(), "rows": [self._lost_dict(r) for r in Lost.search(dom)],
                 "waiting": [self._lost_dict(r) for r in Lost.search(wdom, order="create_date", limit=300)],
-                "reasons": LOST_REASONS, "day": fields.Date.to_string(app_today(self.env))}
+                "reasons": selection(self.env, "navitta.visit", "lost_reason"), "day": fields.Date.to_string(app_today(self.env))}
 
     @api.model
     def admin_lost_contacted(self, lost_id):
         self._admin()
         w = self.env["navitta.lost.sale"].sudo().browse(int(lost_id)).exists()
-        err = w._mark_contacted(_("الإدارة")) if w else "not_found"
+        err = w._mark_contacted(_("Management")) if w else "not_found"
         return self._err(err) if err else {"ok": True}
 
     # ------------------------------------------------------------------ day log
@@ -456,7 +459,7 @@ class NavittaApiAdmin(models.AbstractModel):
             "employees": self._employees(), "off": {e.id: e._is_off(d) for e in emps},
             "reports": [dict(self._report_dict(r), branch_id=r.branch_id.id,
                              events=[{"level": lv, "title": t, "text": x} for lv, t, x in r._events()],
-                             exch_labels=[{"reason": label(r.exchange_ids._fields["reason"].selection, x.reason), "detail": x.detail,
+                             exch_labels=[{"reason": sel_label(self.env, "navitta.daily.report.exchange", "reason", x.reason), "detail": x.detail,
                                            "soldBy": x.sold_by, "by": x.exchanged_by} for x in r.exchange_ids]) for r in reps],
             "visits": [self._visit_dict(v) for v in visits],
             "attendance": att, "breaks": brk, "cases": [self._case_dict(c) for c in cases],
@@ -494,11 +497,11 @@ class NavittaApiAdmin(models.AbstractModel):
                 "sent": bool(rs),
             })
         review = [{"who": "%s · %s" % (c.employee_id.name, c.employee_id.branch_id.name), "state": c.state,
-                   "what": (_("☕ تجاوز %s د", c.minutes) if c.kind == "break" else _("تأخير %s د", c.minutes)),
-                   "reason": c.reason or _("لم تذكر السبب بعد")}
+                   "what": (_("☕ Over by %s min", c.minutes) if c.kind == "break" else _("Late %s min", c.minutes)),
+                   "reason": c.reason or _("No reason given yet")}
                   for c in S["navitta.late.case"].sudo().search([("state", "in", ("reply", "review"))], limit=8)]
-        review += [{"who": r.employee_id.name, "state": "leave", "what": _("طلب إجازة"),
-                    "reason": _("%(t)s من %(a)s إلى %(b)s", t=label(LEAVE_TYPES, r.type), a=r.from_day, b=r.to_day)} for r in lreq]
+        review += [{"who": r.employee_id.name, "state": "leave", "what": _("Leave request"),
+                    "reason": _("%(t)s from %(a)s to %(b)s", t=sel_label(S, "navitta.leave.request", "type", r.type), a=r.from_day, b=r.to_day)} for r in lreq]
         events = []
         for r in reps:
             for lv, t, x in r._events():
@@ -513,7 +516,7 @@ class NavittaApiAdmin(models.AbstractModel):
             k = (v.lost_model or "—", v.lost_color or "—", v.lost_size or "—")
             lost[k]["n"] += 1
             lost[k]["branches"].add(v.branch_id.name)
-        lost_rows = sorted(({"model": k[0], "color": k[1], "size": k[2], "n": x["n"], "branches": "، ".join(sorted(x["branches"]))}
+        lost_rows = sorted(({"model": k[0], "color": k[1], "size": k[2], "n": x["n"], "branches": _(", ").join(sorted(x["branches"]))}
                             for k, x in lost.items()), key=lambda x: -x["n"])[:6]
         c = self.env.company
         return {
@@ -523,18 +526,20 @@ class NavittaApiAdmin(models.AbstractModel):
             "pending": len(cases.filtered(lambda x: x.state == "review")) + len(lreq),
             "late": len(cases.filtered(lambda x: x.kind == "late")), "over": len(cases.filtered(lambda x: x.kind == "break")),
             "review": review, "events": events, "lost": lost_rows,
-            "shift": "%s – %s" % (self._fmt12(hours_to_min(c.navitta_shift_start)), self._fmt12(hours_to_min(c.navitta_shift_end))),
+            "shift": "%s – %s" % (self._fmt12(hours_to_min(c.navitta_shift_start), self.env),
+                                  self._fmt12(hours_to_min(c.navitta_shift_end), self.env)),
             "emp_count": len(emps),
         }
 
     @staticmethod
-    def _fmt12(m):
-        from .common import fmt_time
-        return fmt_time(m)
+    def _fmt12(m, env=None):
+        return fmt_time(m, env)
 
     @api.model
     def _cron_daily_summary(self):
-        """23:45: email the branches summary PDF to the report address."""
+        """23:45: email the branches summary PDF to the report address (in the company's language: the cron runs as
+        OdooBot)."""
+        self = self.with_context(lang=self.env.company._navitta_lang())
         to = self.env.company.navitta_report_email
         if not to:
             _logger.info("Navitta daily summary: no report email set, skipping")
@@ -542,9 +547,9 @@ class NavittaApiAdmin(models.AbstractModel):
         day = self._d(self.env.context.get("navitta_day"))
         report = self.env.ref("navitta_ops.action_report_daily_summary")
         pdf, _fmt = report.sudo()._render_qweb_pdf(report.report_name, data={"day": fields.Date.to_string(day)})
-        name = "ملخص-الفروع-%s.pdf" % day
+        name = _("Branches-summary-%s.pdf", day)
         att = self.env["ir.attachment"].sudo().create({"name": name, "datas": base64.b64encode(pdf), "mimetype": "application/pdf"})
-        self.env["navitta.notification"]._send(to, _("ملخص الفروع اليومي · %s", day), _("مرفق ملخص الفروع ليوم %s.", day), attachments=att)
+        self.env["navitta.notification"]._send(to, _("Daily branches summary · %s", day), _("Attached is the branches summary for %s.", day), attachments=att)
 
     @api.model
     def _set_report_cron_time(self):

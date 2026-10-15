@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="cron_late_check" model="ir.cron">
-        <field name="name">نافيتا: كشف التأخير في الحضور</field>
+        <field name="name">Navitta: detect late check-ins</field>
         <field name="model_id" ref="model_navitta_late_case"/>
         <field name="state">code</field>
         <field name="code">model._cron_late_check()</field>
@@ -11,7 +11,7 @@
 
     <!-- 23:45 in the company time zone (set at install, see post_init_hook) -->
     <record id="cron_daily_summary" model="ir.cron">
-        <field name="name">نافيتا: ملخص الفروع اليومي بالإيميل</field>
+        <field name="name">Navitta: daily branches summary email</field>
         <field name="model_id" ref="model_navitta_api"/>
         <field name="state">code</field>
         <field name="code">model._cron_daily_summary()</field>

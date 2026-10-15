@@ -11,44 +11,44 @@ HEADERS = {"alu": "alu", "desc4": "model", "desc1": "item_no", "attr": "color", 
 
 class NavittaPinWizard(models.TransientModel):
     _name = "navitta.pin.wizard"
-    _description = "عرض الرمز السري الجديد"
+    _description = "Show the new PIN"
 
     employee_id = fields.Many2one("navitta.employee", readonly=True)
-    pin = fields.Char("الرمز", readonly=True)
+    pin = fields.Char("PIN", readonly=True)
 
 
 class NavittaAdminPasswordWizard(models.TransientModel):
     _name = "navitta.admin.password.wizard"
-    _description = "كلمة سر الإدارة لأجهزة الفروع"
+    _description = "Management password for branch devices"
 
     # not required at database level: the typed password is wiped from the wizard right after saving
-    password = fields.Char("كلمة السر الجديدة")
-    confirm = fields.Char("تأكيد كلمة السر")
+    password = fields.Char("New password")
+    confirm = fields.Char("Confirm password")
 
     def action_save(self):
         self.ensure_one()
         if not self.password:
-            raise UserError(_("اكتب كلمة السر الجديدة"))
+            raise UserError(_("Enter the new password"))
         if self.password != self.confirm:
-            raise UserError(_("كلمتا السر غير متطابقتين"))
+            raise UserError(_("The passwords do not match"))
         self.env.company._navitta_set_admin_password(self.password)
         self.write({"password": False, "confirm": False})
         return {"type": "ir.actions.client", "tag": "display_notification",
-                "params": {"message": _("تم حفظ كلمة سر الإدارة"), "type": "success", "next": {"type": "ir.actions.act_window_close"}}}
+                "params": {"message": _("Management password saved"), "type": "success", "next": {"type": "ir.actions.act_window_close"}}}
 
 
 class NavittaCatalogImportWizard(models.TransientModel):
     _name = "navitta.catalog.import.wizard"
-    _description = "رفع ملف الموديلات"
+    _description = "Upload models file"
 
-    file = fields.Binary("ملف Excel (.xlsx)", required=True)
+    file = fields.Binary("Excel file (.xlsx)", required=True)
     filename = fields.Char()
     info = fields.Char(compute="_compute_info")
 
     def _compute_info(self):
         x = self.env["navitta.catalog.item"]._info()
         for w in self:
-            w.info = _("الحالي: %(m)s موديل · %(n)s قطعة", m=x["models"], n=x["items"]) if x["items"] else _("ما فيه ملف موديلات بعد")
+            w.info = _("Current: %(m)s models · %(n)s items", m=x["models"], n=x["items"]) if x["items"] else _("No models file yet")
 
     @staticmethod
     def _cell(v):
@@ -66,12 +66,12 @@ class NavittaCatalogImportWizard(models.TransientModel):
         except Exception as e:  # noqa: BLE001 - any unreadable file gets the same message
             msg = str(e).lower()
             if any(k in msg for k in ("password", "encrypt", "zip")):
-                raise UserError(_("الملف محمي بكلمة سر. افتحه في Excel واحفظه بدون كلمة سر وارفعه مرة ثانية")) from e
-            raise UserError(_("تعذر قراءة الملف. تأكد أنه ملف Excel بصيغة xlsx")) from e
+                raise UserError(_("The file is password-protected. Open it in Excel, save it without a password and upload it again")) from e
+            raise UserError(_("Could not read the file. Make sure it is an Excel file in xlsx format")) from e
         rows = list(wb.active.iter_rows(values_only=True))
         head_i = next((i for i, r in enumerate(rows[:10]) if any(self._cell(c).lower() == "desc1" for c in r)), None)
         if head_i is None:
-            raise UserError(_("ما لقينا الأعمدة (ALU, Desc4, Desc1, Attr, Size …) في أول الملف"))
+            raise UserError(_("Could not find the columns (ALU, Desc4, Desc1, Attr, Size …) at the top of the file"))
         cols = [HEADERS.get(self._cell(c).lower()) for c in rows[head_i]]
         out = []
         for n, r in enumerate(rows[head_i + 1:], start=1):
@@ -88,7 +88,7 @@ class NavittaCatalogImportWizard(models.TransientModel):
                     o["price"] = 0.0
                 out.append(o)
         if not out:
-            raise UserError(_("الملف فاضي"))
+            raise UserError(_("The file is empty"))
         return out
 
     def action_import(self):
@@ -104,15 +104,15 @@ class NavittaCatalogImportWizard(models.TransientModel):
         for i in range(0, len(vals), 1000):
             Item.create(vals[i:i + 1000])
         return {"type": "ir.actions.client", "tag": "display_notification",
-                "params": {"message": _("تم تحديث ملف الموديلات: %s قطعة", len(by_alu)), "type": "success",
+                "params": {"message": _("Models file updated: %s items", len(by_alu)), "type": "success",
                            "next": {"type": "ir.actions.act_window_close"}}}
 
 
 class NavittaSummaryWizard(models.TransientModel):
     _name = "navitta.summary.wizard"
-    _description = "طباعة ملخص الفروع اليومي"
+    _description = "Print daily branches summary"
 
-    day = fields.Date("اليوم", required=True, default=lambda self: self._default_day())
+    day = fields.Date("Day", required=True, default=lambda self: self._default_day())
 
     @api.model
     def _default_day(self):
@@ -126,7 +126,7 @@ class NavittaSummaryWizard(models.TransientModel):
     def action_send(self):
         self.ensure_one()
         if not self.env.company.navitta_report_email:
-            raise UserError(_("حدد إيميل التقرير اليومي من الإعدادات أولًا"))
+            raise UserError(_("Set the daily report email in the settings first"))
         self.env["navitta.api"].with_context(navitta_day=fields.Date.to_string(self.day))._cron_daily_summary()
         return {"type": "ir.actions.client", "tag": "display_notification",
-                "params": {"message": _("انضاف التقرير لقائمة الإرسال"), "type": "success"}}
+                "params": {"message": _("The report was added to the sending queue"), "type": "success"}}

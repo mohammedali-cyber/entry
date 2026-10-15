@@ -1,12 +1,12 @@
 {
     "name": "Navitta Branch Operations",
-    "summary": "عدّاد الزيارات والحضور والتأخير والإجازات والمبيعات والطلبات لفروع نافيتا",
+    "summary": "Visit counter, attendance, late arrivals, leaves, sales and requests for Navitta branches",
     "description": """
 Navitta branch operations: visits counter, PIN attendance, breaks, late cases and penalties,
 leaves with cover, employee inbox, targets and sales, daily report, branch requests, supplies,
 expenses, lost sales, models file, management dashboard and a nightly PDF summary by email.
 """,
-    "version": "18.0.1.4.0",
+    "version": "18.0.1.5.0",
     "category": "Operations",
     "author": "Navitta",
     "license": "LGPL-3",

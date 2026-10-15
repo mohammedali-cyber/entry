@@ -1,13 +1,14 @@
 // Navitta screens (ported from the ops-app design). Everything is scoped under .o_navitta so Odoo's own UI is untouched.
 /*rtl:begin:ignore*/
-// The screens are written right-to-left already (dir="rtl"); stop Odoo's rtlcss from flipping them back for Arabic users.
+// The screens follow the dir attribute of the .o_navitta root (rtl for Arabic, ltr otherwise) and use logical properties
+// (start/end, inline-start/end), so rtlcss must not flip them: keep this block ignored.
 .o_navitta {
   --bg:#F3F3F4; --surface:#FFFFFF; --surface-2:#F7F7F8; --fg:#0B0B0C; --fg-2:#45474C; --fg-3:#73777E; --muted:#73777E;
   --line:#E2E3E6; --grid:#ECEDEF; --mark:#1E1E21; --mark-2:#A9ADB3; --mark-fill:#1E1E21; --track:#EEEFF1;
   --good:#1D7448; --good-bg:#E5F2EA; --warn:#8E5B00; --warn-bg:#FBF0DA; --bad:#A3242B; --bad-bg:#F8E5E6; --info:#36506E; --info-bg:#E6EDF5;
   --focus:#36506E; --sheen:linear-gradient(100deg,#8E9299 0%,#E9EBEE 35%,#A9ADB3 55%,#F4F5F6 75%,#9A9EA5 100%);
   --f-display:"El Messiri","IBM Plex Sans Arabic",system-ui,sans-serif; --f-body:"IBM Plex Sans Arabic",system-ui,sans-serif; --r:10px;
-  background: var(--bg); color: var(--fg); font-size: 14px; line-height: 1.6; height: 100%; overflow: auto; direction: rtl; text-align: right;
+  background: var(--bg); color: var(--fg); font-size: 14px; line-height: 1.6; height: 100%; overflow: auto; text-align: start;
   display: block !important;
   > .wrap { width: 100%; }
   .filters select.ctl, .filters input.ctl { width: auto; }
@@ -30,7 +31,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding-block:22px 14px}
 .brand{display:flex;flex-direction:column;gap:2px}
-.brand .nv-mark{font-family:"Cormorant Garamond",Georgia,serif;letter-spacing:.42em;font-size:12px;color:var(--muted);direction:ltr;text-align:right}
+.brand .nv-mark{font-family:"Cormorant Garamond",Georgia,serif;letter-spacing:.42em;font-size:12px;color:var(--muted);direction:ltr;text-align:left}
 .brand h1{font-family:var(--f-display);font-weight:700;font-size:28px;margin:0;line-height:1.2;text-wrap:balance}
 .sheen{height:2px;background:var(--sheen);border-radius:2px;margin-bottom:18px;opacity:.85}
 .tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px;max-width:100%;overflow-x:auto;scrollbar-width:none}
@@ -98,7 +99,7 @@ select.ctl,input.ctl,textarea.ctl{background:var(--surface);border:1px solid var
 .hrow .t span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .track{height:12px;background:var(--track);border-radius:4px;overflow:hidden;display:flex}
 .bar{height:100%;background:var(--mark);border-radius:4px;min-width:2px}
-.hrow .v{font-size:12.5px;color:var(--fg);min-width:64px;text-align:left;direction:ltr}
+.hrow .v{font-size:12.5px;color:var(--fg);min-width:64px;text-align:right;direction:ltr}
 .hrow .v em{font-style:normal;color:var(--muted);margin-inline-end:6px}
 .sw{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(127,127,127,.45)}
 
@@ -177,7 +178,7 @@ td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
 .opt input:checked+span{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .opt input:focus-visible+span{outline:2px solid var(--focus);outline-offset:2px}
 .reasons{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
-.reason{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);border-radius:8px;padding:5px 5px 5px 10px;padding-inline-start:12px;font-size:13px}
+.reason{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);border-radius:8px;padding-block:5px;padding-inline-start:12px;padding-inline-end:10px;font-size:13px}
 .reason .stepper{border:0}
 .reason .stepper input{width:40px}
 .reason .stepper button{width:30px;font-size:16px}
@@ -217,7 +218,7 @@ td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
 .req .meta{font-size:12.5px;color:var(--fg-2)}
 .req-act{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .req-act .ctl{width:210px;max-width:100%}
-.req.pending{background:linear-gradient(to left,var(--warn-bg),transparent 60%);margin-inline:-18px;padding-inline:18px}
+.req.pending{background:linear-gradient(to right,var(--warn-bg),transparent 60%);margin-inline:-18px;padding-inline:18px}
 .edit{display:flex;flex-direction:column;gap:8px;margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2)}
 .edit .mini{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);font-weight:600}
 .edit .mini input[type=number]{width:84px}
@@ -230,7 +231,7 @@ td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
 @media (max-width:520px){.shift-set{grid-template-columns:minmax(0,1fr)}}
 .shift-set label,.phones label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600;min-width:0}
 .phones{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:10px}
-.phones input{direction:ltr;text-align:right}
+.phones input{direction:ltr;text-align:left}
 details.ph summary{cursor:pointer;font-weight:600;font-size:13px;color:var(--fg-2)}
 .ntf{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-bottom:1px solid var(--grid)}
 .ntf:last-child{border-bottom:0}
@@ -353,7 +354,7 @@ a.nv-btn{text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .visit.run{border-color:var(--fg)}
 .visit.done{border-style:dashed}
 .vh{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.clock{font-size:34px;font-weight:700;line-height:1.1;direction:ltr;text-align:right}
+.clock{font-size:34px;font-weight:700;line-height:1.1;direction:ltr;text-align:left}
 .visit.run .clock::after{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--bad);margin-inline-start:8px;vertical-align:middle;animation:blink 1.2s infinite}
 @keyframes blink{50%{opacity:.25}}
 .vlabel{font-size:12.5px;color:var(--muted)}
@@ -494,7 +495,7 @@ html,
 .bars{display:flex;align-items:flex-end;gap:12px;height:240px;padding:8px 4px 0;border-bottom:1px solid var(--grid)}
 .bcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative;min-width:0;cursor:default}
 .bcol .bar{width:62%;background:#2a78d6;border-radius:4px 4px 0 0;min-height:1px}
-.bcol .tick{position:absolute;left:10%;right:10%;height:0;border-top:2.5px solid var(--fg)}
+.bcol .tick{position:absolute;inset-inline:10%;height:0;border-top:2.5px solid var(--fg)}
 .bcol .blab{font-size:12px;color:var(--muted);margin-top:6px;white-space:nowrap}
 .bcol .bpct{font-size:11.5px;font-weight:700;color:var(--fg-2);margin-bottom:4px}
 .bcol .tip{display:none;position:absolute;bottom:100%;background:var(--fg);color:var(--bg);font-size:12px;padding:6px 8px;border-radius:6px;white-space:nowrap;z-index:5}
@@ -698,5 +699,12 @@ td .m,td.m{font-size:12px;color:var(--fg-2)}
   scrollbar-width: thin !important;
   &::-webkit-scrollbar { display: block !important; width: 8px; }
   &::-webkit-scrollbar-thumb { background: #c4c6cb; border-radius: 8px; }
+}
+// Right-to-left page (Arabic): elements forced to direction:ltr (numbers, codes, the Latin brand) resolve start/end
+// against their own direction, so align them to the page's side explicitly; the pending highlight starts on the right.
+.o_navitta[dir="rtl"] {
+  .brand .nv-mark, .phones input, .clock, .log-i .d, .once-tbl .code { text-align: right; }
+  .hrow .v { text-align: left; }
+  .req.pending { background: linear-gradient(to left, var(--warn-bg), transparent 60%); }
 }
 /*rtl:end:ignore*/

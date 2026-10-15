@@ -6,7 +6,7 @@ from datetime import timedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
-from .common import EXPENSE_CATEGORIES, SUPPLIES, label
+from .common import EXPENSE_CATEGORIES, SUPPLIES, sel_label
 
 MAX_PHOTO_BYTES = 1_500_000           # photos are compressed on the device (~1280px JPEG) before upload
 PHOTO_MIMES = ("image/jpeg", "image/png", "image/webp")
@@ -15,11 +15,11 @@ PHOTO_MIMES = ("image/jpeg", "image/png", "image/webp")
 class NavittaPhoto(models.Model):
     """Receipt or item photo taken on a branch device (or on a phone through a QR code)."""
     _name = "navitta.photo"
-    _description = "صورة (إيصال أو قطعة)"
+    _description = "Photo (receipt or item)"
     _order = "id desc"
 
-    branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="restrict")
-    image = fields.Binary("الصورة", attachment=True, required=True)
+    branch_id = fields.Many2one("navitta.branch", "Branch", required=True, index=True, ondelete="restrict")
+    image = fields.Binary("Photo", attachment=True, required=True)
     mimetype = fields.Char(default="image/jpeg")
 
     @api.model
@@ -41,7 +41,7 @@ class NavittaPhoto(models.Model):
 class NavittaUploadToken(models.Model):
     """A 10-minute code shown as a QR on the branch device so an employee's phone can send one photo (no login)."""
     _name = "navitta.upload.token"
-    _description = "رمز رفع صورة من الجوال"
+    _description = "Phone photo upload code"
 
     token = fields.Char(required=True, index=True, copy=False)
     branch_id = fields.Many2one("navitta.branch", required=True, ondelete="cascade")
@@ -65,39 +65,39 @@ class NavittaUploadToken(models.Model):
 
 class NavittaBranchRequest(models.Model):
     _name = "navitta.branch.request"
-    _description = "طلب فرع (نواقص أو مستلزمات)"
+    _description = "Branch request (out-of-stock or supplies)"
     _order = "create_date desc"
     _rec_name = "model"
 
-    branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="restrict")
-    kind = fields.Selection([("goods", "نواقص بضاعة"), ("supply", "مستلزمات")], "النوع", required=True)
-    supply = fields.Selection(SUPPLIES, "المستلزم")
-    employee_id = fields.Many2one("navitta.employee", "طلبته", ondelete="set null")
-    model = fields.Char("الموديل / الصنف")
-    color = fields.Char("اللون")
-    size = fields.Char("المقاس")
-    qty = fields.Integer("الكمية", required=True, default=1)
-    reason = fields.Char("السبب")
-    note = fields.Text("ملاحظة")
-    urgent = fields.Boolean("عاجل")
-    photo_id = fields.Many2one("navitta.photo", "صورة القطعة", ondelete="set null")
-    photo = fields.Binary(related="photo_id.image", string="الصورة")
-    state = fields.Selection([("pending", "بانتظار الإدارة"), ("approved", "وافقت الإدارة"), ("shipped", "انشحن"),
-                              ("received", "وصل"), ("rejected", "مرفوض")], "الحالة", default="pending", required=True, index=True)
-    admin_note = fields.Text("ملاحظة الإدارة")
-    decided_at = fields.Datetime("وقت القرار")
-    shipped_at = fields.Datetime("وقت الشحن")
-    received_at = fields.Datetime("وقت الاستلام")
-    received_by = fields.Many2one("navitta.employee", "استلمته", ondelete="set null")
+    branch_id = fields.Many2one("navitta.branch", "Branch", required=True, index=True, ondelete="restrict")
+    kind = fields.Selection([("goods", "Out-of-stock request"), ("supply", "Supplies")], "Type", required=True)
+    supply = fields.Selection(SUPPLIES, "Supply")
+    employee_id = fields.Many2one("navitta.employee", "Requested by", ondelete="set null")
+    model = fields.Char("Model / item")
+    color = fields.Char("Color")
+    size = fields.Char("Size")
+    qty = fields.Integer("Quantity", required=True, default=1)
+    reason = fields.Char("Reason")
+    note = fields.Text("Note")
+    urgent = fields.Boolean("Urgent")
+    photo_id = fields.Many2one("navitta.photo", "Item photo", ondelete="set null")
+    photo = fields.Binary(related="photo_id.image", string="Photo")
+    state = fields.Selection([("pending", "Waiting for management"), ("approved", "Approved by management"), ("shipped", "Shipped"),
+                              ("received", "Received"), ("rejected", "Rejected")], "Status", default="pending", required=True, index=True)
+    admin_note = fields.Text("Management note")
+    decided_at = fields.Datetime("Decision time")
+    shipped_at = fields.Datetime("Shipping time")
+    received_at = fields.Datetime("Receipt time")
+    received_by = fields.Many2one("navitta.employee", "Received by", ondelete="set null")
 
-    _sql_constraints = [("qty_pos", "CHECK(qty > 0)", "الكمية لازم أكبر من صفر")]
+    _sql_constraints = [("qty_pos", "CHECK(qty > 0)", "The quantity must be greater than zero")]
 
     def _what(self):
         self.ensure_one()
         if self.kind == "goods":
             s = " · ".join(x for x in (self.model, self.color, self.size) if x)
         else:
-            s = self.model if self.supply == "other" else label(SUPPLIES, self.supply)
+            s = self.model if self.supply == "other" else sel_label(self.env, self._name, "supply", self.supply)
         return "%s × %s" % (s, self.qty)
 
     def _set_state(self, state, note=None):
@@ -110,8 +110,8 @@ class NavittaBranchRequest(models.Model):
         r.write({"state": state, "admin_note": (note or "").strip() or r.admin_note,
                  "decided_at": r.decided_at or now, "shipped_at": now if state == "shipped" else r.shipped_at})
         if r.employee_id:
-            st = {"approved": _("وافقت الإدارة"), "shipped": _("انشحن 🚚"), "rejected": _("مرفوض")}[state]
-            r.employee_id._notify(_("تحديث طلبك"), _("طلبك %(w)s: %(s)s", w=r._what(), s=st) + (" · " + note.strip() if (note or "").strip() else ""))
+            st = {"approved": _("Approved by management"), "shipped": _("Shipped 🚚"), "rejected": _("Rejected")}[state]
+            r.employee_id._notify(_("Update on your request"), _("Your request %(w)s: %(s)s", w=r._what(), s=st) + (" · " + note.strip() if (note or "").strip() else ""))
         return None
 
     def _receive(self, employee):
@@ -139,45 +139,45 @@ class NavittaBranchRequest(models.Model):
     def _button(self, state):
         for r in self:
             if r._set_state(state, r.admin_note):
-                raise UserError(_("لا يمكن تغيير حالة هذا الطلب"))
+                raise UserError(_("The status of this request cannot be changed"))
 
 
 class NavittaSupplyMove(models.Model):
     """Supply ledger: + received / − used. The balance is the sum."""
     _name = "navitta.supply.move"
-    _description = "حركة مستلزمات"
+    _description = "Supply move"
     _order = "day desc, id desc"
 
-    branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="restrict")
-    day = fields.Date("اليوم", required=True, index=True)
-    supply = fields.Selection([s for s in SUPPLIES if s[0] != "other"], "المستلزم", required=True)
-    qty = fields.Integer("الكمية", required=True)
-    kind = fields.Selection([("opening", "افتتاحي"), ("received", "مستلم"), ("used", "مستخدم"), ("adjust", "تعديل")],
-                            "الحركة", required=True)
-    request_id = fields.Many2one("navitta.branch.request", "الطلب", ondelete="set null")
+    branch_id = fields.Many2one("navitta.branch", "Branch", required=True, index=True, ondelete="restrict")
+    day = fields.Date("Day", required=True, index=True)
+    supply = fields.Selection([s for s in SUPPLIES if s[0] != "other"], "Supply", required=True)
+    qty = fields.Integer("Quantity", required=True)
+    kind = fields.Selection([("opening", "Opening balance"), ("received", "Received"), ("used", "Used"), ("adjust", "Adjustment")],
+                            "Move", required=True)
+    request_id = fields.Many2one("navitta.branch.request", "Request", ondelete="set null")
 
 
 class NavittaExpense(models.Model):
     _name = "navitta.expense"
-    _description = "مصروف فرع"
+    _description = "Branch expense"
     _order = "day desc, id desc"
     _rec_name = "details"
 
-    branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="restrict")
-    day = fields.Date("اليوم", required=True, index=True)
-    employee_id = fields.Many2one("navitta.employee", "سجلته", ondelete="set null")
-    amount = fields.Float("المبلغ", digits=(10, 2), required=True)
-    category = fields.Selection(EXPENSE_CATEGORIES, "النوع", required=True)
-    details = fields.Text("التفاصيل", required=True)
-    receipt_id = fields.Many2one("navitta.photo", "الإيصال", ondelete="set null")
-    receipt = fields.Binary(related="receipt_id.image", string="صورة الإيصال")
-    has_receipt = fields.Boolean("فيه إيصال", compute="_compute_has_receipt", store=True)
-    state = fields.Selection([("pending", "بانتظار الاعتماد"), ("approved", "معتمد"), ("rejected", "مرفوض")],
-                             "الحالة", default="pending", required=True, index=True)
-    admin_note = fields.Text("ملاحظة الإدارة")
-    decided_at = fields.Datetime("وقت القرار")
+    branch_id = fields.Many2one("navitta.branch", "Branch", required=True, index=True, ondelete="restrict")
+    day = fields.Date("Day", required=True, index=True)
+    employee_id = fields.Many2one("navitta.employee", "Recorded by", ondelete="set null")
+    amount = fields.Float("Amount", digits=(10, 2), required=True)
+    category = fields.Selection(EXPENSE_CATEGORIES, "Type", required=True)
+    details = fields.Text("Details", required=True)
+    receipt_id = fields.Many2one("navitta.photo", "Receipt", ondelete="set null")
+    receipt = fields.Binary(related="receipt_id.image", string="Receipt photo")
+    has_receipt = fields.Boolean("Has receipt", compute="_compute_has_receipt", store=True)
+    state = fields.Selection([("pending", "Waiting for approval"), ("approved", "Approved"), ("rejected", "Rejected")],
+                             "Status", default="pending", required=True, index=True)
+    admin_note = fields.Text("Management note")
+    decided_at = fields.Datetime("Decision time")
 
-    _sql_constraints = [("amount_pos", "CHECK(amount > 0)", "المبلغ لازم أكبر من صفر")]
+    _sql_constraints = [("amount_pos", "CHECK(amount > 0)", "The amount must be greater than zero")]
 
     @api.depends("receipt_id")
     def _compute_has_receipt(self):
@@ -192,17 +192,17 @@ class NavittaExpense(models.Model):
         x.write({"state": "approved" if ok else "rejected", "admin_note": (note or "").strip() or False,
                  "decided_at": fields.Datetime.now()})
         if x.employee_id:
-            x.employee_id._notify(_("اعتُمد المصروف") if ok else _("رُفض المصروف"),
-                                  "%s ر.س · %s%s" % (x.amount, label(EXPENSE_CATEGORIES, x.category),
-                                                     " · " + note.strip() if (note or "").strip() else ""))
+            x.employee_id._notify(_("Expense approved") if ok else _("Expense rejected"),
+                                  _("%(a)s SAR · %(c)s%(n)s", a=x.amount, c=sel_label(x.env, x._name, "category", x.category),
+                                    n=" · " + note.strip() if (note or "").strip() else ""))
         return None
 
     def action_approve(self):
         for x in self:
             if x._decide(True, x.admin_note):
-                raise UserError(_("هذا المصروف تم التعامل معه"))
+                raise UserError(_("This expense has already been handled"))
 
     def action_reject(self):
         for x in self:
             if x._decide(False, x.admin_note):
-                raise UserError(_("هذا المصروف تم التعامل معه"))
+                raise UserError(_("This expense has already been handled"))

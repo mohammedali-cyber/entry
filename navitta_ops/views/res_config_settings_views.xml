@@ -7,56 +7,56 @@
         <field name="inherit_id" ref="base.res_config_settings_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
-                <app data-string="فروع نافيتا" string="فروع نافيتا" name="navitta_ops" groups="navitta_ops.group_navitta_admin">
-                    <block title="الدوام والقواعد" name="navitta_shift">
-                        <setting string="الدوام" help="بداية ونهاية الدوام بتوقيت الفروع">
+                <app data-string="Navitta Branches" string="Navitta Branches" name="navitta_ops" groups="navitta_ops.group_navitta_admin">
+                    <block title="Shift &amp; rules" name="navitta_shift">
+                        <setting string="Shift" help="Shift start and end, in the branches' local time">
                             <div class="d-flex gap-2 align-items-center">
-                                <field name="navitta_shift_start" widget="float_time" class="w-25"/> <span>إلى</span>
+                                <field name="navitta_shift_start" widget="float_time" class="w-25"/> <span>to</span>
                                 <field name="navitta_shift_end" widget="float_time" class="w-25"/>
                             </div>
                             <field name="navitta_tz"/>
                         </setting>
-                        <setting string="مهلة الحضور" help="بعدها يُحتسب التأخير من بداية الدوام">
-                            <field name="navitta_grace"/> <span>دقيقة</span>
+                        <setting string="Check-in grace period" help="After it, lateness counts from the start of the shift">
+                            <field name="navitta_grace"/> <span>min</span>
                         </setting>
-                        <setting string="الاستراحة اليومية" help="بدون مهلة، وتجاوزها يدخل نظام التأخير">
-                            <field name="navitta_break_max"/> <span>دقيقة</span>
+                        <setting string="Daily break" help="No grace period; exceeding it falls under the lateness rules">
+                            <field name="navitta_break_max"/> <span>min</span>
                         </setting>
-                        <setting string="فرص المسامحة شهريًا" help="مشتركة بين تأخير الحضور وتجاوز الاستراحة">
+                        <setting string="Grace chances per month" help="Shared between late check-ins and break overruns">
                             <field name="navitta_chances"/>
                         </setting>
                     </block>
-                    <block title="الإيميل والتقارير" name="navitta_mail">
-                        <setting string="إيميل الإدارة" help="يوصله ملخص الفروع كل ليلة 11:45 م، وتنبيهات الطلبات والمصروفات. الإرسال يحتاج خادم بريد صادر في إعدادات Odoo.">
+                    <block title="Email &amp; reports" name="navitta_mail">
+                        <setting string="Management email" help="Receives the branches summary every night at 11:45 PM, plus request and expense alerts. Sending requires an outgoing mail server in the Odoo settings.">
                             <field name="navitta_report_email" widget="email"/>
                         </setting>
-                        <setting string="ضريبة القيمة المضافة" help="لحساب الضريبة والصافي في تقارير المبيعات (المبيعات تُسجَّل شاملة الضريبة)">
+                        <setting string="VAT" help="Used to compute VAT and net in sales reports (sales are recorded including VAT)">
                             <field name="navitta_vat_rate"/> <span>%</span>
                         </setting>
                     </block>
-                    <block title="أجهزة الفروع" name="navitta_devices">
-                        <setting string="صورة مع البصمة في الآيباد" help="لحظة كتابة الرمز للحضور أو الانصراف يصوّر الآيباد الموظفة بالكاميرا الأمامية، وتقارن الإدارة الصورة بصورتها المرجعية. إذا رفض الآيباد الكاميرا تنسجل البصمة وتنعلّم «بدون صورة».">
+                    <block title="Branch devices" name="navitta_devices">
+                        <setting string="Photo with iPad punch" help="When the employee enters her PIN to check in or out, the iPad takes her photo with the front camera, and Management compares it with her reference photo. If the iPad blocks the camera, the punch is still recorded and marked &quot;No photo&quot;.">
                             <field name="navitta_checkin_photo"/>
                         </setting>
-                        <setting string="عدّ العهدة ومهام الإغلاق" help="أول موظفة تحضر تعدّ العهدة بالفئات قبل فتح العدّاد. وكل موظفة ما تظهر لها بصمة الانصراف قبل ما تقفل زياراتها ويُرسل التقرير اليومي وتعدّ كاش الإغلاق. أي فرق في المبلغ يوصل الإدارة بالإيميل.">
+                        <setting string="Opening cash count and closing tasks" help="The first employee to check in counts the cash float by denomination before the visit counter opens. Each employee only gets the check-out punch after she closes her visits, the daily report is sent and she counts the closing cash. Any difference in the amount is emailed to Management.">
                             <field name="navitta_cash_tasks"/>
-                            <div class="mt-2"><button name="%(navitta_ops.action_cash_counts)d" type="action" string="سجل عدّ العهدة" class="btn-link" icon="fa-money"/></div>
+                            <div class="mt-2"><button name="%(navitta_ops.action_cash_counts)d" type="action" string="Cash count log" class="btn-link" icon="fa-money"/></div>
                         </setting>
-                        <setting string="أجهزة البصمة (ZKTeco)" help="أجهزة بصمة حقيقية ترسل الحضور إلى النظام مباشرة عبر الإنترنت، بخاصية «الخادم السحابي» في الجهاز.">
-                            <button name="%(navitta_ops.action_devices)d" type="action" string="أجهزة البصمة" class="btn-link" icon="fa-hand-pointer-o"/>
+                        <setting string="Fingerprint devices (ZKTeco)" help="Physical fingerprint devices that send attendance straight to the system over the internet, using the device's &quot;Cloud Server&quot; feature.">
+                            <button name="%(navitta_ops.action_devices)d" type="action" string="Fingerprint devices" class="btn-link" icon="fa-hand-pointer-o"/>
                         </setting>
-                        <setting string="كلمة سر الإدارة" help="تُطلب في جهاز الفرع لتعديل التارقت ولإلغاء انصراف سجلته موظفة بالغلط">
+                        <setting string="Management password" help="Required on the branch device to change the target and to cancel a check-out an employee recorded by mistake">
                             <div>
-                                <span invisible="not navitta_admin_pw_set" class="badge text-bg-success">🔒 محددة</span>
-                                <span invisible="navitta_admin_pw_set" class="badge text-bg-warning">لم تُحدد بعد</span>
+                                <span invisible="not navitta_admin_pw_set" class="badge text-bg-success">🔒 Set</span>
+                                <span invisible="navitta_admin_pw_set" class="badge text-bg-warning">Not set yet</span>
                             </div>
-                            <button name="action_navitta_admin_password" type="object" string="تعيين كلمة السر" class="btn-link" icon="fa-key"/>
+                            <button name="action_navitta_admin_password" type="object" string="Set password" class="btn-link" icon="fa-key"/>
                         </setting>
-                        <setting string="الحد الأدنى للمستلزمات" help="تحت هذا الرقم يطلع تنبيه عند الفرع والإدارة">
+                        <setting string="Minimum supplies" help="Below this number, an alert shows for the branch and Management">
                             <div class="d-flex flex-wrap gap-2">
-                                <span>🧾 رول فاتورة</span><field name="navitta_min_roll_invoice" class="w-25"/>
-                                <span>💳 رول شبكة</span><field name="navitta_min_roll_card" class="w-25"/>
-                                <span>🛍️ أكياس</span><field name="navitta_min_bags" class="w-25"/>
+                                <span>🧾 Receipt roll</span><field name="navitta_min_roll_invoice" class="w-25"/>
+                                <span>💳 Card roll</span><field name="navitta_min_roll_card" class="w-25"/>
+                                <span>🛍️ Bags</span><field name="navitta_min_bags" class="w-25"/>
                             </div>
                         </setting>
                     </block>
@@ -66,7 +66,7 @@
     </record>
 
     <record id="action_navitta_settings" model="ir.actions.act_window">
-        <field name="name">الإعدادات</field>
+        <field name="name">Settings</field>
         <field name="res_model">res.config.settings</field>
         <field name="view_mode">form</field>
         <field name="target">inline</field>

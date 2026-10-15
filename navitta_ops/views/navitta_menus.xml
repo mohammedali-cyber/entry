@@ -1,48 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <menuitem id="menu_root" name="فروع نافيتا" web_icon="navitta_ops,static/description/icon.png" sequence="30"
+    <menuitem id="menu_root" name="Navitta Branches" web_icon="navitta_ops,static/description/icon.png" sequence="30"
               groups="group_navitta_branch,group_navitta_admin"/>
 
-    <menuitem id="menu_branch_app" name="شاشة الفرع" parent="menu_root" action="action_branch_app" sequence="10" groups="group_navitta_branch,group_navitta_admin"/>
+    <menuitem id="menu_branch_app" name="Branch screen" parent="menu_root" action="action_branch_app" sequence="10" groups="group_navitta_branch,group_navitta_admin"/>
 
-    <menuitem id="menu_admin_dashboard" name="لوحة الإدارة" parent="menu_root" action="action_admin_dashboard" sequence="2" groups="group_navitta_admin"/>
-    <menuitem id="menu_admin_sales" name="المبيعات والتارقت" parent="menu_root" action="action_admin_sales" sequence="3" groups="group_navitta_admin"/>
-    <menuitem id="menu_admin_requests" name="طلبات الفروع" parent="menu_root" action="action_admin_requests" sequence="4" groups="group_navitta_admin"/>
-    <menuitem id="menu_admin_lost" name="المبيعات الضائعة" parent="menu_root" action="action_admin_lost" sequence="5" groups="group_navitta_admin"/>
-    <menuitem id="menu_admin_day" name="سجل الأيام" parent="menu_root" action="action_admin_day" sequence="6" groups="group_navitta_admin"/>
+    <menuitem id="menu_admin_dashboard" name="Dashboard" parent="menu_root" action="action_admin_dashboard" sequence="2" groups="group_navitta_admin"/>
+    <menuitem id="menu_admin_sales" name="Sales &amp; target" parent="menu_root" action="action_admin_sales" sequence="3" groups="group_navitta_admin"/>
+    <menuitem id="menu_admin_requests" name="Branch requests" parent="menu_root" action="action_admin_requests" sequence="4" groups="group_navitta_admin"/>
+    <menuitem id="menu_admin_lost" name="Lost sales" parent="menu_root" action="action_admin_lost" sequence="5" groups="group_navitta_admin"/>
+    <menuitem id="menu_admin_day" name="Daily log" parent="menu_root" action="action_admin_day" sequence="6" groups="group_navitta_admin"/>
 
-    <menuitem id="menu_records" name="السجلات" parent="menu_root" sequence="20" groups="group_navitta_admin">
-        <menuitem id="menu_rec_late" name="التأخير والعقوبات" action="action_late_cases" sequence="1"/>
-        <menuitem id="menu_rec_attendance" name="الحضور والانصراف (مع الصور)" action="action_attendance" sequence="2"/>
-        <menuitem id="menu_rec_punches" name="سجل جهاز البصمة" action="action_device_punches" sequence="2"/>
-        <menuitem id="menu_rec_breaks" name="الاستراحات" action="action_breaks" sequence="3"/>
-        <menuitem id="menu_rec_visits" name="زيارات العميلات" action="action_visits" sequence="4"/>
-        <menuitem id="menu_rec_visit_edits" name="طلبات تعديل مدة الزيارة" action="action_visit_edits" sequence="5"/>
-        <menuitem id="menu_rec_leave_requests" name="طلبات الإجازة" action="action_leave_requests" sequence="6"/>
-        <menuitem id="menu_rec_leaves" name="الإجازات" action="action_leaves" sequence="7"/>
-        <menuitem id="menu_rec_deferred" name="أوفات مؤجلة" action="action_deferred" sequence="8"/>
-        <menuitem id="menu_rec_threads" name="رسائل الموظفات" action="action_threads" sequence="9"/>
-        <menuitem id="menu_rec_reports" name="التقارير اليومية" action="action_daily_reports" sequence="10"/>
-        <menuitem id="menu_rec_sales" name="التارقت والمبيعات اليومية" action="action_daily_sales" sequence="11"/>
-        <menuitem id="menu_rec_emp_sales" name="مبيعات الموظفات" action="action_employee_sales" sequence="12"/>
-        <menuitem id="menu_rec_cash" name="عدّ العهدة والكاش" action="action_cash_counts" sequence="12"/>
-        <menuitem id="menu_rec_target_log" name="سجل تعديل التارقت" action="action_target_log" sequence="13"/>
-        <menuitem id="menu_rec_requests" name="سجل طلبات الفروع" action="action_branch_requests" sequence="14"/>
-        <menuitem id="menu_rec_expenses" name="المصروفات" action="action_expenses" sequence="15"/>
-        <menuitem id="menu_rec_supply" name="حركة المستلزمات" action="action_supply_moves" sequence="16"/>
-        <menuitem id="menu_rec_lost" name="سجل المبيعات الضائعة" action="action_lost_sales" sequence="17"/>
-        <menuitem id="menu_rec_notif" name="الإشعارات بالإيميل" action="action_notifications" sequence="18"/>
+    <menuitem id="menu_records" name="Records" parent="menu_root" sequence="20" groups="group_navitta_admin">
+        <menuitem id="menu_rec_late" name="Lateness &amp; penalties" action="action_late_cases" sequence="1"/>
+        <menuitem id="menu_rec_attendance" name="Attendance (with photos)" action="action_attendance" sequence="2"/>
+        <menuitem id="menu_rec_punches" name="Fingerprint device log" action="action_device_punches" sequence="2"/>
+        <menuitem id="menu_rec_breaks" name="Breaks" action="action_breaks" sequence="3"/>
+        <menuitem id="menu_rec_visits" name="Customer visits" action="action_visits" sequence="4"/>
+        <menuitem id="menu_rec_visit_edits" name="Visit duration change requests" action="action_visit_edits" sequence="5"/>
+        <menuitem id="menu_rec_leave_requests" name="Leave requests" action="action_leave_requests" sequence="6"/>
+        <menuitem id="menu_rec_leaves" name="Leaves" action="action_leaves" sequence="7"/>
+        <menuitem id="menu_rec_deferred" name="Postponed days off" action="action_deferred" sequence="8"/>
+        <menuitem id="menu_rec_threads" name="Employee messages" action="action_threads" sequence="9"/>
+        <menuitem id="menu_rec_reports" name="Daily reports" action="action_daily_reports" sequence="10"/>
+        <menuitem id="menu_rec_sales" name="Daily target &amp; sales" action="action_daily_sales" sequence="11"/>
+        <menuitem id="menu_rec_emp_sales" name="Employee sales" action="action_employee_sales" sequence="12"/>
+        <menuitem id="menu_rec_cash" name="Cash float &amp; cash counts" action="action_cash_counts" sequence="12"/>
+        <menuitem id="menu_rec_target_log" name="Target change log" action="action_target_log" sequence="13"/>
+        <menuitem id="menu_rec_requests" name="Branch request log" action="action_branch_requests" sequence="14"/>
+        <menuitem id="menu_rec_expenses" name="Expenses" action="action_expenses" sequence="15"/>
+        <menuitem id="menu_rec_supply" name="Supply moves" action="action_supply_moves" sequence="16"/>
+        <menuitem id="menu_rec_lost" name="Lost sales log" action="action_lost_sales" sequence="17"/>
+        <menuitem id="menu_rec_notif" name="Email notifications" action="action_notifications" sequence="18"/>
     </menuitem>
 
-    <menuitem id="menu_config" name="الإعدادات" parent="menu_root" sequence="30" groups="group_navitta_admin">
-        <menuitem id="menu_cfg_settings" name="الإعدادات العامة" action="action_navitta_settings" sequence="1"/>
-        <menuitem id="menu_cfg_branches" name="الفروع" action="action_branches" sequence="2"/>
-        <menuitem id="menu_cfg_employees" name="الموظفات والرموز السرية" action="action_employees" sequence="3"/>
-        <menuitem id="menu_cfg_users" name="حسابات أجهزة الفروع" action="action_branch_users" sequence="4"/>
-        <menuitem id="menu_cfg_devices" name="أجهزة البصمة" action="action_devices" sequence="4"/>
-        <menuitem id="menu_cfg_penalty" name="جدول المخالفات" action="action_penalty_tiers" sequence="5"/>
-        <menuitem id="menu_cfg_catalog" name="ملف الموديلات" action="action_catalog" sequence="6"/>
-        <menuitem id="menu_cfg_catalog_import" name="رفع ملف الموديلات" action="action_catalog_import" sequence="7"/>
-        <menuitem id="menu_cfg_summary" name="ملخص الفروع اليومي (PDF)" action="action_summary_wizard" sequence="8"/>
+    <menuitem id="menu_config" name="Settings" parent="menu_root" sequence="30" groups="group_navitta_admin">
+        <menuitem id="menu_cfg_settings" name="General settings" action="action_navitta_settings" sequence="1"/>
+        <menuitem id="menu_cfg_branches" name="Branches" action="action_branches" sequence="2"/>
+        <menuitem id="menu_cfg_employees" name="Employees &amp; PINs" action="action_employees" sequence="3"/>
+        <menuitem id="menu_cfg_users" name="Branch device accounts" action="action_branch_users" sequence="4"/>
+        <menuitem id="menu_cfg_devices" name="Fingerprint devices" action="action_devices" sequence="4"/>
+        <menuitem id="menu_cfg_penalty" name="Penalty table" action="action_penalty_tiers" sequence="5"/>
+        <menuitem id="menu_cfg_catalog" name="Models file" action="action_catalog" sequence="6"/>
+        <menuitem id="menu_cfg_catalog_import" name="Upload models file" action="action_catalog_import" sequence="7"/>
+        <menuitem id="menu_cfg_summary" name="Daily branches summary (PDF)" action="action_summary_wizard" sequence="8"/>
     </menuitem>
 </odoo>

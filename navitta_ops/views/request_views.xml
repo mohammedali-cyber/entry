@@ -5,7 +5,7 @@
         <field name="model">navitta.branch.request</field>
         <field name="arch" type="xml">
             <list create="0" decoration-warning="state == 'pending'" decoration-info="state in ('approved', 'shipped')" decoration-muted="state in ('received', 'rejected')">
-                <field name="create_date" string="الوقت"/>
+                <field name="create_date" string="Time"/>
                 <field name="branch_id"/>
                 <field name="kind"/>
                 <field name="supply"/>
@@ -16,8 +16,8 @@
                 <field name="urgent"/>
                 <field name="employee_id"/>
                 <field name="state"/>
-                <button name="action_approve" type="object" string="موافقة" icon="fa-check" invisible="state != 'pending'"/>
-                <button name="action_ship" type="object" string="انشحن" icon="fa-truck" invisible="state not in ('pending', 'approved')"/>
+                <button name="action_approve" type="object" string="Approve" icon="fa-check" invisible="state != 'pending'"/>
+                <button name="action_ship" type="object" string="Shipped" icon="fa-truck" invisible="state not in ('pending', 'approved')"/>
             </list>
         </field>
     </record>
@@ -27,9 +27,9 @@
         <field name="arch" type="xml">
             <form create="0">
                 <header>
-                    <button name="action_approve" type="object" string="موافقة" class="btn-primary" invisible="state != 'pending'"/>
-                    <button name="action_ship" type="object" string="انشحن 🚚" invisible="state not in ('pending', 'approved')"/>
-                    <button name="action_reject" type="object" string="رفض" invisible="state in ('received', 'rejected')"/>
+                    <button name="action_approve" type="object" string="Approve" class="btn-primary" invisible="state != 'pending'"/>
+                    <button name="action_ship" type="object" string="Shipped 🚚" invisible="state not in ('pending', 'approved')"/>
+                    <button name="action_reject" type="object" string="Reject" invisible="state in ('received', 'rejected')"/>
                     <field name="state" widget="statusbar" statusbar_visible="pending,approved,shipped,received"/>
                 </header>
                 <sheet>
@@ -41,7 +41,7 @@
                     </group>
                     <field name="photo" widget="image" readonly="1" invisible="not photo_id" options="{'size': [0, 320]}"/>
                     <field name="photo_id" invisible="1"/>
-                    <group><field name="admin_note" placeholder="ملاحظة للفرع (تُرسل مع التحديث)"/></group>
+                    <group><field name="admin_note" placeholder="Note to the branch (sent with the update)"/></group>
                 </sheet>
             </form>
         </field>
@@ -53,15 +53,15 @@
             <search>
                 <field name="model"/>
                 <field name="branch_id"/>
-                <filter name="open" string="تحتاج متابعة" domain="[('state', 'in', ('pending', 'approved', 'shipped'))]"/>
-                <filter name="goods" string="نواقص بضاعة" domain="[('kind', '=', 'goods')]"/>
-                <filter name="supply" string="مستلزمات" domain="[('kind', '=', 'supply')]"/>
-                <group><filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/></group>
+                <filter name="open" string="Needs follow-up" domain="[('state', 'in', ('pending', 'approved', 'shipped'))]"/>
+                <filter name="goods" string="Out-of-stock request" domain="[('kind', '=', 'goods')]"/>
+                <filter name="supply" string="Supplies" domain="[('kind', '=', 'supply')]"/>
+                <group><filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/></group>
             </search>
         </field>
     </record>
     <record id="action_branch_requests" model="ir.actions.act_window">
-        <field name="name">سجل طلبات الفروع</field>
+        <field name="name">Branch request log</field>
         <field name="res_model">navitta.branch.request</field>
         <field name="view_mode">list,form</field>
     </record>
@@ -75,7 +75,7 @@
                 <field name="branch_id"/>
                 <field name="supply"/>
                 <field name="kind"/>
-                <field name="qty" sum="الرصيد"/>
+                <field name="qty" sum="Balance"/>
                 <field name="request_id" readonly="1"/>
             </list>
         </field>
@@ -87,18 +87,18 @@
             <search>
                 <field name="branch_id"/>
                 <group>
-                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
-                    <filter name="g_supply" string="المستلزم" context="{'group_by': 'supply'}"/>
+                    <filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_supply" string="Supply item" context="{'group_by': 'supply'}"/>
                 </group>
             </search>
         </field>
     </record>
     <record id="action_supply_moves" model="ir.actions.act_window">
-        <field name="name">حركة المستلزمات</field>
+        <field name="name">Supply moves</field>
         <field name="res_model">navitta.supply.move</field>
         <field name="view_mode">list</field>
         <field name="context">{'search_default_g_branch': 1, 'search_default_g_supply': 1}</field>
-        <field name="help" type="html"><p>الرصيد = مجموع الحركات. لتسجيل رصيد البداية أضف حركة «افتتاحي».</p></field>
+        <field name="help" type="html"><p>Balance = sum of the moves. To record the starting balance, add an "Opening" move.</p></field>
     </record>
 
     <record id="view_expense_list" model="ir.ui.view">
@@ -111,11 +111,11 @@
                 <field name="category"/>
                 <field name="details"/>
                 <field name="employee_id"/>
-                <field name="amount" sum="الإجمالي"/>
+                <field name="amount" sum="Total"/>
                 <field name="has_receipt"/>
                 <field name="state"/>
-                <button name="action_approve" type="object" string="اعتماد" icon="fa-check" invisible="state != 'pending'"/>
-                <button name="action_reject" type="object" string="رفض" icon="fa-times" invisible="state != 'pending'"/>
+                <button name="action_approve" type="object" string="Validate" icon="fa-check" invisible="state != 'pending'"/>
+                <button name="action_reject" type="object" string="Reject" icon="fa-times" invisible="state != 'pending'"/>
             </list>
         </field>
     </record>
@@ -125,8 +125,8 @@
         <field name="arch" type="xml">
             <form create="0">
                 <header>
-                    <button name="action_approve" type="object" string="اعتماد" class="btn-primary" invisible="state != 'pending'"/>
-                    <button name="action_reject" type="object" string="رفض" invisible="state != 'pending'"/>
+                    <button name="action_approve" type="object" string="Validate" class="btn-primary" invisible="state != 'pending'"/>
+                    <button name="action_reject" type="object" string="Reject" invisible="state != 'pending'"/>
                     <field name="state" widget="statusbar"/>
                 </header>
                 <sheet>
@@ -136,8 +136,8 @@
                     </group>
                     <field name="receipt" widget="image" readonly="1" invisible="not receipt_id" options="{'size': [0, 420]}"/>
                     <field name="receipt_id" invisible="1"/>
-                    <div invisible="receipt_id" class="alert alert-warning" role="status">⚠️ بدون إيصال</div>
-                    <group><field name="admin_note" placeholder="ملاحظة للموظفة"/></group>
+                    <div invisible="receipt_id" class="alert alert-warning" role="status">⚠️ No receipt</div>
+                    <group><field name="admin_note" placeholder="Note to the employee"/></group>
                 </sheet>
             </form>
         </field>
@@ -148,13 +148,13 @@
         <field name="arch" type="xml">
             <search>
                 <field name="branch_id"/>
-                <filter name="pending" string="بانتظار اعتمادي" domain="[('state', '=', 'pending')]"/>
-                <filter name="no_receipt" string="بدون إيصال" domain="[('has_receipt', '=', False)]"/>
-                <filter name="f_day" string="اليوم" date="day"/>
+                <filter name="pending" string="Awaiting my validation" domain="[('state', '=', 'pending')]"/>
+                <filter name="no_receipt" string="No receipt" domain="[('has_receipt', '=', False)]"/>
+                <filter name="f_day" string="Day" date="day"/>
                 <group>
-                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
-                    <filter name="g_cat" string="النوع" context="{'group_by': 'category'}"/>
-                    <filter name="g_month" string="الشهر" context="{'group_by': 'day:month'}"/>
+                    <filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_cat" string="Type" context="{'group_by': 'category'}"/>
+                    <filter name="g_month" string="Month" context="{'group_by': 'day:month'}"/>
                 </group>
             </search>
         </field>
@@ -163,7 +163,7 @@
         <field name="name">navitta.expense.pivot</field>
         <field name="model">navitta.expense</field>
         <field name="arch" type="xml">
-            <pivot string="المصروفات">
+            <pivot string="Expenses">
                 <field name="category" type="row"/>
                 <field name="branch_id" type="col"/>
                 <field name="amount" type="measure"/>
@@ -171,7 +171,7 @@
         </field>
     </record>
     <record id="action_expenses" model="ir.actions.act_window">
-        <field name="name">المصروفات</field>
+        <field name="name">Expenses</field>
         <field name="res_model">navitta.expense</field>
         <field name="view_mode">list,pivot,form</field>
     </record>

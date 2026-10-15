@@ -7,25 +7,25 @@
         <field name="inherit_id" ref="navitta_ops.view_branch_form"/>
         <field name="arch" type="xml">
             <xpath expr="//page[@name='devices']" position="before">
-                <page string="نقطة البيع" name="pos">
+                <page string="Point of Sale" name="pos">
                     <div class="d-flex gap-2 mb-2">
-                        <button name="action_link_cashiers" type="object" string="ربط الموظفات بحسابات الكاشير" class="btn-primary"
-                                help="لكل موظفة بدون حساب كاشير: يربطها بموظف Odoo بنفس الاسم أو ينشئ واحد، ويحدّث قائمة كاشيرات نقاط بيع الفرع"/>
-                        <button name="action_pos_sync_month" type="object" string="مزامنة المبيعات (آخر 60 يوم)" class="btn-secondary"/>
+                        <button name="action_link_cashiers" type="object" string="Link employees to cashier accounts" class="btn-primary"
+                                help="For each employee without a cashier account: links her to the Odoo employee with the same name (or creates one) and updates the cashier list of the branch's points of sale"/>
+                        <button name="action_pos_sync_month" type="object" string="Sync sales (last 60 days)" class="btn-secondary"/>
                     </div>
                     <field name="pos_config_ids" context="{'default_navitta_branch_id': id}">
                         <list create="0"><field name="name"/><field name="navitta_session_label"/></list>
                     </field>
                     <group><field name="pos_last_sync"/></group>
                     <div class="text-muted">
-                        مبيعات الفرع وضريبتها ونقديتها ومبيعات كل موظفة تنحسب من فواتير نقاط البيع هذه (المدفوعة)، كل 10 دقائق وعند إغلاق الجلسة.
-                        لربط نقطة بيع: افتحها من «نقطة البيع ← الإعدادات ← نقاط البيع» واختر «فرع نافيتا».
-                        مبيعات كل موظفة بحساب الكاشير اللي باعت به (Change Cashier)، والمبيعات بدون كاشير تظهر «الحساب العام».
+                        The branch's sales, VAT, cash and each employee's sales are computed from the (paid) orders of these points of sale, every 10 minutes and when a session is closed.
+                        To link a point of sale: open it from "Point of Sale → Configuration → Point of Sales" and choose the "Navitta branch".
+                        Each employee's sales are counted by the cashier account she sold with (Change Cashier); sales without a cashier show as "Shared account".
                     </div>
                 </page>
             </xpath>
             <xpath expr="//field[@name='employee_ids']/list/field[@name='device_user_id']" position="after">
-                <field name="hr_employee_id" string="حساب الكاشير"/>
+                <field name="hr_employee_id" string="Cashier account"/>
             </xpath>
         </field>
     </record>
@@ -47,7 +47,7 @@
         <field name="inherit_id" ref="navitta_ops.view_employee_list"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='device_user_id']" position="after">
-                <field name="hr_employee_id" optional="show" string="حساب الكاشير"/>
+                <field name="hr_employee_id" optional="show" string="Cashier account"/>
             </xpath>
         </field>
     </record>

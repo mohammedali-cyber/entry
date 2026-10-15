@@ -1,12 +1,12 @@
 {
     "name": "Navitta Branch Operations - Point of Sale",
-    "summary": "ربط فروع نافيتا بنقطة البيع: المبيعات والضريبة والنقدية ومبيعات كل كاشير من الفواتير الفعلية",
+    "summary": "Link Navitta branches to the Point of Sale: sales, VAT, cash and each cashier's sales from the actual orders",
     "description": """
 Links each Navitta branch to its Odoo point(s) of sale and each employee to her cashier (pos_hr employee):
 sales, tax, invoices, items, returns, cash/card and each cashier's sales come from the paid POS orders;
 the cashier list of a branch's point of sale shows that branch's employees; who opened the register and when.
 """,
-    "version": "18.0.1.0.2",
+    "version": "18.0.1.1.0",
     "category": "Sales/Point of Sale",
     "author": "Navitta",
     "license": "LGPL-3",

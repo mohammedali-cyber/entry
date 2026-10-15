@@ -35,17 +35,17 @@
                             <span class="text-muted"><field name="day"/></span>
                         </div>
                         <div class="text-muted small"><field name="branch_id"/>
-                            <span t-if="record.no_photo.raw_value" class="badge text-bg-warning ms-1">بدون صورة</span></div>
+                            <span t-if="record.no_photo.raw_value" class="badge text-bg-warning ms-1">No photo</span></div>
                         <div class="row g-2 mt-1 text-center small">
                             <div class="col-4">
                                 <field name="ref_image" widget="image" options="{'size': [84, 84]}"/>
-                                <div class="text-muted">المرجعية</div>
+                                <div class="text-muted">Reference</div>
                             </div>
                             <div class="col-4">
                                 <field name="in_image" widget="image" options="{'size': [84, 84]}" invisible="not in_photo_id"/>
                                 <div t-if="!record.in_photo_id.raw_value" class="border rounded d-flex align-items-center justify-content-center text-muted" style="height:84px">
                                     <t t-if="record.in_source.raw_value === 'device'">🖐️</t><t t-else="">—</t></div>
-                                <div class="fw-bold">حضور</div>
+                                <div class="fw-bold">Check-in</div>
                                 <div><field name="check_in"/></div>
                                 <div class="text-muted"><field name="in_source"/></div>
                             </div>
@@ -54,11 +54,11 @@
                                     <field name="out_image" widget="image" options="{'size': [84, 84]}" invisible="not out_photo_id"/>
                                     <div t-if="!record.out_photo_id.raw_value" class="border rounded d-flex align-items-center justify-content-center text-muted" style="height:84px">
                                         <t t-if="record.out_source.raw_value === 'device'">🖐️</t><t t-else="">—</t></div>
-                                    <div class="fw-bold">انصراف</div>
+                                    <div class="fw-bold">Check-out</div>
                                     <div><field name="check_out"/></div>
                                     <div class="text-muted"><field name="out_source"/></div>
                                 </t>
-                                <div t-else="" class="text-muted pt-4">لم تسجل انصراف</div>
+                                <div t-else="" class="text-muted pt-4">No check-out</div>
                             </div>
                         </div>
                     </t>
@@ -72,7 +72,7 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_use_as_reference" type="object" string="اعتماد صورة الحضور كصورة مرجعية"
+                    <button name="action_use_as_reference" type="object" string="Use check-in photo as reference photo"
                             invisible="not in_photo_id" groups="navitta_ops.group_navitta_admin"/>
                 </header>
                 <sheet>
@@ -95,12 +95,12 @@
                     <field name="in_photo_id" invisible="1"/>
                     <field name="out_photo_id" invisible="1"/>
                     <div class="d-flex flex-wrap gap-4 mt-3">
-                        <div class="text-center"><div class="fw-bold mb-1">الصورة المرجعية</div>
+                        <div class="text-center"><div class="fw-bold mb-1">Reference photo</div>
                             <field name="ref_image" widget="image" options="{'size': [220, 220]}" readonly="1"/></div>
-                        <div class="text-center"><div class="fw-bold mb-1">صورة الحضور</div>
+                        <div class="text-center"><div class="fw-bold mb-1">Check-in photo</div>
                             <field name="in_image" widget="image" options="{'size': [220, 220]}" readonly="1"/>
-                            <div invisible="in_photo_id or in_source != 'ipad'" class="text-warning">بدون صورة</div></div>
-                        <div class="text-center"><div class="fw-bold mb-1">صورة الانصراف</div>
+                            <div invisible="in_photo_id or in_source != 'ipad'" class="text-warning">No photo</div></div>
+                        <div class="text-center"><div class="fw-bold mb-1">Check-out photo</div>
                             <field name="out_image" widget="image" options="{'size': [220, 220]}" readonly="1"/></div>
                     </div>
                 </sheet>
@@ -114,23 +114,23 @@
             <search>
                 <field name="employee_id"/>
                 <field name="branch_id"/>
-                <filter name="today" string="اليوم" domain="[('day', '=', context_today().strftime('%Y-%m-%d'))]"/>
-                <filter name="no_out" string="لم تسجل انصراف" domain="[('check_out', '=', False)]"/>
-                <filter name="no_photo" string="بدون صورة" domain="[('no_photo', '=', True)]"/>
-                <filter name="from_device" string="من جهاز البصمة" domain="['|', ('in_source', '=', 'device'), ('out_source', '=', 'device')]"/>
-                <filter name="f_day" string="اليوم" date="day"/>
+                <filter name="today" string="Today" domain="[('day', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="no_out" string="No check-out" domain="[('check_out', '=', False)]"/>
+                <filter name="no_photo" string="No photo" domain="[('no_photo', '=', True)]"/>
+                <filter name="from_device" string="From fingerprint device" domain="['|', ('in_source', '=', 'device'), ('out_source', '=', 'device')]"/>
+                <filter name="f_day" string="Today" date="day"/>
                 <group>
-                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
-                    <filter name="g_emp" string="الموظفة" context="{'group_by': 'employee_id'}"/>
+                    <filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_emp" string="Employee" context="{'group_by': 'employee_id'}"/>
                 </group>
             </search>
         </field>
     </record>
     <record id="action_attendance" model="ir.actions.act_window">
-        <field name="name">الحضور والانصراف</field>
+        <field name="name">Attendance</field>
         <field name="res_model">navitta.attendance</field>
         <field name="view_mode">kanban,list,form</field>
-        <field name="help" type="html"><p>كل بطاقة: الصورة المرجعية للموظفة جنب صورة حضورها وانصرافها، للمقارنة السريعة.</p></field>
+        <field name="help" type="html"><p>Each card shows the employee's reference photo next to her check-in and check-out photos for quick comparison.</p></field>
     </record>
 
     <!-- breaks -->
@@ -144,7 +144,7 @@
                 <field name="employee_id"/>
                 <field name="started_at"/>
                 <field name="ended_at"/>
-                <field name="duration_min" sum="الإجمالي"/>
+                <field name="duration_min" sum="Total"/>
             </list>
         </field>
     </record>
@@ -155,13 +155,13 @@
             <search>
                 <field name="employee_id"/>
                 <field name="branch_id"/>
-                <filter name="f_day" string="اليوم" date="day"/>
-                <group><filter name="g_emp" string="الموظفة" context="{'group_by': 'employee_id'}"/></group>
+                <filter name="f_day" string="Today" date="day"/>
+                <group><filter name="g_emp" string="Employee" context="{'group_by': 'employee_id'}"/></group>
             </search>
         </field>
     </record>
     <record id="action_breaks" model="ir.actions.act_window">
-        <field name="name">الاستراحات</field>
+        <field name="name">Breaks</field>
         <field name="res_model">navitta.break</field>
         <field name="view_mode">list,form</field>
     </record>
@@ -190,11 +190,11 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_accept_edit" type="object" string="قبول تعديل المدة" class="btn-primary"
+                    <button name="action_accept_edit" type="object" string="Accept duration change" class="btn-primary"
                             invisible="state != 'review' or request != 'edit'"/>
-                    <button name="action_forgive" type="object" string="احتساب فرصة مسامحة" invisible="state != 'review'"/>
-                    <button name="action_reject" type="object" string="رفض وتطبيق العقوبة" invisible="state != 'review'"
-                            confirm="رفض العذر وتسجيل العقوبة حسب الجدول؟"/>
+                    <button name="action_forgive" type="object" string="Use a grace chance" invisible="state != 'review'"/>
+                    <button name="action_reject" type="object" string="Reject and apply penalty" invisible="state != 'review'"
+                            confirm="Reject the excuse and record the penalty according to the table?"/>
                     <field name="state" widget="statusbar" statusbar_visible="reply,review"/>
                 </header>
                 <sheet>
@@ -218,7 +218,7 @@
                             <field name="decided_at" readonly="1"/>
                         </group>
                     </group>
-                    <field name="note" placeholder="ملاحظة للموظفة (تُرسل مع القرار)" readonly="state not in ('reply', 'review')"/>
+                    <field name="note" placeholder="Note to the employee (sent with the decision)" readonly="state not in ('reply', 'review')"/>
                 </sheet>
             </form>
         </field>
@@ -230,22 +230,22 @@
             <search>
                 <field name="employee_id"/>
                 <field name="branch_id"/>
-                <filter name="review" string="بانتظار قراري" domain="[('state', '=', 'review')]"/>
-                <filter name="reply" string="بانتظار سبب الموظفة" domain="[('state', '=', 'reply')]"/>
-                <filter name="rejected" string="مرفوضة" domain="[('state', '=', 'rejected')]"/>
+                <filter name="review" string="Awaiting my decision" domain="[('state', '=', 'review')]"/>
+                <filter name="reply" string="Awaiting employee's reason" domain="[('state', '=', 'reply')]"/>
+                <filter name="rejected" string="Rejected" domain="[('state', '=', 'rejected')]"/>
                 <separator/>
-                <filter name="late" string="تأخير حضور" domain="[('kind', '=', 'late')]"/>
-                <filter name="brk" string="تجاوز استراحة" domain="[('kind', '=', 'break')]"/>
-                <filter name="f_day" string="اليوم" date="day"/>
+                <filter name="late" string="Late check-in" domain="[('kind', '=', 'late')]"/>
+                <filter name="brk" string="Break overrun" domain="[('kind', '=', 'break')]"/>
+                <filter name="f_day" string="Today" date="day"/>
                 <group>
-                    <filter name="g_emp" string="الموظفة" context="{'group_by': 'employee_id'}"/>
-                    <filter name="g_state" string="الحالة" context="{'group_by': 'state'}"/>
+                    <filter name="g_emp" string="Employee" context="{'group_by': 'employee_id'}"/>
+                    <filter name="g_state" string="Status" context="{'group_by': 'state'}"/>
                 </group>
             </search>
         </field>
     </record>
     <record id="action_late_cases" model="ir.actions.act_window">
-        <field name="name">التأخير والعقوبات</field>
+        <field name="name">Lateness &amp; penalties</field>
         <field name="res_model">navitta.late.case</field>
         <field name="view_mode">list,form,pivot</field>
         <field name="context">{'search_default_review': 1}</field>
@@ -267,9 +267,9 @@
         </field>
     </record>
     <record id="action_penalty_tiers" model="ir.actions.act_window">
-        <field name="name">جدول المخالفات</field>
+        <field name="name">Penalty table</field>
         <field name="res_model">navitta.penalty.tier</field>
         <field name="view_mode">list</field>
-        <field name="help" type="html"><p>المرة الأولى إلى الرابعة لكل شريحة تأخير. راجعه مع لائحة الجزاءات المعتمدة لديكم.</p></field>
+        <field name="help" type="html"><p>1st to 4th occurrence for each lateness tier. Review it against your approved disciplinary regulations.</p></field>
     </record>
 </odoo>

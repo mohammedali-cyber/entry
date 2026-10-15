@@ -10,7 +10,7 @@ from .common import EMERGENCIES, EXCHANGE_REASONS, SHELF, STOCK_SUPPLIES, app_to
 class NavittaDailySales(models.Model):
     """One row per branch and day: the target and the actual sales (from the daily report or entered by management)."""
     _name = "navitta.daily.sales"
-    _description = "التارقت والمبيعات اليومية"
+    _description = "Daily target and sales"
     _order = "day desc, branch_id"
     _rec_name = "day"
 
@@ -19,26 +19,26 @@ class NavittaDailySales(models.Model):
         for r in self:
             r.display_name = "%s – %s" % (r.branch_id.name or "", format_date(self.env, r.day) if r.day else "")
 
-    branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="restrict")
-    day = fields.Date("اليوم", required=True, index=True)
-    target = fields.Float("التارقت", digits=(12, 2), default=0.0)
-    sales = fields.Float("المبيعات (شامل الضريبة)", digits=(12, 2))
-    has_sales = fields.Boolean("فيه مبيعات مسجلة", compute="_compute_has_sales", store=True)
-    invoices = fields.Integer("الفواتير")
-    items = fields.Integer("القطع المباعة")
-    returns = fields.Integer("المرتجع / المستبدل (قطع)")
-    returns_amount = fields.Float("قيمة المرتجع", digits=(12, 2))
-    tax_amount = fields.Float("الضريبة الفعلية", digits=(12, 2),
-                              help="الضريبة كما سجلها نظام الكاشير. إذا ما فيه، تنحسب من نسبة الضريبة في الإعدادات")
-    cash = fields.Float("نقدي", digits=(12, 2))
-    card = fields.Float("شبكة", digits=(12, 2))
-    deposit = fields.Float("إيداع البنك", digits=(12, 2))
-    closed_by = fields.Char("سكّرت")
-    source = fields.Selection([("report", "التقرير اليومي"), ("manual", "الإدارة")], "المصدر")
-    vat_amount = fields.Float("الضريبة", digits=(12, 2), compute="_compute_vat", store=True)
-    net_sales = fields.Float("الصافي بعد الضريبة", digits=(12, 2), compute="_compute_vat", store=True)
+    branch_id = fields.Many2one("navitta.branch", "Branch", required=True, index=True, ondelete="restrict")
+    day = fields.Date("Day", required=True, index=True)
+    target = fields.Float("Target", digits=(12, 2), default=0.0)
+    sales = fields.Float("Sales (incl. VAT)", digits=(12, 2))
+    has_sales = fields.Boolean("Has recorded sales", compute="_compute_has_sales", store=True)
+    invoices = fields.Integer("Invoices")
+    items = fields.Integer("Items sold")
+    returns = fields.Integer("Returned / exchanged (items)")
+    returns_amount = fields.Float("Returns amount", digits=(12, 2))
+    tax_amount = fields.Float("Actual VAT", digits=(12, 2),
+                              help="VAT as recorded by the cashier system. If missing, it is computed from the VAT rate in the settings")
+    cash = fields.Float("Cash", digits=(12, 2))
+    card = fields.Float("Card", digits=(12, 2))
+    deposit = fields.Float("Bank deposit", digits=(12, 2))
+    closed_by = fields.Char("Closed by")
+    source = fields.Selection([("report", "Daily report"), ("manual", "Management")], "Source")
+    vat_amount = fields.Float("VAT", digits=(12, 2), compute="_compute_vat", store=True)
+    net_sales = fields.Float("Net after VAT", digits=(12, 2), compute="_compute_vat", store=True)
 
-    _sql_constraints = [("branch_day_uniq", "unique(branch_id, day)", "يوجد سجل لنفس الفرع واليوم")]
+    _sql_constraints = [("branch_day_uniq", "unique(branch_id, day)", "A record already exists for this branch and day")]
 
     @api.depends("sales", "tax_amount", "branch_id.company_id.navitta_vat_rate")
     def _compute_vat(self):
@@ -112,21 +112,21 @@ class NavittaDailySales(models.Model):
 
 class NavittaTargetLog(models.Model):
     _name = "navitta.target.log"
-    _description = "سجل تعديل التارقت"
+    _description = "Target change log"
     _order = "create_date desc"
 
-    branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="cascade")
-    by_admin = fields.Boolean("من الإدارة")
-    scope = fields.Selection([("day", "يوم"), ("month", "شهر")], "النطاق", required=True)
-    ref = fields.Char("التاريخ أو الشهر", required=True)
-    old_amount = fields.Float("المبلغ القديم", digits=(12, 2))
-    new_amount = fields.Float("المبلغ الجديد", digits=(12, 2), required=True)
-    user_id = fields.Many2one("res.users", "المستخدم", default=lambda self: self.env.user)
+    branch_id = fields.Many2one("navitta.branch", "Branch", required=True, index=True, ondelete="cascade")
+    by_admin = fields.Boolean("By management")
+    scope = fields.Selection([("day", "Day"), ("month", "Month")], "Scope", required=True)
+    ref = fields.Char("Date or month", required=True)
+    old_amount = fields.Float("Old amount", digits=(12, 2))
+    new_amount = fields.Float("New amount", digits=(12, 2), required=True)
+    user_id = fields.Many2one("res.users", "User", default=lambda self: self.env.user)
 
 
 class NavittaDailyReport(models.Model):
     _name = "navitta.daily.report"
-    _description = "التقرير اليومي للفرع"
+    _description = "Branch daily report"
     _order = "day desc, branch_id"
     _rec_name = "day"
 
@@ -135,51 +135,51 @@ class NavittaDailyReport(models.Model):
         for r in self:
             r.display_name = "%s – %s" % (r.branch_id.name or "", format_date(self.env, r.day) if r.day else "")
 
-    branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="restrict")
-    day = fields.Date("اليوم", required=True, index=True)
-    employee_id = fields.Many2one("navitta.employee", "كتبته", ondelete="set null")
-    employee_name = fields.Char("اسم الموظفة", required=True)
+    branch_id = fields.Many2one("navitta.branch", "Branch", required=True, index=True, ondelete="restrict")
+    day = fields.Date("Day", required=True, index=True)
+    employee_id = fields.Many2one("navitta.employee", "Written by", ondelete="set null")
+    employee_name = fields.Char("Employee name", required=True)
     # sales (from the cashier system)
-    sales = fields.Float("إجمالي المبيعات", digits=(12, 2))
-    invoices = fields.Integer("عدد الفواتير")
-    items = fields.Integer("عدد الأصناف المباعة")
-    cash = fields.Float("مبيعات نقدية", digits=(12, 2))
-    card = fields.Float("مبيعات شبكة", digits=(12, 2))
-    deposit = fields.Float("إيداع البنك من الصندوق", digits=(12, 2))
-    exchange_ids = fields.One2many("navitta.daily.report.exchange", "report_id", "الاستبدالات")
-    employee_line_ids = fields.One2many("navitta.daily.report.employee", "report_id", "مبيعات الموظفات")
-    used_roll_invoice = fields.Integer("رول فاتورة مستخدم")
-    used_roll_card = fields.Integer("رول شبكة مستخدم")
-    used_bags = fields.Integer("أكياس مستخدمة")
+    sales = fields.Float("Total sales", digits=(12, 2))
+    invoices = fields.Integer("Number of invoices")
+    items = fields.Integer("Number of items sold")
+    cash = fields.Float("Cash sales", digits=(12, 2))
+    card = fields.Float("Card sales", digits=(12, 2))
+    deposit = fields.Float("Bank deposit from the cash box", digits=(12, 2))
+    exchange_ids = fields.One2many("navitta.daily.report.exchange", "report_id", "Exchanges")
+    employee_line_ids = fields.One2many("navitta.daily.report.employee", "report_id", "Employees' sales")
+    used_roll_invoice = fields.Integer("Receipt rolls used")
+    used_roll_card = fields.Integer("Card rolls used")
+    used_bags = fields.Integer("Bags used")
     # customers
-    visitors = fields.Integer("عدد العملاء")
-    non_buy = fields.Integer("لم يشتروا")
-    nobuy_reasons = fields.Json("توزيع أسباب عدم الشراء")
-    lost_ids = fields.One2many("navitta.daily.report.lost", "report_id", "المبيعات الضائعة")
-    product_type = fields.Char("نوع المنتج الأكثر طلبًا")
-    top_color = fields.Char("اللون الأكثر طلبًا")
-    top_size = fields.Char("المقاس الأكثر طلبًا")
-    tried_model = fields.Char("قطعة جُرّبت ولم تُبع")
-    tried_reason = fields.Char("السبب")
+    visitors = fields.Integer("Number of customers")
+    non_buy = fields.Integer("Non-buyers")
+    nobuy_reasons = fields.Json("Reasons for not buying")
+    lost_ids = fields.One2many("navitta.daily.report.lost", "report_id", "Lost sales")
+    product_type = fields.Char("Most requested product type")
+    top_color = fields.Char("Most requested color")
+    top_size = fields.Char("Most requested size")
+    tried_model = fields.Char("Item tried on but not sold")
+    tried_reason = fields.Char("Reason")
     # customer experience
-    sat = fields.Integer("رضا العملاء (1-5)", aggregator="avg")
-    phrase = fields.Char("أكثر عبارة تكررت")
-    tone = fields.Selection([("positive", "إيجابية"), ("negative", "سلبية")], "نوع العبارة")
-    complaint = fields.Boolean("شكوى")
-    complaint_text = fields.Char("الشكوى")
-    influ = fields.Boolean("عميلة مؤثرة")
-    influ_text = fields.Char("العميلة المؤثرة")
+    sat = fields.Integer("Customer satisfaction (1-5)", aggregator="avg")
+    phrase = fields.Char("Most repeated phrase")
+    tone = fields.Selection([("positive", "Positive"), ("negative", "Negative")], "Phrase type")
+    complaint = fields.Boolean("Complaint")
+    complaint_text = fields.Char("Complaint details")
+    influ = fields.Boolean("Influencer customer")
+    influ_text = fields.Char("Influencer details")
     # branch & operations
-    shelf = fields.Selection(SHELF, "ترتيب الرفوف")
-    short = fields.Boolean("نقص مخزون")
-    short_text = fields.Char("النقص")
-    damage = fields.Boolean("تلف")
-    damage_text = fields.Char("التلف")
-    emergency = fields.Selection(EMERGENCIES, "حدث طارئ", default="none")
-    improve = fields.Text("لتحسين المبيعات")
-    suggest = fields.Text("اقتراحات")
+    shelf = fields.Selection(SHELF, "Shelf tidiness")
+    short = fields.Boolean("Stock shortage")
+    short_text = fields.Char("Shortage details")
+    damage = fields.Boolean("Damage")
+    damage_text = fields.Char("Damage details")
+    emergency = fields.Selection(EMERGENCIES, "Emergency incident", default="none")
+    improve = fields.Text("To improve sales")
+    suggest = fields.Text("Suggestions")
 
-    _sql_constraints = [("branch_day_uniq", "unique(branch_id, day)", "يوجد تقرير لنفس الفرع واليوم")]
+    _sql_constraints = [("branch_day_uniq", "unique(branch_id, day)", "A report already exists for this branch and day")]
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -222,45 +222,45 @@ class NavittaDailyReport(models.Model):
         self.ensure_one()
         ev = []
         if self.complaint:
-            ev.append(("bad", _("شكوى"), self.complaint_text or ""))
+            ev.append(("bad", _("Complaint"), self.complaint_text or ""))
         if self.emergency and self.emergency != "none":
-            ev.append(("bad", _("حدث طارئ"), dict(EMERGENCIES)[self.emergency]))
+            ev.append(("bad", _("Emergency incident"), dict(self._fields["emergency"]._description_selection(self.env)).get(self.emergency, self.emergency)))
         if self.short:
-            ev.append(("warn", _("نقص مخزون"), self.short_text or ""))
+            ev.append(("warn", _("Stock shortage"), self.short_text or ""))
         if self.damage:
-            ev.append(("warn", _("تلف"), self.damage_text or ""))
+            ev.append(("warn", _("Damage"), self.damage_text or ""))
         if self.shelf == "needs":
-            ev.append(("warn", _("الرفوف"), _("تحتاج ترتيب")))
+            ev.append(("warn", _("Shelves"), _("Need tidying")))
         if self.influ:
-            ev.append(("info", _("زيارة مؤثرة"), self.influ_text or ""))
+            ev.append(("info", _("Influencer visit"), self.influ_text or ""))
         return ev
 
 
 class NavittaDailyReportExchange(models.Model):
     _name = "navitta.daily.report.exchange"
-    _description = "استبدال في التقرير اليومي"
+    _description = "Daily report exchange"
 
     report_id = fields.Many2one("navitta.daily.report", required=True, ondelete="cascade", index=True)
-    reason = fields.Selection(EXCHANGE_REASONS, "سبب الاستبدال", required=True)
-    detail = fields.Char("التفاصيل", required=True)
-    sold_by = fields.Char("باعت", required=True)
-    exchanged_by = fields.Char("استبدلت", required=True)
+    reason = fields.Selection(EXCHANGE_REASONS, "Exchange reason", required=True)
+    detail = fields.Char("Details", required=True)
+    sold_by = fields.Char("Sold by", required=True)
+    exchanged_by = fields.Char("Exchanged by", required=True)
 
 
 class NavittaDailyReportEmployee(models.Model):
     """Each employee's sales of the day (from the cashier report at the end of the shift)."""
     _name = "navitta.daily.report.employee"
-    _description = "مبيعات موظفة في اليوم"
+    _description = "Employee's daily sales line"
     _order = "day desc, branch_id"
 
     report_id = fields.Many2one("navitta.daily.report", required=True, ondelete="cascade", index=True)
-    branch_id = fields.Many2one(related="report_id.branch_id", store=True, index=True, string="الفرع")
-    day = fields.Date(related="report_id.day", store=True, index=True, string="اليوم")
-    employee_id = fields.Many2one("navitta.employee", "الموظفة", required=True, ondelete="restrict")
-    amount = fields.Float("مبيعاتها", digits=(12, 2))
-    invoices = fields.Integer("فواتيرها")
-    items = fields.Integer("القطع المباعة")
-    exchanged = fields.Integer("القطع المستبدلة")
+    branch_id = fields.Many2one(related="report_id.branch_id", store=True, index=True, string="Branch")
+    day = fields.Date(related="report_id.day", store=True, index=True, string="Day")
+    employee_id = fields.Many2one("navitta.employee", "Employee", required=True, ondelete="restrict")
+    amount = fields.Float("Her sales", digits=(12, 2))
+    invoices = fields.Integer("Her invoices")
+    items = fields.Integer("Items sold")
+    exchanged = fields.Integer("Items exchanged")
 
 
 class NavittaEmployeeSales(models.Model):
@@ -270,20 +270,20 @@ class NavittaEmployeeSales(models.Model):
     module navitta_ops_pos): then every sale counts for the cashier who made it, and sales made under the shared
     account without a cashier stay as a line without employee («بدون كاشير»)."""
     _name = "navitta.employee.sales"
-    _description = "مبيعات الموظفة اليومية"
+    _description = "Employee daily sales"
     _order = "day desc, branch_id, amount desc"
 
-    branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="cascade")
-    day = fields.Date("اليوم", required=True, index=True)
-    employee_id = fields.Many2one("navitta.employee", "الموظفة", index=True, ondelete="set null")
-    cashier = fields.Char("اسم الكاشير")
-    amount = fields.Float("المبيعات (شامل الضريبة)", digits=(12, 2))
-    tax = fields.Float("الضريبة", digits=(12, 2))
-    invoices = fields.Integer("الفواتير")
-    items = fields.Integer("القطع المباعة")
-    returns = fields.Integer("المرتجع (قطع)")
-    returns_amount = fields.Float("قيمة المرتجع", digits=(12, 2))
-    source = fields.Selection([("report", "التقرير اليومي")], "المصدر", required=True, default="report")
+    branch_id = fields.Many2one("navitta.branch", "Branch", required=True, index=True, ondelete="cascade")
+    day = fields.Date("Day", required=True, index=True)
+    employee_id = fields.Many2one("navitta.employee", "Employee", index=True, ondelete="set null")
+    cashier = fields.Char("Cashier name")
+    amount = fields.Float("Sales (incl. VAT)", digits=(12, 2))
+    tax = fields.Float("VAT", digits=(12, 2))
+    invoices = fields.Integer("Invoices")
+    items = fields.Integer("Items sold")
+    returns = fields.Integer("Returns (items)")
+    returns_amount = fields.Float("Returns amount", digits=(12, 2))
+    source = fields.Selection([("report", "Daily report")], "Source", required=True, default="report")
 
     @api.model
     def _preferred_domain(self, d0, d1, branch_id=None):
@@ -296,9 +296,9 @@ class NavittaEmployeeSales(models.Model):
 
 class NavittaDailyReportLost(models.Model):
     _name = "navitta.daily.report.lost"
-    _description = "طلب لم يتوفر (التقرير اليومي)"
+    _description = "Unavailable request (daily report)"
 
     report_id = fields.Many2one("navitta.daily.report", required=True, ondelete="cascade", index=True)
-    model = fields.Char("رقم الموديل")
-    color = fields.Char("اللون")
-    size = fields.Char("المقاس")
+    model = fields.Char("Model number")
+    color = fields.Char("Color")
+    size = fields.Char("Size")

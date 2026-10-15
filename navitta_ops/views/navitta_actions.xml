@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="action_branch_app" model="ir.actions.client">
-        <field name="name">شاشة الفرع</field>
+        <field name="name">Branch screen</field>
         <field name="tag">navitta_branch_app</field>
     </record>
 
     <record id="action_admin_dashboard" model="ir.actions.client">
-        <field name="name">لوحة الإدارة</field>
+        <field name="name">Dashboard</field>
         <field name="tag">navitta_admin_app</field>
         <field name="params" eval="{'tab': 'dashboard'}"/>
     </record>
     <record id="action_admin_sales" model="ir.actions.client">
-        <field name="name">المبيعات والتارقت</field>
+        <field name="name">Sales &amp; target</field>
         <field name="tag">navitta_admin_app</field>
         <field name="params" eval="{'tab': 'sales'}"/>
     </record>
     <record id="action_admin_requests" model="ir.actions.client">
-        <field name="name">طلبات الفروع والمصروفات</field>
+        <field name="name">Branch requests &amp; expenses</field>
         <field name="tag">navitta_admin_app</field>
         <field name="params" eval="{'tab': 'requests'}"/>
     </record>
     <record id="action_admin_lost" model="ir.actions.client">
-        <field name="name">المبيعات الضائعة</field>
+        <field name="name">Lost sales</field>
         <field name="tag">navitta_admin_app</field>
         <field name="params" eval="{'tab': 'lost'}"/>
     </record>
     <record id="action_admin_day" model="ir.actions.client">
-        <field name="name">سجل الأيام</field>
+        <field name="name">Daily log</field>
         <field name="tag">navitta_admin_app</field>
         <field name="params" eval="{'tab': 'day'}"/>
     </record>

@@ -16,7 +16,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 from odoo import _, api, fields, models
-from odoo.addons.navitta_ops.models.common import app_today, day_bounds_utc
+from odoo.addons.navitta_ops.models.common import CASHIER_NONE, CASHIER_SHARED, app_today, day_bounds_utc
 
 _logger = logging.getLogger(__name__)
 
@@ -28,8 +28,8 @@ SYNC_EVERY = 45          # seconds: screens refresh often, the figures don't nee
 class NavittaBranch(models.Model):
     _inherit = "navitta.branch"
 
-    pos_config_ids = fields.One2many("pos.config", "navitta_branch_id", string="نقاط البيع")
-    pos_last_sync = fields.Datetime("آخر تحديث من نقطة البيع", readonly=True)
+    pos_config_ids = fields.One2many("pos.config", "navitta_branch_id", string="Points of Sale")
+    pos_last_sync = fields.Datetime("Last update from the Point of Sale", readonly=True)
 
     def _has_system(self):
         self.ensure_one()
@@ -120,7 +120,8 @@ class NavittaBranch(models.Model):
         new = []
         for hr_id, t in by_emp.items():
             emp = nav.get(hr_id)
-            cashier = Hr.browse(hr_id).name if hr_id else _("الحساب العام: %s", user_names) if user_names else _("بدون كاشير")
+            # stored markers (kept as they are, compared on the next sync), shown translated by cashier_text()
+            cashier = Hr.browse(hr_id).name if hr_id else CASHIER_SHARED % user_names if user_names else CASHIER_NONE
             new.append({"branch_id": self.id, "day": day, "employee_id": emp.id if emp else False, "cashier": cashier,
                         "amount": round(t["sales"], 2), "tax": round(t["tax"], 2), "invoices": t["invoices"], "items": t["items"],
                         "returns": t["returns"], "returns_amount": round(t["returns_amount"], 2), "source": "pos"})
@@ -148,7 +149,7 @@ class NavittaBranch(models.Model):
         day = app_today(self.env)
         self._system_sync([day - timedelta(days=i) for i in range(60)], force=True)
         return {"type": "ir.actions.client", "tag": "display_notification",
-                "params": {"message": _("تمت مزامنة آخر 60 يوم من نقطة البيع"), "type": "success"}}
+                "params": {"message": _("The last 60 days were synced from the Point of Sale"), "type": "success"}}
 
     # ------------------------------------------------------------------ registers of the day
     def _system_status(self, day):
@@ -196,4 +197,4 @@ class NavittaBranch(models.Model):
                 n += 1
         self._navitta_sync_cashiers()
         return {"type": "ir.actions.client", "tag": "display_notification",
-                "params": {"message": _("تم ربط %s موظفة بحساب كاشير، وتحدثت قائمة الكاشيرات في نقاط البيع", n), "type": "success"}}
+                "params": {"message": _("%s employees linked to a cashier account, and the cashier lists of the points of sale were updated", n), "type": "success"}}

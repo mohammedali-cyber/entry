@@ -7,8 +7,8 @@ before (or without) a real device. Uses only the Python standard library.
     python3 zk_simulator.py https://odoo.example.com TESTSN001 5 "2026-10-13 15:31:00" "2026-10-13 23:32:10"
         -> sends punches at these device times (YYYY-MM-DD HH:MM:SS, the branch's local time)
 
-The first run adds the device in Odoo as "pending": approve it (فروع نافيتا ← الإعدادات ← أجهزة البصمة),
-pick its branch, write 5 in an employee's «رقم البصمة في الجهاز», and run again.
+The first run adds the device in Odoo as "pending": approve it (Navitta Branches → Settings → Fingerprint devices),
+pick its branch, write 5 in an employee's "Fingerprint device ID", and run again.
 """
 import sys
 import urllib.error

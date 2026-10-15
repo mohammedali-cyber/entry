@@ -151,7 +151,7 @@ class NavittaCase(TransactionCase):
                 self.api().cash_count(self.hubour.id, "2468", "open", {"500": 1})
             r = self.api().cash_count(self.reem.id, "2468", "open", {"500": 2, "100": 3})
             self.assertEqual((r["total"], r["expected"], r["difference"]), (1300, 1302.5, -2.5))      # 2.50 short
-            self.assertTrue(self.env["navitta.notification"].search([("subject", "like", "فرق في عهدة الافتتاح")]))
+            self.assertTrue(self.env["navitta.notification"].search([("subject", "like", "Difference in")]))
             self.assertEqual(self.api().cash_count(self.shima.id, "2468", "open", {"500": 3})["error"], "already_counted")
             vid = self.api().visit_start(self.shima.id)["id"]
         with freeze_time(utc(23, 30)):
@@ -175,7 +175,7 @@ class NavittaCase(TransactionCase):
             punch._process()
             att = self.env["navitta.attendance"].search([("employee_id", "=", self.reem.id), ("day", "=", DAY)])
             self.assertEqual((punch.state, bool(att.check_out)), ("tasks", False))
-            self.assertIn("كاش الإغلاق", punch.message)
+            self.assertIn("Closing cash not counted", punch.message)
             self.api().cash_count(self.reem.id, "2468", "close", {"500": 3})
             punch.action_reprocess()
             self.assertEqual((punch.state, bool(att.check_out)), ("out", True))
@@ -188,6 +188,17 @@ class NavittaCase(TransactionCase):
         with freeze_time(utc(15, 20, d=DAY + timedelta(days=1))):
             self.assertTrue(self.api().check_in(self.reem.id, "2468")["ok"])
             self.assertTrue(self.api().visit_start(self.reem.id)["ok"])
+
+    def test_arabic_translation(self):
+        """English is the source; i18n/ar.po gives Arabic users the module in Arabic (messages, labels, menus)."""
+        self.env["res.lang"]._activate_lang("ar_001")
+        self.env["ir.module.module"]._load_module_terms(["navitta_ops"], ["ar_001"], overwrite=True)
+        ar = self.env["navitta.api"].with_user(self.dev).with_context(lang="ar_001")
+        self.assertEqual(ar.check_in(self.reem.id, "0000")["message"], "الرمز غير صحيح")
+        self.assertEqual(self.env["navitta.api"].with_user(self.dev).check_in(self.reem.id, "0000")["message"], "Wrong PIN")
+        self.assertEqual(self.env.ref("navitta_ops.menu_root").with_context(lang="ar_001").name, "فروع نافيتا")
+        self.assertEqual(self.env["navitta.cash.count"].with_context(lang="ar_001")._fields["kind"]._description_string(
+            self.env(context={"lang": "ar_001"})), "النوع")
 
     def test_device_sees_branch_screen_only(self):
         """Like the old app, a branch device has the branch screen only (no Discuss, Employees, Dashboards…)."""
@@ -447,7 +458,7 @@ class NavittaCase(TransactionCase):
             self.env["navitta.daily.sales"]._row(self.dwd, date(2026, 10, 6)).write({"sales": 1000})
             html = self.env["ir.actions.report"].with_user(self.boss)._render_qweb_html(
                 "navitta_ops.report_daily_summary", [], data={"day": "2026-10-13"})[0]
-            self.assertIn("ملخص الفروع اليومي", html.decode())
+            self.assertIn("Daily branches summary", html.decode())
             self.assertRegex(html.decode(), r"[▲▼] \d+\.\d%")
             with self.assertRaises(AccessError):
                 self.env["ir.actions.report"].with_user(self.dev)._render_qweb_html(
@@ -596,7 +607,7 @@ class NavittaCase(TransactionCase):
         with freeze_time(utc(23, 45)):
             self.env["navitta.api"]._cron_daily_summary()
         n = self.env["navitta.notification"].search([("to_email", "=", "boss@example.com")], limit=1)
-        self.assertIn("ملخص الفروع اليومي", n.subject)
+        self.assertIn("Daily branches summary", n.subject)
         self.assertEqual(len(n.mail_id.attachment_ids), 1)
 
     def test_notification_without_email(self):
@@ -613,7 +624,7 @@ class NavittaHttp(HttpCase):
         page = self.url_open("/navitta/r?t=%s" % tok.token)
         self.assertEqual(page.status_code, 200)
         self.assertIn("فرع الدوادمي", page.text)
-        self.assertIn("انتهى الكود", self.url_open("/navitta/r?t=wrong").text)
+        self.assertIn("The code has expired", self.url_open("/navitta/r?t=wrong").text)
         jpeg = base64.b64encode(b"\xff\xd8\xff" + b"0" * 200).decode()
         r = self.url_open("/navitta/r/upload", data=json.dumps({"jsonrpc": "2.0", "method": "call",
                           "params": {"token": "wrong", "data": jpeg}}), headers={"Content-Type": "application/json"})

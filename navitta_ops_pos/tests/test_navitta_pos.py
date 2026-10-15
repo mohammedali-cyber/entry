@@ -113,13 +113,13 @@ class NavittaPosCase(TransactionCase):
         self.assertEqual(rep.sales, 920)
         self.assertEqual(self.env["navitta.employee.sales"].search_count(          # not counted twice
             [("branch_id", "=", self.dwd.id), ("day", "=", self.day), ("source", "=", "report")]), 0)
-        self.assertEqual(self.cfg_dwd.navitta_session_label, "مفتوحة")
+        self.assertEqual(self.cfg_dwd.navitta_session_label, "Open")
         # management: employees by cashier, branches compared, weekday filter
         boss = self.env["navitta.api"].with_user(self.boss)
         names = {r["name"] for r in boss.employee_summary(self.day, self.day, self.dwd.id)["rows"]}
         self.assertIn("ريم", names)
-        self.assertTrue(any("غير مربوط" in n for n in names))
-        self.assertTrue(any(n.startswith("الحساب العام") for n in names))
+        self.assertTrue(any("cashier not linked" in n for n in names))
+        self.assertTrue(any(n.startswith("Shared account") for n in names))
         self.env["navitta.visit"].create({"branch_id": self.dwd.id, "employee_id": self.reem.id, "day": self.day,
                                           "started_at": "2026-01-01 12:00:00", "saved": True, "bought": True})
         row = [r for r in boss.admin_compare(self.day, self.day)["rows"] if r["branch_id"] == self.dwd.id][0]

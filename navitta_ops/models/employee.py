@@ -8,42 +8,42 @@ from .common import CRYPT, WEEKDAYS, dow, new_pin
 
 class NavittaEmployee(models.Model):
     _name = "navitta.employee"
-    _description = "موظفة فرع"
+    _description = "Branch employee"
     _order = "branch_id, slot, id"
 
-    name = fields.Char("الاسم", required=True)
-    branch_id = fields.Many2one("navitta.branch", "الفرع", required=True, index=True, ondelete="restrict")
-    slot = fields.Integer("ترتيبها في الشاشة", required=True, default=0,
-                          help="ترتيب بطاقتها في شاشة العدّاد، ورقم اختصارها في لوحة المفاتيح. يُعطى تلقائيًا عند الإضافة")
-    device_user_id = fields.Char("رقم البصمة في الجهاز", copy=False, index=True,
-                                 help="رقم الموظفة المسجل في جهاز البصمة (ZKTeco) بفرعها. تُربط به بصماتها تلقائيًا")
-    photo = fields.Image("الصورة المرجعية", max_width=512, max_height=512, groups="navitta_ops.group_navitta_admin",
-                         help="صورة واضحة للوجه تقارن بها الإدارة صور البصمة")
-    email = fields.Char("الإيميل", groups="navitta_ops.group_navitta_admin", help="تُرسل إليه التنبيهات والقرارات")
-    weekly_off = fields.Selection(WEEKDAYS, "الإجازة الأسبوعية")
+    name = fields.Char("Name", required=True)
+    branch_id = fields.Many2one("navitta.branch", "Branch", required=True, index=True, ondelete="restrict")
+    slot = fields.Integer("Order on screen", required=True, default=0,
+                          help="Position of her card on the counter screen and her keyboard shortcut number. Assigned automatically when added")
+    device_user_id = fields.Char("Fingerprint device ID", copy=False, index=True,
+                                 help="The employee's number registered in her branch's fingerprint device (ZKTeco). Her punches are linked to it automatically")
+    photo = fields.Image("Reference photo", max_width=512, max_height=512, groups="navitta_ops.group_navitta_admin",
+                         help="A clear face photo that management compares punch photos with")
+    email = fields.Char("Email", groups="navitta_ops.group_navitta_admin", help="Alerts and decisions are sent to this address")
+    weekly_off = fields.Selection(WEEKDAYS, "Weekly day off")
     active = fields.Boolean(default=True)
     company_id = fields.Many2one(related="branch_id.company_id", store=True)
 
     pin_hash = fields.Char(groups="base.group_system", copy=False)
     pin_fail_count = fields.Integer(groups="base.group_system", copy=False)
     pin_locked_until = fields.Datetime(groups="base.group_system", copy=False)
-    has_pin = fields.Boolean("لها رمز سري", compute="_compute_has_pin")
+    has_pin = fields.Boolean("Has a PIN", compute="_compute_has_pin")
 
     @api.constrains("slot")
     def _check_slot(self):
         for e in self:
             if e.slot < 1:
-                raise ValidationError(_("الترتيب في الشاشة لازم يكون 1 أو أكثر"))
+                raise ValidationError(_("The order on screen must be 1 or more"))
 
     @api.constrains("device_user_id", "branch_id", "active")
     def _check_device_user_id(self):
         for e in self.filtered(lambda x: x.device_user_id and x.active):
             if not e.device_user_id.strip().isdigit():
-                raise ValidationError(_("رقم البصمة لازم يكون أرقام فقط (مثل رقم الموظفة في الجهاز)"))
+                raise ValidationError(_("The fingerprint device ID must contain digits only (like the employee's number on the device)"))
             other = self.sudo().search([("id", "!=", e.id), ("branch_id", "=", e.branch_id.id), ("active", "=", True),
                                         ("device_user_id", "=", e.device_user_id.strip())], limit=1)
             if other:
-                raise ValidationError(_("رقم البصمة %(n)s مستخدم لموظفة ثانية في نفس الفرع: %(o)s", n=e.device_user_id, o=other.name))
+                raise ValidationError(_("Fingerprint device ID %(n)s is already used by another employee in the same branch: %(o)s", n=e.device_user_id, o=other.name))
 
     def init(self):
         # versions before 18.0.1.2 allowed only 2 employees per branch (slot 1/2, unique)
@@ -67,7 +67,7 @@ class NavittaEmployee(models.Model):
             moving = self.filtered(lambda e: e.branch_id.id != vals["branch_id"])
             if moving and self.env["navitta.attendance"].sudo().search_count(
                     [("employee_id", "in", moving.ids), ("day", "=", app_today(self.env)), ("check_out", "=", False)]):
-                raise UserError(_("الموظفة مسجلة حضور الحين في فرعها. انقلها بعد ما تسجل انصراف"))
+                raise UserError(_("The employee is checked in at her branch right now. Move her after she checks out"))
         res = super().write(vals)
         if vals.get("device_user_id") or vals.get("branch_id"):
             # punches that came in before she was linked to her fingerprint number
@@ -79,24 +79,24 @@ class NavittaEmployee(models.Model):
         for e in self:
             if self.env["navitta.attendance"].sudo().search_count([("employee_id", "=", e.id)], limit=1) or \
                     self.env["navitta.visit"].sudo().search_count([("employee_id", "=", e.id)], limit=1):
-                raise UserError(_("%s لها سجلات حضور أو زيارات، فما يمكن حذفها. استخدم «أرشفة» بدل الحذف "
-                                  "(تختفي من شاشة الفرع وتبقى سجلاتها).", e.name))
+                raise UserError(_("%s has attendance or visit records, so she cannot be deleted. Use “Archive” instead of deleting "
+                                  "(she disappears from the branch screen and her records are kept).", e.name))
 
     def action_attendance(self):
         self.ensure_one()
-        return {"type": "ir.actions.act_window", "name": _("حضور %s", self.name), "res_model": "navitta.attendance",
+        return {"type": "ir.actions.act_window", "name": _("Attendance: %s", self.name), "res_model": "navitta.attendance",
                 "view_mode": "kanban,list,form", "domain": [("employee_id", "=", self.id)]}
 
     def action_sales(self):
         """Her sales day by day: from the cash register (her cashier account) when the branch is linked to one,
         otherwise from the daily report."""
         self.ensure_one()
-        return {"type": "ir.actions.act_window", "name": _("مبيعات %s", self.name), "res_model": "navitta.employee.sales",
+        return {"type": "ir.actions.act_window", "name": _("Sales: %s", self.name), "res_model": "navitta.employee.sales",
                 "view_mode": "list,pivot", "domain": [("employee_id", "=", self.id)]}
 
     def action_cash_counts(self):
         self.ensure_one()
-        return {"type": "ir.actions.act_window", "name": _("عدّ العهدة: %s", self.name), "res_model": "navitta.cash.count",
+        return {"type": "ir.actions.act_window", "name": _("Opening cash count: %s", self.name), "res_model": "navitta.cash.count",
                 "view_mode": "list,form", "domain": [("employee_id", "=", self.id)]}
 
     @api.depends("pin_hash")
@@ -108,7 +108,7 @@ class NavittaEmployee(models.Model):
     def _set_pin(self, pin):
         self.ensure_one()
         if not (pin and len(pin) == 4 and pin.isdigit()):
-            raise ValidationError(_("الرمز لازم 4 أرقام"))
+            raise ValidationError(_("The PIN must be 4 digits"))
         self.sudo().write({"pin_hash": CRYPT.hash(pin), "pin_fail_count": 0, "pin_locked_until": False})
 
     def action_new_pin(self):
@@ -119,7 +119,7 @@ class NavittaEmployee(models.Model):
         wiz = self.env["navitta.pin.wizard"].create({"employee_id": self.id, "pin": pin})
         return {
             "type": "ir.actions.act_window", "res_model": "navitta.pin.wizard", "res_id": wiz.id,
-            "view_mode": "form", "target": "new", "name": _("الرمز السري الجديد"),
+            "view_mode": "form", "target": "new", "name": _("New PIN"),
         }
 
     def _check_pin(self, pin):
@@ -147,8 +147,8 @@ class NavittaEmployee(models.Model):
             vals["pin_locked_until"] = now + timedelta(minutes=1 if fails < 10 else 15 if fails < 15 else 60)
             if fails >= 10:
                 self.env["navitta.notification"]._notify_admin(
-                    _("محاولات خاطئة لرمز %s", e.name),
-                    _("الرمز السري لـ %(n)s في %(b)s أُدخل خطأ %(c)s مرات متتالية. انقفل مؤقتًا.", n=e.name, b=e.branch_id.name, c=fails))
+                    _("Wrong PIN attempts: %s", e.name),
+                    _("The PIN of %(n)s at %(b)s was entered wrong %(c)s times in a row. It is temporarily locked.", n=e.name, b=e.branch_id.name, c=fails))
         e.write(vals)
         return "wrong_pin"
 
@@ -178,17 +178,17 @@ class NavittaEmployee(models.Model):
 class NavittaNotification(models.Model):
     """Emails to employees and management (late alerts, decisions, replies…), sent through Odoo's mail queue."""
     _name = "navitta.notification"
-    _description = "إشعار بالإيميل"
+    _description = "Email notification"
     _order = "id desc"
 
-    employee_id = fields.Many2one("navitta.employee", "الموظفة", ondelete="set null")
-    to_email = fields.Char("إلى")
-    subject = fields.Char("الموضوع", required=True)
-    body = fields.Text("النص", required=True)
+    employee_id = fields.Many2one("navitta.employee", "Employee", ondelete="set null")
+    to_email = fields.Char("To")
+    subject = fields.Char("Subject", required=True)
+    body = fields.Text("Text", required=True)
     mail_id = fields.Many2one("mail.mail", ondelete="set null", copy=False)
-    state = fields.Selection([("no_email", "لا يوجد إيميل"), ("outgoing", "بانتظار الإرسال"), ("sent", "أُرسل"),
-                              ("exception", "فشل الإرسال")], compute="_compute_state", string="الحالة")
-    failure_reason = fields.Text(related="mail_id.failure_reason", string="سبب الفشل")
+    state = fields.Selection([("no_email", "No email"), ("outgoing", "Waiting to be sent"), ("sent", "Sent"),
+                              ("exception", "Sending failed")], compute="_compute_state", string="Status")
+    failure_reason = fields.Text(related="mail_id.failure_reason", string="Failure reason")
 
     @api.depends("mail_id.state", "to_email")
     def _compute_state(self):
@@ -207,11 +207,12 @@ class NavittaNotification(models.Model):
     @api.model
     def _html(self, body):
         from markupsafe import Markup, escape
+        direction = self.env["res.lang"]._get_data(code=self.env.lang or "en_US").direction or "ltr"
         return Markup(
-            '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;font-size:15px;line-height:1.8;color:#0B0B0C;max-width:560px">'
+            '<div dir="%s" style="font-family:Tahoma,Arial,sans-serif;font-size:15px;line-height:1.8;color:#0B0B0C;max-width:560px">'
             '<div style="letter-spacing:.4em;color:#5C5F65;font-size:12px;font-family:Georgia,serif">NAVITTA</div>'
             '<div style="height:2px;background:#C7CACF;margin:6px 0 16px"></div>%s</div>'
-        ) % Markup("<br/>").join(escape(body).split("\n"))
+        ) % (direction, Markup("<br/>").join(escape(body).split("\n")))
 
     @api.model
     def _send(self, to_email, subject, body, employee=None, attachments=None):

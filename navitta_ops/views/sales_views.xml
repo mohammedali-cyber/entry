@@ -8,16 +8,16 @@
             <list editable="bottom">
                 <field name="day"/>
                 <field name="branch_id"/>
-                <field name="target" sum="الإجمالي"/>
-                <field name="sales" string="المبيعات" sum="الإجمالي"/>
-                <field name="invoices" sum="الإجمالي"/>
-                <field name="items" string="القطع" sum="الإجمالي"/>
-                <field name="returns" string="المرتجع" sum="الإجمالي"/>
-                <field name="cash" sum="الإجمالي" optional="show"/>
-                <field name="card" sum="الإجمالي" optional="show"/>
-                <field name="deposit" sum="الإجمالي" optional="hide"/>
-                <field name="vat_amount" sum="الإجمالي" optional="hide"/>
-                <field name="net_sales" string="الصافي" sum="الإجمالي" optional="show"/>
+                <field name="target" sum="Total"/>
+                <field name="sales" string="Sales" sum="Total"/>
+                <field name="invoices" sum="Total"/>
+                <field name="items" string="Items" sum="Total"/>
+                <field name="returns" string="Returns" sum="Total"/>
+                <field name="cash" sum="Total" optional="show"/>
+                <field name="card" sum="Total" optional="show"/>
+                <field name="deposit" sum="Total" optional="hide"/>
+                <field name="vat_amount" sum="Total" optional="hide"/>
+                <field name="net_sales" string="Net" sum="Total" optional="show"/>
                 <field name="closed_by" optional="hide"/>
                 <field name="source" readonly="1"/>
             </list>
@@ -29,11 +29,11 @@
         <field name="arch" type="xml">
             <search>
                 <field name="branch_id"/>
-                <filter name="with_sales" string="فيه مبيعات" domain="[('has_sales', '=', True)]"/>
-                <filter name="f_day" string="اليوم" date="day"/>
+                <filter name="with_sales" string="With sales" domain="[('has_sales', '=', True)]"/>
+                <filter name="f_day" string="Today" date="day"/>
                 <group>
-                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
-                    <filter name="g_month" string="الشهر" context="{'group_by': 'day:month'}"/>
+                    <filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_month" string="Month" context="{'group_by': 'day:month'}"/>
                 </group>
             </search>
         </field>
@@ -42,7 +42,7 @@
         <field name="name">navitta.daily.sales.pivot</field>
         <field name="model">navitta.daily.sales</field>
         <field name="arch" type="xml">
-            <pivot string="التارقت والمبيعات">
+            <pivot string="Target &amp; sales">
                 <field name="branch_id" type="row"/>
                 <field name="day" interval="month" type="col"/>
                 <field name="target" type="measure"/>
@@ -54,7 +54,7 @@
         <field name="name">navitta.daily.sales.graph</field>
         <field name="model">navitta.daily.sales</field>
         <field name="arch" type="xml">
-            <graph string="التارقت مقابل المبيعات" type="bar">
+            <graph string="Target vs sales" type="bar">
                 <field name="day" interval="month"/>
                 <field name="sales" type="measure"/>
                 <field name="target" type="measure"/>
@@ -62,7 +62,7 @@
         </field>
     </record>
     <record id="action_daily_sales" model="ir.actions.act_window">
-        <field name="name">التارقت والمبيعات اليومية</field>
+        <field name="name">Daily target &amp; sales</field>
         <field name="res_model">navitta.daily.sales</field>
         <field name="view_mode">list,pivot,graph</field>
     </record>
@@ -72,7 +72,7 @@
         <field name="model">navitta.target.log</field>
         <field name="arch" type="xml">
             <list create="0" edit="0">
-                <field name="create_date" string="الوقت"/>
+                <field name="create_date" string="Time"/>
                 <field name="branch_id"/>
                 <field name="scope"/>
                 <field name="ref"/>
@@ -84,7 +84,7 @@
         </field>
     </record>
     <record id="action_target_log" model="ir.actions.act_window">
-        <field name="name">سجل تعديل التارقت</field>
+        <field name="name">Target change log</field>
         <field name="res_model">navitta.target.log</field>
         <field name="view_mode">list</field>
     </record>
@@ -98,10 +98,10 @@
                 <field name="day"/>
                 <field name="branch_id"/>
                 <field name="employee_name"/>
-                <field name="sales" sum="الإجمالي"/>
-                <field name="invoices" sum="الإجمالي"/>
-                <field name="visitors" sum="الإجمالي"/>
-                <field name="sat" avg="المتوسط"/>
+                <field name="sales" sum="Total"/>
+                <field name="invoices" sum="Total"/>
+                <field name="visitors" sum="Total"/>
+                <field name="sat" avg="Average"/>
                 <field name="complaint" optional="show"/>
                 <field name="emergency" optional="hide"/>
             </list>
@@ -115,23 +115,23 @@
                 <sheet>
                     <div class="oe_title"><h2><field name="branch_id" readonly="1"/> – <field name="day" readonly="1"/></h2></div>
                     <group>
-                        <group string="المبيعات"><field name="employee_name"/><field name="sales"/><field name="invoices"/><field name="items"/>
+                        <group string="Sales"><field name="employee_name"/><field name="sales"/><field name="invoices"/><field name="items"/>
                             <field name="cash"/><field name="card"/><field name="deposit"/></group>
-                        <group string="العملاء"><field name="visitors"/><field name="non_buy"/>
+                        <group string="Customers"><field name="visitors"/><field name="non_buy"/>
                             <field name="product_type"/><field name="top_color"/><field name="top_size"/><field name="tried_model"/><field name="tried_reason"/></group>
                     </group>
                     <notebook>
-                        <page string="مبيعات الموظفات">
-                            <field name="employee_line_ids"><list editable="bottom"><field name="employee_id"/><field name="amount" sum="الإجمالي"/>
-                                <field name="invoices" sum="الإجمالي"/><field name="items" sum="الإجمالي"/><field name="exchanged" sum="الإجمالي"/></list></field>
+                        <page string="Employee sales">
+                            <field name="employee_line_ids"><list editable="bottom"><field name="employee_id"/><field name="amount" sum="Total"/>
+                                <field name="invoices" sum="Total"/><field name="items" sum="Total"/><field name="exchanged" sum="Total"/></list></field>
                         </page>
-                        <page string="الاستبدالات">
+                        <page string="Exchanges">
                             <field name="exchange_ids"><list editable="bottom"><field name="reason"/><field name="detail"/><field name="sold_by"/><field name="exchanged_by"/></list></field>
                         </page>
-                        <page string="المبيعات الضائعة">
+                        <page string="Lost sales">
                             <field name="lost_ids"><list editable="bottom"><field name="model"/><field name="color"/><field name="size"/></list></field>
                         </page>
-                        <page string="تجربة العملاء والتشغيل">
+                        <page string="Customer experience &amp; operations">
                             <group>
                                 <group><field name="sat"/><field name="phrase"/><field name="tone"/><field name="complaint"/><field name="complaint_text" invisible="not complaint"/>
                                     <field name="influ"/><field name="influ_text" invisible="not influ"/></group>
@@ -152,14 +152,14 @@
         <field name="arch" type="xml">
             <search>
                 <field name="branch_id"/>
-                <filter name="complaint" string="فيه شكوى" domain="[('complaint', '=', True)]"/>
-                <filter name="f_day" string="اليوم" date="day"/>
-                <group><filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/></group>
+                <filter name="complaint" string="With complaint" domain="[('complaint', '=', True)]"/>
+                <filter name="f_day" string="Today" date="day"/>
+                <group><filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/></group>
             </search>
         </field>
     </record>
     <record id="action_daily_reports" model="ir.actions.act_window">
-        <field name="name">التقارير اليومية</field>
+        <field name="name">Daily reports</field>
         <field name="res_model">navitta.daily.report</field>
         <field name="view_mode">list,form</field>
     </record>
@@ -173,10 +173,10 @@
                 <field name="day"/>
                 <field name="branch_id"/>
                 <field name="employee_id"/>
-                <field name="amount" sum="الإجمالي"/>
-                <field name="invoices" sum="الإجمالي"/>
-                <field name="items" sum="الإجمالي"/>
-                <field name="exchanged" sum="الإجمالي"/>
+                <field name="amount" sum="Total"/>
+                <field name="invoices" sum="Total"/>
+                <field name="items" sum="Total"/>
+                <field name="exchanged" sum="Total"/>
             </list>
         </field>
     </record>
@@ -184,7 +184,7 @@
         <field name="name">navitta.daily.report.employee.pivot</field>
         <field name="model">navitta.daily.report.employee</field>
         <field name="arch" type="xml">
-            <pivot string="مبيعات الموظفات">
+            <pivot string="Employee sales">
                 <field name="employee_id" type="row"/>
                 <field name="day" interval="month" type="col"/>
                 <field name="amount" type="measure"/>
@@ -198,7 +198,7 @@
             <search>
                 <field name="employee_id"/>
                 <field name="branch_id"/>
-                <filter name="f_day" string="اليوم" date="day"/>
+                <filter name="f_day" string="Today" date="day"/>
             </search>
         </field>
     </record>
@@ -211,12 +211,12 @@
                 <field name="branch_id"/>
                 <field name="employee_id"/>
                 <field name="cashier"/>
-                <field name="amount" sum="الإجمالي"/>
-                <field name="tax" sum="الإجمالي" optional="show"/>
-                <field name="invoices" sum="الإجمالي"/>
-                <field name="items" sum="الإجمالي"/>
-                <field name="returns" sum="الإجمالي" optional="show"/>
-                <field name="returns_amount" sum="الإجمالي" optional="hide"/>
+                <field name="amount" sum="Total"/>
+                <field name="tax" sum="Total" optional="show"/>
+                <field name="invoices" sum="Total"/>
+                <field name="items" sum="Total"/>
+                <field name="returns" sum="Total" optional="show"/>
+                <field name="returns_amount" sum="Total" optional="hide"/>
                 <field name="source"/>
             </list>
         </field>
@@ -225,7 +225,7 @@
         <field name="name">navitta.employee.sales.pivot</field>
         <field name="model">navitta.employee.sales</field>
         <field name="arch" type="xml">
-            <pivot string="مبيعات الموظفات">
+            <pivot string="Employee sales">
                 <field name="cashier" type="row"/>
                 <field name="day" interval="month" type="col"/>
                 <field name="amount" type="measure"/>
@@ -241,19 +241,19 @@
                 <field name="employee_id"/>
                 <field name="cashier"/>
                 <field name="branch_id"/>
-                <filter name="no_emp" string="بدون كاشير مربوط" domain="[('employee_id', '=', False)]"/>
-                <filter name="f_day" string="اليوم" date="day"/>
+                <filter name="no_emp" string="No linked cashier" domain="[('employee_id', '=', False)]"/>
+                <filter name="f_day" string="Today" date="day"/>
                 <group>
-                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
-                    <filter name="g_source" string="المصدر" context="{'group_by': 'source'}"/>
+                    <filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_source" string="Source" context="{'group_by': 'source'}"/>
                 </group>
             </search>
         </field>
     </record>
     <record id="action_employee_sales" model="ir.actions.act_window">
-        <field name="name">مبيعات الموظفات</field>
+        <field name="name">Employee sales</field>
         <field name="res_model">navitta.employee.sales</field>
         <field name="view_mode">pivot,list</field>
-        <field name="help" type="html"><p>من نقطة البيع (حسب الكاشير اللي باع) إذا الفرع مربوط بها، وإلا من التقرير اليومي.</p></field>
+        <field name="help" type="html"><p>From the Point of Sale (by the cashier who made the sale) if the branch is linked to it, otherwise from the daily report.</p></field>
     </record>
 </odoo>

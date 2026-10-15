@@ -17,41 +17,44 @@ import pytz
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools.translate import LazyTranslate
 
 from .common import company_tz
 
 _logger = logging.getLogger(__name__)
+_lt = LazyTranslate(__name__)
 
 DUPLICATE_SECONDS = 120
-VERIFY_MODES = {0: "رمز", 1: "بصمة إصبع", 2: "بطاقة", 3: "رمز", 4: "بطاقة", 5: "بصمة + بطاقة", 6: "بصمة + رمز",
-                7: "بطاقة + رمز", 8: "بطاقة + بصمة + رمز", 15: "وجه", 25: "كف اليد"}
+VERIFY_MODES = {0: _lt("Keypad code"), 1: _lt("Fingerprint"), 2: _lt("RFID card"), 3: _lt("Keypad code"), 4: _lt("RFID card"),
+                5: _lt("Fingerprint + card"), 6: _lt("Fingerprint + password"), 7: _lt("Card + password"),
+                8: _lt("Card + fingerprint + password"), 15: _lt("Face"), 25: _lt("Palm")}
 
 
 class NavittaDevice(models.Model):
     _name = "navitta.device"
-    _description = "جهاز بصمة"
+    _description = "Fingerprint device"
     _order = "branch_id, name"
 
-    name = fields.Char("اسم الجهاز", required=True, default=lambda self: _("جهاز بصمة"))
-    serial_number = fields.Char("الرقم التسلسلي (SN)", required=True, copy=False, index=True,
-                                help="مكتوب على ملصق الجهاز وفي قائمته: معلومات النظام ← معلومات الجهاز")
-    branch_id = fields.Many2one("navitta.branch", "الفرع", index=True, ondelete="restrict",
-                                help="بصمات هذا الجهاز تنحسب لموظفات هذا الفرع")
+    name = fields.Char("Device name", required=True, default=lambda self: _("Fingerprint device"))
+    serial_number = fields.Char("Serial number (SN)", required=True, copy=False, index=True,
+                                help="Printed on the device label and in its menu: System Info → Device Info")
+    branch_id = fields.Many2one("navitta.branch", "Branch", index=True, ondelete="restrict",
+                                help="Punches from this device count for this branch's employees")
     company_id = fields.Many2one("res.company", default=lambda self: self.env.company, required=True)
-    state = fields.Selection([("pending", "بانتظار الاعتماد"), ("active", "معتمد"), ("blocked", "موقوف")],
-                             "الحالة", default="active", required=True,
-                             help="جهاز جديد يتصل لأول مرة ينضاف «بانتظار الاعتماد»، وما تنقبل بصماته لين تعتمده وتحدد فرعه")
-    allowed_ip = fields.Char("يقبل فقط من IP", help="اختياري: عنوان IP الثابت لإنترنت الفرع. فاضي = أي عنوان")
-    last_seen = fields.Datetime("آخر اتصال", readonly=True)
-    last_ip = fields.Char("آخر IP", readonly=True)
-    info = fields.Text("معلومات الجهاز", readonly=True, help="الإصدار وعدد المستخدمين والبصمات كما يرسلها الجهاز")
-    attlog_stamp = fields.Char("آخر علامة استلام", readonly=True, copy=False)
-    online = fields.Boolean("متصل", compute="_compute_online")
-    punch_ids = fields.One2many("navitta.device.punch", "device_id", "البصمات")
-    punch_count = fields.Integer("عدد البصمات", compute="_compute_punch_count")
-    unmatched_count = fields.Integer("بصمات بدون موظفة", compute="_compute_punch_count")
+    state = fields.Selection([("pending", "Waiting for approval"), ("active", "Approved"), ("blocked", "Blocked")],
+                             "Status", default="active", required=True,
+                             help="A new device connecting for the first time is added as “Waiting for approval”, and its punches are not accepted until you approve it and set its branch")
+    allowed_ip = fields.Char("Accept only from IP", help="Optional: the static IP address of the branch's internet. Empty = any address")
+    last_seen = fields.Datetime("Last connection", readonly=True)
+    last_ip = fields.Char("Last IP", readonly=True)
+    info = fields.Text("Device info", readonly=True, help="Version and number of users and fingerprints as sent by the device")
+    attlog_stamp = fields.Char("Last receipt stamp", readonly=True, copy=False)
+    online = fields.Boolean("Online", compute="_compute_online")
+    punch_ids = fields.One2many("navitta.device.punch", "device_id", "Punches")
+    punch_count = fields.Integer("Number of punches", compute="_compute_punch_count")
+    unmatched_count = fields.Integer("Punches without employee", compute="_compute_punch_count")
 
-    _sql_constraints = [("sn_uniq", "unique(serial_number)", "هذا الرقم التسلسلي مسجل لجهاز ثاني")]
+    _sql_constraints = [("sn_uniq", "unique(serial_number)", "This serial number is registered to another device")]
 
     def _compute_online(self):
         limit = fields.Datetime.now() - timedelta(minutes=10)
@@ -80,7 +83,7 @@ class NavittaDevice(models.Model):
     def _check_branch(self):
         for d in self:
             if d.state == "active" and not d.branch_id:
-                raise UserError(_("حدد فرع الجهاز قبل اعتماده"))
+                raise UserError(_("Set the device's branch before approving it"))
 
     def action_approve(self):
         self.write({"state": "active"})
@@ -94,7 +97,7 @@ class NavittaDevice(models.Model):
 
     def action_punches(self):
         self.ensure_one()
-        return {"type": "ir.actions.act_window", "name": _("بصمات %s", self.name), "res_model": "navitta.device.punch",
+        return {"type": "ir.actions.act_window", "name": _("Punches: %s", self.name), "res_model": "navitta.device.punch",
                 "view_mode": "list,form", "domain": [("device_id", "=", self.id)]}
 
     # ------------------------------------------------------------------ protocol side (called by controllers/iclock.py)
@@ -108,7 +111,7 @@ class NavittaDevice(models.Model):
         if not dev:
             if self.sudo().search_count([("state", "=", "pending")]) >= 20:
                 return self
-            dev = self.sudo().create({"name": _("جهاز جديد %s", sn), "serial_number": sn, "state": "pending"})
+            dev = self.sudo().create({"name": _("New device %s", sn), "serial_number": sn, "state": "pending"})
             _logger.info("Navitta: new fingerprint device %s from %s waits for approval", sn, ip)
         dev.sudo().write({"last_seen": fields.Datetime.now(), "last_ip": ip})
         return dev
@@ -142,7 +145,7 @@ class NavittaDevice(models.Model):
                 continue
             when = tz.localize(local).astimezone(pytz.utc).replace(tzinfo=None)
             if when > now + timedelta(minutes=10) or when < now - timedelta(days=60):
-                state, msg = "error", _("وقت البصمة بعيد عن وقت السيرفر (ساعة الجهاز غلط؟)")
+                state, msg = "error", _("Punch time is far from the server time (is the device clock wrong?)")
             else:
                 state, msg = "new", False
 
@@ -161,30 +164,31 @@ class NavittaDevice(models.Model):
 
 class NavittaDevicePunch(models.Model):
     _name = "navitta.device.punch"
-    _description = "بصمة من جهاز البصمة"
+    _description = "Fingerprint device punch"
     _order = "punched_at desc, id desc"
     _rec_name = "device_user_id"
 
-    device_id = fields.Many2one("navitta.device", "الجهاز", required=True, index=True, ondelete="cascade")
-    branch_id = fields.Many2one(related="device_id.branch_id", store=True, string="الفرع")
-    device_user_id = fields.Char("رقم البصمة", required=True, index=True)
-    punched_at = fields.Datetime("وقت البصمة", required=True, index=True)
-    status = fields.Integer("المفتاح المضغوط", help="0 حضور، 1 انصراف، 2-5 استراحة/إضافي (حسب إعداد الجهاز). لا يُعتمد عليه")
-    verify_mode = fields.Integer("طريقة التحقق")
-    verify_label = fields.Char("طريقة التحقق ", compute="_compute_verify_label")
-    employee_id = fields.Many2one("navitta.employee", "الموظفة", index=True, ondelete="set null")
-    attendance_id = fields.Many2one("navitta.attendance", "سجل الحضور", ondelete="set null")
-    state = fields.Selection([("new", "جديدة"), ("in", "حضور"), ("out", "انصراف"), ("duplicate", "مكررة"),
-                              ("unmatched", "بدون موظفة"), ("tasks", "انصراف قبل مهام الإغلاق"), ("error", "خطأ")], "النتيجة", default="new", required=True, index=True)
-    message = fields.Char("ملاحظة")
-    raw = fields.Char("السطر كما وصل")
+    device_id = fields.Many2one("navitta.device", "Device", required=True, index=True, ondelete="cascade")
+    branch_id = fields.Many2one(related="device_id.branch_id", store=True, string="Branch")
+    device_user_id = fields.Char("Fingerprint ID", required=True, index=True)
+    punched_at = fields.Datetime("Punch time", required=True, index=True)
+    status = fields.Integer("Key pressed", help="0 check-in, 1 check-out, 2-5 break/overtime (depending on the device setup). Not relied upon")
+    verify_mode = fields.Integer("Verification method")
+    verify_label = fields.Char("Verification method name", compute="_compute_verify_label")
+    employee_id = fields.Many2one("navitta.employee", "Employee", index=True, ondelete="set null")
+    attendance_id = fields.Many2one("navitta.attendance", "Attendance record", ondelete="set null")
+    state = fields.Selection([("new", "New"), ("in", "Check-in"), ("out", "Check-out"), ("duplicate", "Duplicate"),
+                              ("unmatched", "No employee"), ("tasks", "Check-out before closing tasks"), ("error", "Error")], "Result", default="new", required=True, index=True)
+    message = fields.Char("Note")
+    raw = fields.Char("Raw line")
 
-    _sql_constraints = [("punch_uniq", "unique(device_id, device_user_id, punched_at)", "البصمة مسجلة مسبقًا")]
+    _sql_constraints = [("punch_uniq", "unique(device_id, device_user_id, punched_at)", "This punch is already recorded")]
 
     @api.depends("verify_mode")
     def _compute_verify_label(self):
         for p in self:
-            p.verify_label = VERIFY_MODES.get(p.verify_mode, str(p.verify_mode))
+            mode = VERIFY_MODES.get(p.verify_mode)
+            p.verify_label = p.env._(mode) if mode is not None else str(p.verify_mode)
 
     def _process(self):
         """Turns punches into check-in / check-out (oldest first)."""
@@ -196,28 +200,28 @@ class NavittaDevicePunch(models.Model):
                               ("active", "=", True)], limit=1) if dev.branch_id else Emp
             if not emp:
                 p.write({"state": "unmatched", "employee_id": False,
-                         "message": _("ما فيه موظفة في %(b)s رقم بصمتها %(u)s", b=dev.branch_id.name or "—", u=p.device_user_id)})
+                         "message": _("No employee at %(b)s has fingerprint ID %(u)s", b=dev.branch_id.name or "—", u=p.device_user_id)})
                 continue
             day = pytz.utc.localize(p.punched_at).astimezone(dev._tz()).date()
             att = Att.search([("employee_id", "=", emp.id), ("day", "=", day)], limit=1)
             vals = {"employee_id": emp.id, "message": False}
             if not att:
                 att, late = Att._register_in(emp, p.punched_at, "device", device=dev)
-                vals.update(state="in", attendance_id=att.id, message=_("متأخرة %s دقيقة", late) if late else False)
+                vals.update(state="in", attendance_id=att.id, message=_("Late %s minutes", late) if late else False)
             elif p.punched_at < att.check_in - timedelta(seconds=DUPLICATE_SECONDS):
                 # an earlier punch delivered late: it is the real check-in
                 att.write({"check_in": p.punched_at, "in_source": "device", "in_device_id": dev.id, "in_photo_id": False})
                 late = att._apply_late()
-                vals.update(state="in", attendance_id=att.id, message=_("عدّلت وقت الحضور (وصلت متأخرة من الجهاز)"))
+                vals.update(state="in", attendance_id=att.id, message=_("Check-in time corrected (punch arrived late from the device)"))
             elif p.punched_at <= att.check_in + timedelta(seconds=DUPLICATE_SECONDS):
-                vals.update(state="duplicate", attendance_id=att.id, message=_("بصمة مكررة خلال دقيقتين"))
+                vals.update(state="duplicate", attendance_id=att.id, message=_("Duplicate punch within two minutes"))
             elif att.check_out and p.punched_at <= att.check_out:
-                vals.update(state="duplicate", attendance_id=att.id, message=_("قبل آخر انصراف مسجل"))
+                vals.update(state="duplicate", attendance_id=att.id, message=_("Before the last recorded check-out"))
             elif not att.check_out and (tasks := self.env["navitta.api"]._tasks(emp, day)):
                 # the out punch only counts once her closing tasks are done: she finishes them and punches again
-                labels = {"visits": _("زيارات مفتوحة في العدّاد"), "report": _("التقرير اليومي ما انرسل"),
-                          "cash_close": _("ما عدّت كاش الإغلاق")}
-                vals.update(state="tasks", attendance_id=att.id, message="، ".join(labels[t] for t in tasks))
+                labels = {"visits": _("Open visits on the counter"), "report": _("Daily report not sent"),
+                          "cash_close": _("Closing cash not counted")}
+                vals.update(state="tasks", attendance_id=att.id, message=_(", ").join(labels[t] for t in tasks))
             else:
                 att._register_out(p.punched_at, "device", device=dev)
                 vals.update(state="out", attendance_id=att.id)

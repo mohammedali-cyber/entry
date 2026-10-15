@@ -30,8 +30,15 @@ def _text(body, status=200):
 class NavittaIclock(http.Controller):
 
     def _device(self):
+        """The device record, in its company's language: punch messages, late cases and the emails they send are
+        read by staff, while the public user of these requests usually runs in English."""
         ip = request.httprequest.remote_addr or ""
-        return request.env["navitta.device"].sudo()._from_request(request.params.get("SN"), ip), ip
+        Device = request.env["navitta.device"].sudo()
+        Device = Device.with_context(lang=Device.env.company._navitta_lang())
+        dev = Device._from_request(request.params.get("SN"), ip)
+        if dev:
+            dev = dev.with_context(lang=(dev.branch_id.company_id or dev.company_id)._navitta_lang())
+        return dev, ip
 
     @http.route(["/iclock/cdata", "/iclock/cdata.aspx"], type="http", auth="public", methods=["GET", "POST"],
                 csrf=False, save_session=False, sitemap=False)

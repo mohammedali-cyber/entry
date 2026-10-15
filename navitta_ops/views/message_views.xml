@@ -22,15 +22,15 @@
                 <sheet>
                     <group><field name="employee_id" readonly="1"/><field name="topic" readonly="1"/><field name="state"/></group>
                     <field name="message_ids" readonly="1">
-                        <list><field name="create_date" string="الوقت"/><field name="sender"/><field name="body"/></list>
+                        <list><field name="create_date" string="Time"/><field name="sender"/><field name="body"/></list>
                     </field>
-                    <div class="text-muted">للرد على الموظفة استخدم «لوحة الإدارة» (يوصلها الرد بالإيميل).</div>
+                    <div class="text-muted">To reply to the employee, use the "Dashboard" (she receives the reply by email).</div>
                 </sheet>
             </form>
         </field>
     </record>
     <record id="action_threads" model="ir.actions.act_window">
-        <field name="name">رسائل الموظفات</field>
+        <field name="name">Employee messages</field>
         <field name="res_model">navitta.thread</field>
         <field name="view_mode">list,form</field>
     </record>

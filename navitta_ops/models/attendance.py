@@ -7,32 +7,32 @@ from odoo.tools import format_date
 
 from .common import app_minute, fmt_time, hours_to_min, local_dt
 
-SOURCES = [("ipad", "آيباد الفرع"), ("device", "جهاز البصمة"), ("manual", "يدوي")]
+SOURCES = [("ipad", "Branch iPad"), ("device", "Fingerprint device"), ("manual", "Manual")]
 
 
 class NavittaAttendance(models.Model):
     _name = "navitta.attendance"
-    _description = "حضور وانصراف"
+    _description = "Check-in and check-out"
     _order = "day desc, check_in desc"
 
-    employee_id = fields.Many2one("navitta.employee", "الموظفة", required=True, index=True, ondelete="restrict")
-    branch_id = fields.Many2one(related="employee_id.branch_id", store=True, index=True, string="الفرع")
-    day = fields.Date("اليوم", required=True, index=True)
-    check_in = fields.Datetime("الحضور", required=True)
-    check_out = fields.Datetime("الانصراف")
-    in_source = fields.Selection(SOURCES, "طريقة الحضور", default="ipad", required=True)
-    out_source = fields.Selection(SOURCES, "طريقة الانصراف")
-    in_photo_id = fields.Many2one("navitta.photo", "صورة الحضور", ondelete="set null", copy=False)
-    out_photo_id = fields.Many2one("navitta.photo", "صورة الانصراف", ondelete="set null", copy=False)
-    in_image = fields.Binary(related="in_photo_id.image", string="صورة الحضور ")
-    out_image = fields.Binary(related="out_photo_id.image", string="صورة الانصراف ")
-    ref_image = fields.Image(related="employee_id.photo", string="الصورة المرجعية", groups="navitta_ops.group_navitta_admin")
-    in_device_id = fields.Many2one("navitta.device", "جهاز الحضور", ondelete="set null")
-    out_device_id = fields.Many2one("navitta.device", "جهاز الانصراف", ondelete="set null")
-    no_photo = fields.Boolean("بصمة آيباد بدون صورة", compute="_compute_no_photo", store=True,
-                              help="حضور أو انصراف من الآيباد والكاميرا ما التقطت صورة")
+    employee_id = fields.Many2one("navitta.employee", "Employee", required=True, index=True, ondelete="restrict")
+    branch_id = fields.Many2one(related="employee_id.branch_id", store=True, index=True, string="Branch")
+    day = fields.Date("Day", required=True, index=True)
+    check_in = fields.Datetime("Check-in", required=True)
+    check_out = fields.Datetime("Check-out")
+    in_source = fields.Selection(SOURCES, "Check-in method", default="ipad", required=True)
+    out_source = fields.Selection(SOURCES, "Check-out method")
+    in_photo_id = fields.Many2one("navitta.photo", "Check-in photo", ondelete="set null", copy=False)
+    out_photo_id = fields.Many2one("navitta.photo", "Check-out photo", ondelete="set null", copy=False)
+    in_image = fields.Binary(related="in_photo_id.image", string="Check-in image")
+    out_image = fields.Binary(related="out_photo_id.image", string="Check-out image")
+    ref_image = fields.Image(related="employee_id.photo", string="Reference photo", groups="navitta_ops.group_navitta_admin")
+    in_device_id = fields.Many2one("navitta.device", "Check-in device", ondelete="set null")
+    out_device_id = fields.Many2one("navitta.device", "Check-out device", ondelete="set null")
+    no_photo = fields.Boolean("iPad punch without photo", compute="_compute_no_photo", store=True,
+                              help="Check-in or check-out on the iPad where the camera took no photo")
 
-    _sql_constraints = [("emp_day_uniq", "unique(employee_id, day)", "تم تسجيل الحضور مسبقًا لهذا اليوم")]
+    _sql_constraints = [("emp_day_uniq", "unique(employee_id, day)", "Check-in is already recorded for this day")]
 
     @api.depends("employee_id", "day")
     def _compute_display_name(self):
@@ -77,9 +77,9 @@ class NavittaAttendance(models.Model):
             else:
                 Case.create({"employee_id": e.id, "day": day, "kind": "late", "minutes": late, "check_in": self.check_in})
             start = hours_to_min(self.env.company.navitta_shift_start)
-            e._notify(_("تنبيه: تأخير في الحضور"),
-                      _("مرحبًا %(n)s، تم تسجيل حضورك الساعة %(t)s بتأخير %(l)s دقيقة عن بداية الدوام %(s)s. يجب ذكر سبب التأخير من «تنبيهاتي». إدارة نافيتا",
-                        n=e.name, t=fmt_time(app_minute(self.env, self.check_in)), l=late, s=fmt_time(start)))
+            e._notify(_("Alert: late arrival"),
+                      _("Hello %(n)s, your check-in was recorded at %(t)s, %(l)s minutes after the shift start (%(s)s). Please give the reason for being late in “My alerts”. Navitta Management",
+                        n=e.name, t=fmt_time(app_minute(self.env, self.check_in), self.env), l=late, s=fmt_time(start, self.env)))
         elif case and case.state == "reply":
             # an earlier punch arrived later (device offline): she wasn't late after all
             case.unlink()
@@ -94,26 +94,26 @@ class NavittaAttendance(models.Model):
         """Management: make this check-in photo the employee's reference photo."""
         self.ensure_one()
         if not self.in_photo_id:
-            raise UserError(_("ما فيه صورة حضور لهذا اليوم"))
+            raise UserError(_("There is no check-in photo for this day"))
         try:
             self.employee_id.sudo().photo = self.in_photo_id.image
         except UserError:
-            raise UserError(_("صورة الحضور تالفة وما تصلح كصورة مرجعية")) from None
+            raise UserError(_("The check-in photo is damaged and cannot be used as a reference photo")) from None
         return {"type": "ir.actions.client", "tag": "display_notification",
-                "params": {"message": _("صارت صورة %s المرجعية", self.employee_id.name), "type": "success"}}
+                "params": {"message": _("This is now %s's reference photo", self.employee_id.name), "type": "success"}}
 
 
 class NavittaBreak(models.Model):
     _name = "navitta.break"
-    _description = "استراحة"
+    _description = "Break"
     _order = "started_at desc"
 
-    employee_id = fields.Many2one("navitta.employee", "الموظفة", required=True, index=True, ondelete="restrict")
-    branch_id = fields.Many2one(related="employee_id.branch_id", store=True, index=True, string="الفرع")
-    day = fields.Date("اليوم", required=True, index=True)
-    started_at = fields.Datetime("بدأت", required=True)
-    ended_at = fields.Datetime("انتهت")
-    duration_min = fields.Float("المدة (دقائق)", compute="_compute_duration", store=True)
+    employee_id = fields.Many2one("navitta.employee", "Employee", required=True, index=True, ondelete="restrict")
+    branch_id = fields.Many2one(related="employee_id.branch_id", store=True, index=True, string="Branch")
+    day = fields.Date("Day", required=True, index=True)
+    started_at = fields.Datetime("Started", required=True)
+    ended_at = fields.Datetime("Ended")
+    duration_min = fields.Float("Duration (minutes)", compute="_compute_duration", store=True)
 
     @api.depends("started_at", "ended_at")
     def _compute_duration(self):
@@ -146,25 +146,25 @@ class NavittaBreak(models.Model):
             elif case.state in ("reply", "review"):
                 case.write({"minutes": used - limit, "break_used": used})
             b.employee_id._notify(
-                _("تنبيه: تجاوز وقت الاستراحة"),
-                _("مرحبًا %(n)s، تجاوزتِ وقت الاستراحة بـ %(o)s دقيقة (الاستراحة %(u)s د والمسموح %(m)s د). "
-                  "يجب ذكر السبب أو طلب تعديل المدة من «تنبيهاتي». إدارة نافيتا",
+                _("Alert: break time exceeded"),
+                _("Hello %(n)s, you exceeded the break time by %(o)s minutes (break %(u)s min, allowed %(m)s min). "
+                  "Please give the reason or request a duration change in “My alerts”. Navitta Management",
                   n=b.employee_id.name, o=used - limit, u=used, m=limit))
 
 
 class NavittaPenaltyTier(models.Model):
     _name = "navitta.penalty.tier"
-    _description = "جدول المخالفات"
+    _description = "Penalty table"
     _order = "max_min"
 
-    max_min = fields.Integer("حتى (دقيقة)", required=True)
-    label = fields.Char("الشريحة", required=True)
-    p1 = fields.Char("المرة الأولى", required=True)
-    p2 = fields.Char("المرة الثانية", required=True)
-    p3 = fields.Char("المرة الثالثة", required=True)
-    p4 = fields.Char("الرابعة فأكثر", required=True)
+    max_min = fields.Integer("Up to (minutes)", required=True)
+    label = fields.Char("Tier", required=True)
+    p1 = fields.Char("First time", required=True)
+    p2 = fields.Char("Second time", required=True)
+    p3 = fields.Char("Third time", required=True)
+    p4 = fields.Char("Fourth time or more", required=True)
 
-    _sql_constraints = [("max_min_uniq", "unique(max_min)", "الشريحة موجودة")]
+    _sql_constraints = [("max_min_uniq", "unique(max_min)", "This tier already exists")]
 
     @api.model
     def _tier_for(self, minutes):
@@ -174,31 +174,31 @@ class NavittaPenaltyTier(models.Model):
 
 class NavittaLateCase(models.Model):
     _name = "navitta.late.case"
-    _description = "تأخير أو تجاوز استراحة"
+    _description = "Late arrival or break overrun"
     _order = "day desc, id desc"
     _rec_name = "employee_id"
 
-    employee_id = fields.Many2one("navitta.employee", "الموظفة", required=True, index=True, ondelete="restrict")
-    branch_id = fields.Many2one(related="employee_id.branch_id", store=True, index=True, string="الفرع")
-    day = fields.Date("اليوم", required=True, index=True)
-    kind = fields.Selection([("late", "تأخير حضور"), ("break", "تجاوز استراحة")], "النوع", required=True)
-    minutes = fields.Integer("الدقائق", required=True)
-    check_in = fields.Datetime("وقت الحضور")
-    break_used = fields.Integer("مدة الاستراحة (د)")
-    old_break_used = fields.Integer("المدة قبل التعديل (د)")
-    reason = fields.Text("سبب الموظفة")
-    request = fields.Selection([("forgive", "طلب فرصة مسامحة"), ("edit", "طلب تعديل مدة الاستراحة")], "الطلب")
-    requested_minutes = fields.Integer("المدة المطلوبة (د)")
+    employee_id = fields.Many2one("navitta.employee", "Employee", required=True, index=True, ondelete="restrict")
+    branch_id = fields.Many2one(related="employee_id.branch_id", store=True, index=True, string="Branch")
+    day = fields.Date("Day", required=True, index=True)
+    kind = fields.Selection([("late", "Late arrival"), ("break", "Break overrun")], "Type", required=True)
+    minutes = fields.Integer("Minutes", required=True)
+    check_in = fields.Datetime("Check-in time")
+    break_used = fields.Integer("Break duration (min)")
+    old_break_used = fields.Integer("Duration before change (min)")
+    reason = fields.Text("Employee's reason")
+    request = fields.Selection([("forgive", "Grace chance request"), ("edit", "Break duration change request")], "Request")
+    requested_minutes = fields.Integer("Requested duration (min)")
     state = fields.Selection([
-        ("reply", "يحتاج رد الموظفة"), ("review", "بانتظار قرار الإدارة"), ("forgiven", "احتُسبت فرصة"),
-        ("rejected", "مرفوض"), ("edited", "عُدّلت المدة"),
-    ], "الحالة", default="reply", required=True, index=True)
-    penalty = fields.Char("العقوبة")
-    penalty_occ = fields.Integer("رقم المرة")
-    note = fields.Text("ملاحظة الإدارة")
-    decided_at = fields.Datetime("وقت القرار")
+        ("reply", "Needs the employee's reply"), ("review", "Waiting for management decision"), ("forgiven", "Grace chance used"),
+        ("rejected", "Rejected"), ("edited", "Duration changed"),
+    ], "Status", default="reply", required=True, index=True)
+    penalty = fields.Char("Penalty")
+    penalty_occ = fields.Integer("Occurrence")
+    note = fields.Text("Management note")
+    decided_at = fields.Datetime("Decision time")
 
-    _sql_constraints = [("emp_day_kind_uniq", "unique(employee_id, day, kind)", "يوجد تنبيه لنفس اليوم")]
+    _sql_constraints = [("emp_day_kind_uniq", "unique(employee_id, day, kind)", "There is already an alert for this day")]
 
     @api.model
     def _chances_used(self, employee, day):
@@ -213,7 +213,7 @@ class NavittaLateCase(models.Model):
         Tier = self.env["navitta.penalty.tier"]
         tier = Tier._tier_for(self.minutes)
         if not tier:
-            return {"text": _("حسب لائحة الجزاءات"), "occ": 1, "tier": ""}
+            return {"text": _("As per the penalty rules"), "occ": 1, "tier": ""}
         others = self.sudo().search([
             ("employee_id", "=", self.employee_id.id), ("kind", "=", self.kind), ("state", "=", "rejected"),
             ("id", "!=", self.id), ("day", ">=", self.day - timedelta(days=180)), ("day", "<=", self.day)])
@@ -221,7 +221,7 @@ class NavittaLateCase(models.Model):
         return {"text": [tier.p1, tier.p2, tier.p3, tier.p4][min(n, 3)], "occ": n + 1, "tier": tier.label}
 
     def _kind_text(self):
-        return _("التأخير") if self.kind == "late" else _("تجاوز الاستراحة")
+        return _("late arrival") if self.kind == "late" else _("break overrun")
 
     def _decide(self, decision, note=None):
         """Management decision on a case waiting for review. Returns an error code or None."""
@@ -231,20 +231,20 @@ class NavittaLateCase(models.Model):
             return "not_found"
         company = self.env.company
         emp = c.employee_id
-        extra = _(" ملاحظة الإدارة: %s", note) if note else ""
+        extra = _(" Management note: %s", note) if note else ""
         if decision == "forgive":
             if self._chances_used(emp, c.day) >= company.navitta_chances:
                 return "no_chances"
             c.write({"state": "forgiven", "note": note, "decided_at": fields.Datetime.now()})
-            emp._notify(_("قرار الإدارة: احتُسبت فرصة مسامحة"),
-                        _("مرحبًا %(n)s، احتُسبت لك فرصة مسامحة على %(k)s يوم %(d)s (%(u)s من %(m)s هذا الشهر).%(x)s إدارة نافيتا",
+            emp._notify(_("Management decision: grace chance used"),
+                        _("Hello %(n)s, a grace chance was used for your %(k)s on %(d)s (%(u)s of %(m)s this month).%(x)s Navitta Management",
                           n=emp.name, k=c._kind_text(), d=c.day, u=self._chances_used(emp, c.day), m=company.navitta_chances, x=extra))
         elif decision == "reject":
             pen = c._penalty()
             c.write({"state": "rejected", "penalty": pen["text"], "penalty_occ": pen["occ"], "note": note,
                      "decided_at": fields.Datetime.now()})
-            emp._notify(_("قرار الإدارة: رُفض العذر"),
-                        _("مرحبًا %(n)s، رُفض العذر على %(k)s يوم %(d)s، والعقوبة: %(p)s (المرة %(o)s، %(t)s).%(x)s إدارة نافيتا",
+            emp._notify(_("Management decision: excuse rejected"),
+                        _("Hello %(n)s, your excuse for the %(k)s on %(d)s was rejected. Penalty: %(p)s (occurrence %(o)s, %(t)s).%(x)s Navitta Management",
                           n=emp.name, k=c._kind_text(), d=c.day, p=pen["text"], o=pen["occ"], t=pen["tier"], x=extra))
         elif decision == "edit":
             if c.kind != "break" or c.request != "edit":
@@ -262,8 +262,8 @@ class NavittaLateCase(models.Model):
                 "state": "edited" if ok else "review", "request": c.request if ok else False,
                 "note": note, "decided_at": fields.Datetime.now() if ok else False,
             })
-            emp._notify(_("قبول طلب تعديل مدة الاستراحة"),
-                        _("مرحبًا %(n)s، قبلت الإدارة طلبك: مدة استراحتك يوم %(d)s صارت %(m)s دقيقة.%(x)s إدارة نافيتا",
+            emp._notify(_("Break duration change accepted"),
+                        _("Hello %(n)s, management accepted your request: your break on %(d)s is now %(m)s minutes.%(x)s Navitta Management",
                           n=emp.name, d=c.day, m=c.requested_minutes, x=extra))
         else:
             return "bad_decision"
@@ -290,6 +290,7 @@ class NavittaLateCase(models.Model):
         """Every few minutes during the shift: an employee with no check-in after the grace gets a late case."""
         from .common import app_minute, app_today
         company = self.env.company
+        self = self.with_context(lang=company._navitta_lang())     # runs as OdooBot: write to staff in the company's language
         start, end = hours_to_min(company.navitta_shift_start), hours_to_min(company.navitta_shift_end)
         day, m = app_today(self.env), app_minute(self.env)
         if m <= start + company.navitta_grace or m >= end:
@@ -302,8 +303,8 @@ class NavittaLateCase(models.Model):
             if self.sudo().search_count([("employee_id", "=", e.id), ("day", "=", day), ("kind", "=", "late")], limit=1):
                 continue
             self.sudo().create({"employee_id": e.id, "day": day, "kind": "late", "minutes": m - start})
-            e._notify(_("تنبيه: لم يُسجَّل حضورك"),
-                      _("مرحبًا %(n)s، دوامك يبدأ الساعة %(s)s ولم يُسجَّل حضورك حتى %(t)s. سجلي حضورك واذكري سبب التأخير من «تنبيهاتي». إدارة نافيتا",
-                        n=e.name, s=fmt_time(start), t=fmt_time(m)))
+            e._notify(_("Alert: no check-in recorded"),
+                      _("Hello %(n)s, your shift starts at %(s)s and no check-in was recorded by %(t)s. Please check in and give the reason for being late in “My alerts”. Navitta Management",
+                        n=e.name, s=fmt_time(start, self.env), t=fmt_time(m, self.env)))
             n += 1
         return n

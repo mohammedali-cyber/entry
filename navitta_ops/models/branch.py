@@ -7,33 +7,33 @@ from .common import STOCK_SUPPLIES, app_today
 
 class NavittaBranch(models.Model):
     _name = "navitta.branch"
-    _description = "فرع نافيتا"
+    _description = "Navitta branch"
     _order = "sequence, id"
 
-    name = fields.Char("الفرع", required=True, translate=False)
-    code = fields.Char("الرمز", required=True, help="رمز قصير مثل dwd")
-    sequence = fields.Integer("الترتيب", default=10)
+    name = fields.Char("Branch", required=True, translate=False)
+    code = fields.Char("Code", required=True, help="Short code such as dwd")
+    sequence = fields.Integer("Sequence", default=10)
     active = fields.Boolean(default=True)
     company_id = fields.Many2one("res.company", default=lambda self: self.env.company, required=True)
-    employee_ids = fields.One2many("navitta.employee", "branch_id", string="الموظفات")
-    user_ids = fields.One2many("res.users", "navitta_branch_id", string="حسابات جهاز الفرع")
-    device_ids = fields.One2many("navitta.device", "branch_id", string="أجهزة البصمة")
+    employee_ids = fields.One2many("navitta.employee", "branch_id", string="Employees")
+    user_ids = fields.One2many("res.users", "navitta_branch_id", string="Branch device accounts")
+    device_ids = fields.One2many("navitta.device", "branch_id", string="Fingerprint devices")
 
-    cash_opening_balance = fields.Float("رصيد الصندوق الافتتاحي", digits=(12, 2))
-    cash_opening_date = fields.Date("في تاريخ", help="الرصيد بعد هذا التاريخ ينحسب تلقائيًا من النقدي والإيداع والمصروفات المعتمدة")
+    cash_opening_balance = fields.Float("Cash box opening balance", digits=(12, 2))
+    cash_opening_date = fields.Date("As of", help="The balance after this date is computed automatically from cash sales, bank deposits and approved expenses")
 
     # management-password attempts typed on this branch's device
     pw_fail_count = fields.Integer(groups="base.group_system", copy=False)
     pw_locked_until = fields.Datetime(groups="base.group_system", copy=False)
 
-    cash_balance = fields.Float("رصيد الصندوق الحالي", compute="_compute_cash", digits=(12, 2))
-    month_expenses = fields.Float("مصروفات هذا الشهر", compute="_compute_cash", digits=(12, 2))
-    pending_expenses = fields.Float("مصروفات بانتظار الاعتماد", compute="_compute_cash", digits=(12, 2))
-    stock_roll_invoice = fields.Integer("رصيد رول الفاتورة", compute="_compute_stock")
-    stock_roll_card = fields.Integer("رصيد رول الشبكة", compute="_compute_stock")
-    stock_bags = fields.Integer("رصيد الأكياس", compute="_compute_stock")
+    cash_balance = fields.Float("Current cash box balance", compute="_compute_cash", digits=(12, 2))
+    month_expenses = fields.Float("This month's expenses", compute="_compute_cash", digits=(12, 2))
+    pending_expenses = fields.Float("Expenses awaiting approval", compute="_compute_cash", digits=(12, 2))
+    stock_roll_invoice = fields.Integer("Receipt rolls in stock", compute="_compute_stock")
+    stock_roll_card = fields.Integer("Card rolls in stock", compute="_compute_stock")
+    stock_bags = fields.Integer("Bags in stock", compute="_compute_stock")
 
-    _sql_constraints = [("code_uniq", "unique(code)", "رمز الفرع مستخدم")]
+    _sql_constraints = [("code_uniq", "unique(code)", "The branch code is already used")]
 
     # ------------------------------------------------------------------ cash register system (overridden by navitta_ops_pos)
     def _has_system(self):
@@ -132,7 +132,7 @@ class NavittaBranch(models.Model):
             vals["pw_locked_until"] = now + timedelta(minutes=5 if fails < 15 else 60)
             if fails >= 10:
                 self.env["navitta.notification"]._notify_admin(
-                    _("محاولات خاطئة لكلمة سر الإدارة"),
-                    _("جهاز %(b)s أدخل كلمة سر الإدارة خطأ %(n)s مرات متتالية.", b=self.name, n=fails))
+                    _("Wrong management password attempts"),
+                    _("The %(b)s device entered a wrong management password %(n)s times in a row.", b=self.name, n=fails))
         b.write(vals)
         return "wrong_pw"

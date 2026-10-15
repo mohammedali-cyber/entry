@@ -1,23 +1,33 @@
 from datetime import timedelta
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.addons.navitta_ops.models.common import iso, local_dt
+from odoo.tools.translate import LazyTranslate
 
-SESSION_STATES = {"opening_control": "قيد الفتح", "opened": "مفتوحة", "closing_control": "قيد الإغلاق", "closed": "مغلقة"}
+_lt = LazyTranslate(__name__)
+
+# short labels of pos.session states for the Navitta screens (translated with env._ when used)
+SESSION_STATES = {"opening_control": _lt("Opening"), "opened": _lt("Open"), "closing_control": _lt("Closing"),
+                  "closed": _lt("Closed")}
+
+
+def _state_label(env, state):
+    text = SESSION_STATES.get(state)
+    return env._(text) if text is not None else state
 
 
 class PosConfig(models.Model):
     _inherit = "pos.config"
 
-    navitta_branch_id = fields.Many2one("navitta.branch", "فرع نافيتا", index=True, ondelete="set null",
-                                        help="مبيعات نقطة البيع هذه تنحسب لهذا الفرع، وكاشيراتها موظفات الفرع")
-    navitta_session_label = fields.Char("حالة الجلسة الحالية", compute="_compute_navitta_session_label")
+    navitta_branch_id = fields.Many2one("navitta.branch", "Navitta branch", index=True, ondelete="set null",
+                                        help="This point of sale's sales count for this branch, and its cashiers are the branch's employees")
+    navitta_session_label = fields.Char("Current session status", compute="_compute_navitta_session_label")
 
     @api.depends("current_session_state")
     def _compute_navitta_session_label(self):
         for c in self:
             st = c.current_session_state
-            c.navitta_session_label = SESSION_STATES.get(st, st) if st else "لا توجد جلسة"
+            c.navitta_session_label = _state_label(c.env, st) if st else _("No session")
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -36,8 +46,8 @@ class PosConfig(models.Model):
 class PosSession(models.Model):
     _inherit = "pos.session"
 
-    navitta_opened_by_id = fields.Many2one("hr.employee", "فتحت الكاشير", readonly=True, copy=False,
-                                           help="الكاشير اللي فتحت الجلسة")
+    navitta_opened_by_id = fields.Many2one("hr.employee", "Opened by cashier", readonly=True, copy=False,
+                                           help="The cashier who opened the session")
 
     def _set_opening_control_data(self, cashbox_value, notes):
         super()._set_opening_control_data(cashbox_value, notes)
@@ -64,7 +74,7 @@ class PosSession(models.Model):
             return e.name if e else hr.name
         opener = self.navitta_opened_by_id
         linked = bool(opener) and bool(nav.search_count([("hr_employee_id", "=", opener.id)], limit=1))
-        return {"name": self.config_id.name, "session": self.name, "state": self.state, "state_label": SESSION_STATES.get(self.state, self.state),
+        return {"name": self.config_id.name, "session": self.name, "state": self.state, "state_label": _state_label(self.env, self.state),
                 "opened_at": iso(self.start_at), "closed_at": iso(self.stop_at),
                 "opened_by": who(opener) or self.user_id.name, "cashier": who(self.employee_id) or "",
                 "general": not linked}

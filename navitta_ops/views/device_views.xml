@@ -10,7 +10,7 @@
                 <field name="serial_number"/>
                 <field name="branch_id"/>
                 <field name="state" widget="badge" decoration-success="state == 'active'" decoration-warning="state == 'pending'"/>
-                <field name="online" widget="boolean" string="متصل الحين"/>
+                <field name="online" widget="boolean" string="Online now"/>
                 <field name="last_seen"/>
                 <field name="unmatched_count"/>
             </list>
@@ -23,28 +23,28 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_approve" type="object" string="اعتماد الجهاز" class="btn-primary" invisible="state == 'active'"/>
-                    <button name="action_block" type="object" string="إيقاف" invisible="state == 'blocked'"
-                            confirm="بصمات هذا الجهاز ما راح تنقبل لين تعتمده مرة ثانية. متابعة؟"/>
-                    <button name="action_reprocess" type="object" string="إعادة معالجة البصمات بدون موظفة" invisible="not unmatched_count"/>
+                    <button name="action_approve" type="object" string="Approve device" class="btn-primary" invisible="state == 'active'"/>
+                    <button name="action_block" type="object" string="Block" invisible="state == 'blocked'"
+                            confirm="Punches from this device will not be accepted until you approve it again. Continue?"/>
+                    <button name="action_reprocess" type="object" string="Reprocess punches without an employee" invisible="not unmatched_count"/>
                     <field name="state" widget="statusbar" statusbar_visible="pending,active,blocked"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_punches" type="object" class="oe_stat_button" icon="fa-hand-pointer-o">
-                            <field name="punch_count" widget="statinfo" string="بصمة"/>
+                            <field name="punch_count" widget="statinfo" string="Punches"/>
                         </button>
                     </div>
                     <div class="oe_title"><h1><field name="name"/></h1></div>
                     <div invisible="state != 'pending'" class="alert alert-warning" role="alert">
-                        جهاز جديد اتصل بـ Odoo. تأكد إنه جهاز فرعك (الرقم التسلسلي على ملصق الجهاز)، حدد الفرع، ثم «اعتماد الجهاز».
-                        قبل الاعتماد يحتفظ الجهاز بالبصمات ويرسلها بعده.
+                        A new device connected to Odoo. Make sure it is your branch's device (the serial number is on the device label), set the branch, then click "Approve device".
+                        Until it is approved, the device keeps its punches and sends them afterwards.
                     </div>
                     <group>
                         <group>
                             <field name="serial_number"/>
                             <field name="branch_id" required="state == 'active'"/>
-                            <field name="allowed_ip" placeholder="اختياري"/>
+                            <field name="allowed_ip" placeholder="Optional"/>
                         </group>
                         <group>
                             <field name="online" widget="boolean"/>
@@ -53,15 +53,15 @@
                             <field name="unmatched_count"/>
                         </group>
                     </group>
-                    <group string="معلومات الجهاز" invisible="not info">
+                    <group string="Device info" invisible="not info">
                         <field name="info" nolabel="1" colspan="2"/>
                     </group>
                     <div class="text-muted">
-                        <b>ربط الجهاز:</b> في الجهاز: القائمة ← «الاتصال» ← «إعداد الخادم السحابي»:
-                        عنوان الخادم = عنوان Odoo (مثل odoo.example.com)، المنفذ 443 مع تفعيل HTTPS (أو 80 / منفذ Odoo بدونه).
-                        بعد أول اتصال يظهر الجهاز هنا.
-                        <br/><b>ربط الموظفات:</b> رقم كل موظفة في الجهاز (User ID) يُكتب في بطاقتها: «رقم البصمة في الجهاز».
-                        أول بصمة في اليوم = حضور، وآخر بصمة بعدها بدقيقتين أو أكثر = انصراف.
+                        <b>Connecting the device:</b> On the device: Menu → "Comm." → "Cloud Server Setting":
+                        server address = your Odoo address (e.g. odoo.example.com), port 443 with HTTPS enabled (or 80 / the Odoo port without it).
+                        The device appears here after its first connection.
+                        <br/><b>Linking employees:</b> each employee's number on the device (User ID) goes on her card, in "Fingerprint device ID".
+                        The first punch of the day = check-in; the last punch two or more minutes later = check-out.
                     </div>
                 </sheet>
             </form>
@@ -69,12 +69,12 @@
     </record>
 
     <record id="action_devices" model="ir.actions.act_window">
-        <field name="name">أجهزة البصمة</field>
+        <field name="name">Fingerprint devices</field>
         <field name="res_model">navitta.device</field>
         <field name="view_mode">list,form</field>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">ما فيه أجهزة بصمة بعد</p>
-            <p>اضبط جهاز البصمة (ZKTeco) على «الخادم السحابي» بعنوان Odoo، ويظهر هنا تلقائيًا بانتظار اعتمادك. أو أضفه يدويًا برقمه التسلسلي.</p>
+            <p class="o_view_nocontent_smiling_face">No fingerprint devices yet</p>
+            <p>Set the fingerprint device (ZKTeco) to "Cloud Server" with your Odoo address and it appears here automatically, awaiting your approval. Or add it manually by its serial number.</p>
         </field>
     </record>
 
@@ -101,7 +101,7 @@
         <field name="arch" type="xml">
             <form create="0" edit="0">
                 <header>
-                    <button name="action_reprocess" type="object" string="إعادة المعالجة" invisible="state not in ('unmatched', 'tasks', 'error')"/>
+                    <button name="action_reprocess" type="object" string="Reprocess" invisible="state not in ('unmatched', 'tasks', 'error')"/>
                     <field name="state" widget="statusbar"/>
                 </header>
                 <sheet>
@@ -132,22 +132,22 @@
                 <field name="employee_id"/>
                 <field name="device_user_id"/>
                 <field name="device_id"/>
-                <filter name="problems" string="بدون موظفة أو خطأ" domain="[('state', 'in', ('unmatched', 'error'))]"/>
-                <filter name="f_day" string="التاريخ" date="punched_at"/>
+                <filter name="problems" string="No employee or error" domain="[('state', 'in', ('unmatched', 'error'))]"/>
+                <filter name="f_day" string="Date" date="punched_at"/>
                 <group>
-                    <filter name="g_device" string="الجهاز" context="{'group_by': 'device_id'}"/>
-                    <filter name="g_state" string="النتيجة" context="{'group_by': 'state'}"/>
+                    <filter name="g_device" string="Device" context="{'group_by': 'device_id'}"/>
+                    <filter name="g_state" string="Result" context="{'group_by': 'state'}"/>
                 </group>
             </search>
         </field>
     </record>
     <record id="action_device_punches" model="ir.actions.act_window">
-        <field name="name">سجل جهاز البصمة</field>
+        <field name="name">Fingerprint device log</field>
         <field name="res_model">navitta.device.punch</field>
         <field name="view_mode">list,form</field>
     </record>
     <record id="action_device_punch_reprocess" model="ir.actions.server">
-        <field name="name">إعادة المعالجة</field>
+        <field name="name">Reprocess</field>
         <field name="model_id" ref="model_navitta_device_punch"/>
         <field name="binding_model_id" ref="model_navitta_device_punch"/>
         <field name="binding_view_types">list</field>

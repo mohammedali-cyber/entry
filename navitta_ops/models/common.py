@@ -6,46 +6,93 @@ import pytz
 from passlib.context import CryptContext
 
 from odoo import fields
+from odoo.tools.translate import LazyGettext, LazyTranslate
+
+_lt = LazyTranslate(__name__)
 
 CRYPT = CryptContext(schemes=["pbkdf2_sha512"], deprecated="auto")
 
 WEEKDAYS = [
-    ("0", "الأحد"), ("1", "الإثنين"), ("2", "الثلاثاء"), ("3", "الأربعاء"),
-    ("4", "الخميس"), ("5", "الجمعة"), ("6", "السبت"),
+    ("0", "Sunday"), ("1", "Monday"), ("2", "Tuesday"), ("3", "Wednesday"),
+    ("4", "Thursday"), ("5", "Friday"), ("6", "Saturday"),
 ]
 
 # why a customer did not buy (same order as the branch screen)
 LOST_REASONS = [
-    ("size_na", "المقاس غير متوفر"),
-    ("color_na", "اللون غير متوفر"),
-    ("price", "السعر مرتفع"),
-    ("design", "التصميم غير مناسب"),
-    ("quality", "الجودة لم تعجبهم"),
-    ("browsing", "يتصفح فقط"),
-    ("other", "أخرى"),
-    ("manufacture", "يحتاج تصنيع"),
+    ("size_na", "Size not available"),
+    ("color_na", "Color not available"),
+    ("price", "Price too high"),
+    ("design", "Design not suitable"),
+    ("quality", "Didn't like the quality"),
+    ("browsing", "Just browsing"),
+    ("other", "Other"),
+    ("manufacture", "Needs manufacturing"),
 ]
 OUT_OF_STOCK = ("size_na", "color_na")
 
-LEAVE_TYPES = [("annual", "سنوية"), ("sick", "مرضية"), ("emergency", "اضطرارية"), ("other", "أخرى")]
+LEAVE_TYPES = [("annual", "Annual"), ("sick", "Sick"), ("emergency", "Emergency"), ("other", "Other")]
 TOPICS = [
-    ("personal", "طلب شخصي"), ("salary", "راتب أو سلفة"), ("work", "مشكلة في العمل"),
-    ("health", "ظرف صحي"), ("suggestion", "اقتراح"), ("other", "أخرى"),
+    ("personal", "Personal request"), ("salary", "Salary or advance"), ("work", "Work problem"),
+    ("health", "Health matter"), ("suggestion", "Suggestion"), ("other", "Other"),
 ]
-SUPPLIES = [("roll_invoice", "رول فاتورة"), ("roll_card", "رول شبكة"), ("bags", "أكياس"), ("other", "أخرى")]
+SUPPLIES = [("roll_invoice", "Receipt roll"), ("roll_card", "Card roll"), ("bags", "Bags"), ("other", "Other")]
 STOCK_SUPPLIES = ("roll_invoice", "roll_card", "bags")
-GOODS_REASONS = [("asked", "زبونة طلبته وما توفر"), ("sold_out", "خلص من الفرع"), ("size_missing", "مقاس ناقص"), ("other", "أخرى")]
+# not a selection field: the label is written into the request's free-text reason, so translate it lazily
+GOODS_REASONS = [("asked", _lt("Customer asked, not available")), ("sold_out", _lt("Sold out at the branch")),
+                 ("size_missing", _lt("Missing size")), ("other", _lt("Other"))]
 EXPENSE_CATEGORIES = [
-    ("delivery", "توصيل بضاعة"), ("worker", "راتب العامل"), ("cleaning", "نظافة"), ("hospitality", "ضيافة"),
-    ("maintenance", "صيانة"), ("cover", "تغطية موظفة"), ("refund", "استرجاع لزبونة"), ("other", "أخرى"),
+    ("delivery", "Goods delivery"), ("worker", "Worker's salary"), ("cleaning", "Cleaning"), ("hospitality", "Hospitality"),
+    ("maintenance", "Maintenance"), ("cover", "Employee cover"), ("refund", "Customer refund"), ("other", "Other"),
 ]
-EXCHANGE_REASONS = [("size", "المقاس غير مناسب"), ("defect", "عيب في المنتج"), ("mind", "غيّرت رأيها"), ("color", "اللون مختلف عن المتوقع")]
-SHELF = [("excellent", "ممتاز"), ("good", "جيد"), ("needs", "يحتاج ترتيب")]
-EMERGENCIES = [("none", "لا يوجد"), ("system", "عطل في الكمبيوتر أو النظام"), ("power", "انقطاع كهرباء"), ("security", "مشكلة أمنية"), ("other", "أخرى")]
+EXCHANGE_REASONS = [("size", "Wrong size"), ("defect", "Product defect"), ("mind", "Changed her mind"), ("color", "Color not as expected")]
+SHELF = [("excellent", "Excellent"), ("good", "Good"), ("needs", "Needs tidying")]
+EMERGENCIES = [("none", "None"), ("system", "Computer or system failure"), ("power", "Power outage"), ("security", "Security issue"), ("other", "Other")]
 
 
-def label(selection, key):
-    return dict(selection).get(key, key or "")
+# Stored values: the cash register sync (navitta_ops_pos) writes these into navitta.employee.sales.cashier for sales
+# made without a cashier, and the lines are compared with them. They stay as they are (Arabic) in the database;
+# cashier_text() shows them in the user's language.
+CASHIER_SHARED = "الحساب العام: %s"        # + the POS user names
+CASHIER_NONE = "بدون كاشير"
+
+
+def cashier_text(env, cashier):
+    """Display text of a stored cashier name: the two stored markers above are translated, real names kept."""
+    if not cashier or cashier == CASHIER_NONE:
+        return env._("No cashier")
+    prefix = CASHIER_SHARED % ""
+    if cashier.startswith(prefix):
+        return env._("Shared account: %s", cashier[len(prefix):])
+    return cashier
+
+
+def is_shared_cashier(cashier):
+    return bool(cashier) and cashier.startswith(CASHIER_SHARED % "")
+
+
+def label(selection, key, env=None):
+    """Label of `key` in a (key, label) table; lazy (_lt) labels are translated (in env's language if given)."""
+    v = dict(selection).get(key)
+    if v is None:
+        return key or ""
+    if isinstance(v, LazyGettext):
+        return env._(v) if env is not None else str(v)
+    return v
+
+
+def choices(env, selection):
+    """A (key, label) table as JSON-ready [key, label] pairs with translated labels (for the screens)."""
+    return [[k, label(selection, k, env)] for k, _v in selection]
+
+
+def selection(env, model, field):
+    """[key, label] pairs of a selection field, labels in env's language."""
+    return [[k, v] for k, v in env[model]._fields[field]._description_selection(env)]
+
+
+def sel_label(env, model, field, key):
+    """Translated label of one value of a selection field (env's language)."""
+    return dict(env[model]._fields[field]._description_selection(env)).get(key, key or "")
 
 
 def company_tz(env):
@@ -85,10 +132,14 @@ def hours_to_min(h):
     return int(round((h or 0.0) * 60))
 
 
-def fmt_time(m):
-    """690 -> '11:30 ص', 1410 -> '11:30 م'."""
+AM, PM = _lt("AM"), _lt("PM")
+
+
+def fmt_time(m, env=None):
+    """690 -> '11:30 AM', 1410 -> '11:30 PM' (AM/PM translated in env's language if given)."""
     h = (m // 60) % 24
-    return "%d:%02d %s" % (h % 12 or 12, m % 60, "م" if h >= 12 else "ص")
+    suffix = PM if h >= 12 else AM
+    return "%d:%02d %s" % (h % 12 or 12, m % 60, env._(suffix) if env is not None else str(suffix))
 
 
 def iso(dt):

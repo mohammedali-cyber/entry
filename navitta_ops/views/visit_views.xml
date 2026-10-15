@@ -10,7 +10,7 @@
                 <field name="employee_id"/>
                 <field name="started_at"/>
                 <field name="ended_at"/>
-                <field name="duration_min" avg="المتوسط"/>
+                <field name="duration_min" avg="Average"/>
                 <field name="outcome"/>
                 <field name="lost_reason"/>
                 <field name="lost_model" optional="hide"/>
@@ -44,15 +44,15 @@
             <search>
                 <field name="employee_id"/>
                 <field name="branch_id"/>
-                <filter name="saved" string="محفوظة" domain="[('saved', '=', True)]"/>
-                <filter name="bought" string="اشترت" domain="[('bought', '=', True)]"/>
-                <filter name="lost" string="ما اشترت" domain="[('lost_reason', '!=', False)]"/>
-                <filter name="f_day" string="اليوم" date="day"/>
+                <filter name="saved" string="Saved" domain="[('saved', '=', True)]"/>
+                <filter name="bought" string="Bought" domain="[('bought', '=', True)]"/>
+                <filter name="lost" string="Didn't buy" domain="[('lost_reason', '!=', False)]"/>
+                <filter name="f_day" string="Day" date="day"/>
                 <group>
-                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
-                    <filter name="g_emp" string="الموظفة" context="{'group_by': 'employee_id'}"/>
-                    <filter name="g_outcome" string="النتيجة" context="{'group_by': 'outcome'}"/>
-                    <filter name="g_reason" string="سبب عدم الشراء" context="{'group_by': 'lost_reason'}"/>
+                    <filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_emp" string="Employee" context="{'group_by': 'employee_id'}"/>
+                    <filter name="g_outcome" string="Result" context="{'group_by': 'outcome'}"/>
+                    <filter name="g_reason" string="Reason for not buying" context="{'group_by': 'lost_reason'}"/>
                 </group>
             </search>
         </field>
@@ -61,7 +61,7 @@
         <field name="name">navitta.visit.pivot</field>
         <field name="model">navitta.visit</field>
         <field name="arch" type="xml">
-            <pivot string="تحليل الزيارات">
+            <pivot string="Visit analysis">
                 <field name="branch_id" type="row"/>
                 <field name="outcome" type="col"/>
                 <field name="visit_count" type="measure"/>
@@ -72,14 +72,14 @@
         <field name="name">navitta.visit.graph</field>
         <field name="model">navitta.visit</field>
         <field name="arch" type="xml">
-            <graph string="الزيارات" type="bar">
+            <graph string="Visits" type="bar">
                 <field name="day" interval="day"/>
                 <field name="visit_count" type="measure"/>
             </graph>
         </field>
     </record>
     <record id="action_visits" model="ir.actions.act_window">
-        <field name="name">زيارات العميلات</field>
+        <field name="name">Customer visits</field>
         <field name="res_model">navitta.visit</field>
         <field name="view_mode">list,pivot,graph,form</field>
         <field name="context">{'search_default_saved': 1}</field>
@@ -91,15 +91,15 @@
         <field name="model">navitta.visit.edit.request</field>
         <field name="arch" type="xml">
             <list create="0" decoration-warning="state == 'pending'">
-                <field name="create_date" string="الوقت"/>
+                <field name="create_date" string="Time"/>
                 <field name="branch_id"/>
                 <field name="employee_id"/>
                 <field name="old_sec"/>
                 <field name="new_sec"/>
                 <field name="reason"/>
                 <field name="state"/>
-                <button name="action_approve" type="object" string="قبول" icon="fa-check" invisible="state != 'pending'"/>
-                <button name="action_reject" type="object" string="رفض" icon="fa-times" invisible="state != 'pending'"/>
+                <button name="action_approve" type="object" string="Accept" icon="fa-check" invisible="state != 'pending'"/>
+                <button name="action_reject" type="object" string="Reject" icon="fa-times" invisible="state != 'pending'"/>
             </list>
         </field>
     </record>
@@ -109,8 +109,8 @@
         <field name="arch" type="xml">
             <form create="0">
                 <header>
-                    <button name="action_approve" type="object" string="قبول" class="btn-primary" invisible="state != 'pending'"/>
-                    <button name="action_reject" type="object" string="رفض" invisible="state != 'pending'"/>
+                    <button name="action_approve" type="object" string="Accept" class="btn-primary" invisible="state != 'pending'"/>
+                    <button name="action_reject" type="object" string="Reject" invisible="state != 'pending'"/>
                     <field name="state" widget="statusbar"/>
                 </header>
                 <sheet><group>
@@ -122,7 +122,7 @@
         </field>
     </record>
     <record id="action_visit_edits" model="ir.actions.act_window">
-        <field name="name">طلبات تعديل مدة الزيارة</field>
+        <field name="name">Visit duration change requests</field>
         <field name="res_model">navitta.visit.edit.request</field>
         <field name="view_mode">list,form</field>
     </record>
@@ -141,11 +141,11 @@
                 <field name="model"/>
                 <field name="color"/>
                 <field name="size"/>
-                <field name="price" sum="الإجمالي"/>
+                <field name="price" sum="Total"/>
                 <field name="contact_phone" optional="show"/>
                 <field name="contacted_at" optional="hide"/>
                 <field name="note" optional="hide"/>
-                <button name="action_contacted" type="object" string="تواصلنا" icon="fa-phone" invisible="not waiting"/>
+                <button name="action_contacted" type="object" string="Contacted" icon="fa-phone" invisible="not waiting"/>
                 <field name="waiting" column_invisible="1"/>
             </list>
         </field>
@@ -158,14 +158,14 @@
                 <field name="item_no"/>
                 <field name="model"/>
                 <field name="branch_id"/>
-                <filter name="waiting" string="عميلات ينتظرن" domain="[('waiting', '=', True)]"/>
-                <filter name="mfg" string="يحتاج تصنيع (للطلبية الجاية)" domain="[('reason', '=', 'manufacture')]"/>
-                <filter name="oos" string="مقاس أو لون مخلص" domain="[('reason', 'in', ('size_na', 'color_na'))]"/>
-                <filter name="f_day" string="اليوم" date="day"/>
+                <filter name="waiting" string="Customers waiting" domain="[('waiting', '=', True)]"/>
+                <filter name="mfg" string="Needs manufacturing (next order)" domain="[('reason', '=', 'manufacture')]"/>
+                <filter name="oos" string="Size or color out of stock" domain="[('reason', 'in', ('size_na', 'color_na'))]"/>
+                <filter name="f_day" string="Today" date="day"/>
                 <group>
-                    <filter name="g_reason" string="السبب" context="{'group_by': 'reason'}"/>
-                    <filter name="g_item" string="الموديل" context="{'group_by': 'item_no'}"/>
-                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_reason" string="Reason" context="{'group_by': 'reason'}"/>
+                    <filter name="g_item" string="Model" context="{'group_by': 'item_no'}"/>
+                    <filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/>
                 </group>
             </search>
         </field>
@@ -174,7 +174,7 @@
         <field name="name">navitta.lost.sale.pivot</field>
         <field name="model">navitta.lost.sale</field>
         <field name="arch" type="xml">
-            <pivot string="المبيعات الضائعة">
+            <pivot string="Lost sales">
                 <field name="reason" type="row"/>
                 <field name="branch_id" type="col"/>
                 <field name="lost_count" type="measure"/>
@@ -183,7 +183,7 @@
         </field>
     </record>
     <record id="action_lost_sales" model="ir.actions.act_window">
-        <field name="name">سجل المبيعات الضائعة</field>
+        <field name="name">Lost sales log</field>
         <field name="res_model">navitta.lost.sale</field>
         <field name="view_mode">list,pivot,form</field>
     </record>

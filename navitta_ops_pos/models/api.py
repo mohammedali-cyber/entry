@@ -4,13 +4,13 @@ from odoo import _, api, fields, models
 class NavittaDailySales(models.Model):
     _inherit = "navitta.daily.sales"
 
-    source = fields.Selection(selection_add=[("pos", "نقطة البيع")], ondelete={"pos": "set null"})
+    source = fields.Selection(selection_add=[("pos", "Point of Sale")], ondelete={"pos": "set null"})
 
 
 class NavittaEmployeeSales(models.Model):
     _inherit = "navitta.employee.sales"
 
-    source = fields.Selection(selection_add=[("pos", "نقطة البيع")], ondelete={"pos": "cascade"})
+    source = fields.Selection(selection_add=[("pos", "Point of Sale")], ondelete={"pos": "cascade"})
 
 
 class NavittaApi(models.AbstractModel):
@@ -26,13 +26,13 @@ class NavittaApi(models.AbstractModel):
         no_cashier = S["navitta.employee"].sudo().search([("active", "=", True), ("hr_employee_id", "=", False),
                                                           ("branch_id.pos_config_ids", "!=", False)])
         res["items"] += [
-            {"key": "pos_branch", "done": not no_pos, "title": _("ربط الفروع بنقطة البيع"),
-             "text": _("فروع بدون نقطة بيع: %s", "، ".join(no_pos.mapped("name"))) if no_pos else _("كل فرع مربوط بنقطة بيعه"),
-             "action": "point_of_sale.action_pos_config_kanban", "button": _("نقاط البيع")},
-            {"key": "pos_cashier", "done": not no_cashier, "title": _("حسابات الكاشير للموظفات"),
-             "text": _("%s موظفة بدون حساب كاشير (مبيعاتها تروح للحساب العام)", len(no_cashier)) if no_cashier
-             else _("كل موظفة لها حساب كاشير"),
-             "action": "navitta_ops.action_branches", "button": _("الفروع ← ربط الكاشيرات")},
+            {"key": "pos_branch", "done": not no_pos, "title": _("Link branches to the Point of Sale"),
+             "text": _("Branches without a point of sale: %s", _(", ").join(no_pos.mapped("name"))) if no_pos else _("Every branch is linked to its point of sale"),
+             "action": "point_of_sale.action_pos_config_kanban", "button": _("Points of Sale")},
+            {"key": "pos_cashier", "done": not no_cashier, "title": _("Employees' cashier accounts"),
+             "text": _("%s employees without a cashier account (their sales go to the shared account)", len(no_cashier)) if no_cashier
+             else _("Every employee has a cashier account"),
+             "action": "navitta_ops.action_branches", "button": _("Branches → Link cashiers")},
         ]
         res["done"] = all(i["done"] for i in res["items"])
         return res

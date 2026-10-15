@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <template id="phone_upload_page" name="Navitta phone upload">
-        <html lang="ar" dir="rtl">
+        <t t-set="nv_rtl" t-value="(env.lang or '').startswith('ar')"/>
+        <html t-att-lang="'ar' if nv_rtl else 'en'" t-att-dir="'rtl' if nv_rtl else 'ltr'">
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
                 <meta name="robots" content="noindex"/>
-                <title>NAVITTA · رفع صورة</title>
+                <title>NAVITTA · Upload photo</title>
                 <style>
                     body{margin:0;font-family:Tahoma,Arial,sans-serif;background:#F6F6F7;color:#0B0B0C}
                     .w{max-width:460px;margin:0 auto;padding:22px 16px;display:flex;flex-direction:column;gap:14px}
@@ -24,31 +25,37 @@
             <body>
                 <div class="w" id="app" t-att-data-token="token">
                     <span class="mk">NAVITTA</span>
-                    <h2>🧾 رفع صورة</h2>
+                    <h2>🧾 Upload photo</h2>
                     <t t-if="not token">
-                        <div class="c"><p class="e" style="margin:0">انتهى الكود، اطلبي كود جديد من جهاز الفرع</p></div>
+                        <div class="c"><p class="e" style="margin:0">The code has expired. Ask the branch device for a new code.</p></div>
                     </t>
                     <t t-elif="done">
-                        <div class="c" style="text-align:center"><div style="font-size:44px">✅</div><h3 style="margin:0">وصلت الصورة</h3></div>
+                        <div class="c" style="text-align:center"><div style="font-size:44px">✅</div><h3 style="margin:0">Photo received</h3></div>
                     </t>
                     <t t-else="">
-                        <div class="c">الفرع: <b t-esc="branch"/></div>
+                        <div class="c">Branch: <b t-esc="branch"/></div>
                         <img id="pv" hidden="1" alt=""/>
-                        <button id="cam" type="button" class="b p">📷 صوّري الآن</button>
+                        <button id="cam" type="button" class="b p">📷 Take photo now</button>
                         <div id="two" class="r" hidden="1">
-                            <button id="again" type="button" class="b">🔄 إعادة التصوير</button>
-                            <button id="send" type="button" class="b p">✓ إرسال</button>
+                            <button id="again" type="button" class="b">🔄 Retake</button>
+                            <button id="send" type="button" class="b p">✓ Send</button>
                         </div>
-                        <div id="ok" class="c" style="text-align:center" hidden="1"><div style="font-size:44px">✅</div><h3 style="margin:0">وصلت الصورة</h3><p class="s">ارجعي لجهاز الفرع وكمّلي التسجيل. تقدرين تسكرين هذي الصفحة.</p></div>
+                        <div id="ok" class="c" style="text-align:center" hidden="1"><div style="font-size:44px">✅</div><h3 style="margin:0">Photo received</h3><p class="s">Go back to the branch device and finish there. You can close this page.</p></div>
                         <p id="err" class="e"></p>
                         <input id="file" type="file" accept="image/*" capture="environment" hidden="1"/>
+                        <span id="t_sending" hidden="1">Sending…</span>
+                        <span id="t_send" hidden="1">✓ Send</span>
+                        <span id="t_expired" hidden="1">The code has expired. Ask the branch device for a new code.</span>
+                        <span id="t_invalid" hidden="1">Invalid photo, please take it again</span>
+                        <span id="t_offline" hidden="1">Couldn't send. Check your internet connection.</span>
                     </t>
-                    <p class="s">🔒 هذي الصفحة لرفع الصورة بس، وتنتهي بعد 10 دقائق</p>
+                    <p class="s">🔒 This page is only for uploading the photo and expires after 10 minutes</p>
                 </div>
                 <script>
                 (function () {
                     var app = document.getElementById("app"), token = app.dataset.token, img = null;
                     var $ = function (id) { return document.getElementById(id); };
+                    var tr = function (id) { return $("t_" + id).textContent; };
                     if (!token || !$("cam")) return;
                     function compress(file, cb) {
                         var url = URL.createObjectURL(file), im = new Image();
@@ -72,17 +79,17 @@
                     };
                     $("send").onclick = function () {
                         if (!img) return;
-                        $("send").disabled = true; $("send").textContent = "جارٍ الإرسال…";
+                        $("send").disabled = true; $("send").textContent = tr("sending");
                         fetch("/navitta/r/upload", { method: "POST", headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ jsonrpc: "2.0", method: "call", params: { token: token, data: img, mime: "image/jpeg" } }) })
                             .then(function (r) { return r.json(); })
                             .then(function (j) {
                                 var res = j.result || {};
                                 if (res.ok) { $("two").hidden = true; $("pv").hidden = true; $("ok").hidden = false; return; }
-                                $("err").textContent = res.error === "expired" ? "انتهى الكود، اطلبي كود جديد من جهاز الفرع" : "الصورة غير صالحة، صوريها مرة ثانية";
-                                $("send").disabled = false; $("send").textContent = "✓ إرسال";
+                                $("err").textContent = res.error === "expired" ? tr("expired") : tr("invalid");
+                                $("send").disabled = false; $("send").textContent = tr("send");
                             })
-                            .catch(function () { $("err").textContent = "تعذر الإرسال، تأكدي من الإنترنت"; $("send").disabled = false; $("send").textContent = "✓ إرسال"; });
+                            .catch(function () { $("err").textContent = tr("offline"); $("send").disabled = false; $("send").textContent = tr("send"); });
                     };
                 })();
                 </script>

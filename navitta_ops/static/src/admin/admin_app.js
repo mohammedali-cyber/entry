@@ -2,21 +2,88 @@
 import { Component, onMounted, onWillStart, onWillUnmount, useEffect, useState } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { _t } from "@web/core/l10n/translation";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 import {
     EXPICON, EXST, LOST, LOSTL, MONTHS, OUTOF, RQST, SUP, WD, addDays, ago, api, clock, dTxt, days, dmy, downloadCsv, f0, h12, longDate,
-    mmss, now, pc, setClock, today, weekday, jn,
+    mmss, now, pc, setClock, today, weekday, jn, DIR, LANG, vlabel,
 } from "../common/utils";
 import { DailyQuote, EmpBoard, NvModal, PhotoLink, TargetEditor } from "../common/components";
 
-const LEAVEADM = { pending: "بانتظار موافقتك", cover: "بانتظار الزميلة", cover_no: "اعتذرت الزميلة", approved: "تمت الموافقة", rejected: "مرفوضة" };
-const NOTIF = { sent: ["good", "أُرسل"], no_email: ["bad", "لا يوجد إيميل"], exception: ["bad", "فشل الإرسال"], outgoing: ["info", "بانتظار الإرسال"] };
-const H = { jn, f0, mmss, clock, longDate, h12, dTxt, days, ago, pc, dmy, weekday, addDays, LOSTL, SUP, EXPICON, RQST, EXST, WD, MONTHS, LEAVEADM, NOTIF };
+const LEAVEADM = { pending: _t("Awaiting your approval"), cover: _t("Awaiting colleague"), cover_no: _t("Colleague declined"), approved: _t("Approved"), rejected: _t("Rejected") };
+const NOTIF = { sent: ["good", _t("Sent")], no_email: ["bad", _t("No email")], exception: ["bad", _t("Sending failed")], outgoing: ["info", _t("Waiting to send")] };
+// list separator and "old → new" arrow follow the writing direction
+const SEP = LANG === "ar" ? "\u060c " : ", ";
+const ARROW = DIR === "rtl" ? "←" : "→";
+// texts used inside template expressions (expressions are not translated by the template engine)
+const TX = {
+    sar: _t("SAR"),
+    min: _t("min"),
+    photo: _t("Photo"),
+    open: _t("Open"),
+    newPins: _t("🔑 New PINs"),
+    devAccounts: _t("📱 Branch device accounts"),
+    fromPos: _t("From Point of Sale"),
+    fromReports: _t("From daily reports"),
+    noPendingDecisions: _t("No pending decisions"),
+    breakOver: _t("☕ Break overrun"),
+    lateIn: _t("Late check-in"),
+    durationAccepted: _t("Duration change accepted"),
+    chanceUsed: _t("Grace chance used"),
+    excuseRejected: _t("Excuse rejected and the penalty recorded per the table"),
+    leaveApproved: _t("Leave approved and recorded"),
+    requestRejected: _t("Request rejected"),
+    changeAccepted: _t("Change accepted"),
+    changeRejected: _t("Change rejected"),
+    unresolved: _t("Unresolved"),
+    resolved: _t("Resolved"),
+    management: _t("Management"),
+    resolveClose: _t("Resolved, close"),
+    reopen: _t("Reopen"),
+    pos: _t("Point of Sale"),
+    dailyReport: _t("Daily report"),
+    moreInvoices: _t("More invoices than “Bought” visits in the counter: sales without a recorded visit"),
+    moreBought: _t("More “Bought” visits than invoices"),
+    empSalesByCashier: _t("Employee sales by cashier"),
+    allBranches: _t("All branches"),
+    noDataPeriod: _t("No data for this period"),
+    noDataMonth: _t("No data for this month"),
+    outOfStock: _t("👠 Out of stock"),
+    supplies: _t("🧾 Supplies"),
+    itemPhoto: _t("Item photo"),
+    approved: _t("Approved"),
+    shippedDone: _t("Done: shipped"),
+    expenseApproved: _t("Expense approved"),
+    expenseRejected: _t("Expense rejected"),
+    hide: _t("Hide ▴"),
+    more: _t("More ▾"),
+    view: _t("View"),
+    important: _t("Important"),
+    alert: _t("Alert"),
+    event: _t("Event"),
+    negative: _t("negative"),
+    positive: _t("positive"),
+    nAwaitDecision: (n) => _t("%s awaiting your decision", n),
+    useChance: (n) => _t("Use a grace chance (%s left)", n),
+    daysNoReport: (n) => _t("%s days without a report", n),
+    reportGap: (n) => _t("On %s days with a report: the report figures differ from the Point of Sale invoices", n),
+    fromTo: (a, b) => _t("From %(from)s to %(to)s", { from: a, to: b }),
+    size: (s) => _t("Size %s", s),
+    caseLine: (c) => c.kind === "break"
+        ? _t("Break %(used)s min · over by %(over)s min", { used: c.break_used, over: c.minutes })
+        : _t("Late arrival %s min", c.minutes) + (c.check_in ? " · " + _t("Checked in %s", clock(c.check_in)) : ""),
+};
+const CMPCOLS = [["target", _t("Target")], ["sales", _t("Sales")], ["achieved", _t("Achieved")], ["tax", _t("VAT")], ["invoices", _t("Invoices")],
+    ["avg_invoice", _t("Average invoice")], ["items", _t("Items")], ["returns", _t("Returns")], ["visits", _t("Counter customers")],
+    ["conversion", _t("Conversion")], ["counter_gap", _t("Invoices − Bought (counter)")], ["report_gap", _t("Report − System")]];
+const REQKINDS = [["all", _t("All")], ["goods", _t("Out-of-stock request")], ["supply", _t("Supplies")], ["expense", _t("Expenses")]];
+const H = { jn, f0, mmss, clock, longDate, h12, dTxt, days, ago, pc, dmy, weekday, addDays, LOSTL, SUP, EXPICON, RQST, EXST, WD, MONTHS, LEAVEADM, NOTIF,
+    TX, CMPCOLS, REQKINDS, SEP, ARROW, vlabel };
 
 // ---------------------------------------------------------------- shared period filter (every tab)
 const FKEY = "navitta_admin_filter";
-const PRESETS = [["today", "اليوم"], ["yesterday", "أمس"], ["last7", "آخر 7 أيام"], ["month", "هذا الشهر"], ["prevmonth", "الشهر الماضي"],
-    ["last30", "آخر 30 يوم"], ["year", "من بداية السنة"], ["custom", "📅 مخصص"]];
+const PRESETS = [["today", _t("Today")], ["yesterday", _t("Yesterday")], ["last7", _t("Last 7 days")], ["month", _t("This month")], ["prevmonth", _t("Last month")],
+    ["last30", _t("Last 30 days")], ["year", _t("Year to date")], ["custom", _t("📅 Custom")]];
 function presetRange(k) {
     const td = today();
     const m0 = td.slice(0, 8) + "01";
@@ -52,6 +119,7 @@ class FilterBar extends Component {
         this.WD = WD;
         this.DAYS = [0, 1, 2, 3, 4, 5, 6];
         this.dmy = dmy;
+        this.SEP = SEP;
     }
     save() {
         try {
@@ -178,7 +246,7 @@ class Dashboard extends AdminBase {
             return this.load();
         }
         if (key === "admin_pw") {
-            return this.action.doAction({ type: "ir.actions.act_window", res_model: "navitta.admin.password.wizard", views: [[false, "form"]], target: "new", name: "كلمة سر الإدارة" }, reload);
+            return this.action.doAction({ type: "ir.actions.act_window", res_model: "navitta.admin.password.wizard", views: [[false, "form"]], target: "new", name: _t("Management password") }, reload);
         }
         const item = (this.state.setup && this.state.setup.items.find((i) => i.key === key)) || {};
         if (item.action) {
@@ -191,8 +259,8 @@ class Dashboard extends AdminBase {
     saveOnce() {
         const o = this.state.once;
         const rows = o.kind === "pins"
-            ? [["الفرع", "الموظفة", "الرمز السري"], ...o.rows.map((r) => [r.branch, r.name, r.pin])]
-            : [["الفرع", "اسم الدخول", "كلمة المرور"], ...o.rows.map((r) => [r.branch, r.login, r.password])];
+            ? [[_t("Branch"), _t("Employee"), _t("PIN")], ...o.rows.map((r) => [r.branch, r.name, r.pin])]
+            : [[_t("Branch"), _t("Login"), _t("Password")], ...o.rows.map((r) => [r.branch, r.login, r.password])];
         downloadCsv(o.kind === "pins" ? "navitta-pins.csv" : "navitta-devices.csv", rows);
     }
     inB(b) {
@@ -235,13 +303,13 @@ class Dashboard extends AdminBase {
         const late = d.cases.find((c) => c.employee_id === e.id && c.day === d.day && c.kind === "late");
         let st;
         if (!a) {
-            st = d.off[e.id] ? ["neutral", lv ? "🏖️ إجازة" : "🌙 إجازة" + (e.weekly_off ? ` (${WD[+e.weekly_off]})` : "")] : ["bad", "لم تسجل حضور"];
+            st = d.off[e.id] ? ["neutral", lv ? _t("🏖️ Leave") : _t("🌙 Day off") + (e.weekly_off ? ` (${WD[+e.weekly_off]})` : "")] : ["bad", _t("Not checked in")];
         } else if (a.check_out) {
-            st = ["neutral", "انصرفت"];
+            st = ["neutral", _t("Checked out")];
         } else if (late) {
-            st = ["warn", `متأخرة ${late.minutes} د`];
+            st = ["warn", _t("Late %s min", late.minutes)];
         } else {
-            st = ["good", "حاضرة"];
+            st = ["good", _t("Present")];
         }
         return { a, bm, onB, st };
     }
@@ -273,10 +341,10 @@ class Dashboard extends AdminBase {
     }
     async sendReply(th) {
         if (!this.state.reply.trim()) {
-            this.toast("اكتب الرد", "warning");
+            this.toast(_t("Write a reply"), "warning");
             return;
         }
-        if (await this.act("admin_reply_thread", [th.id, this.state.reply], "تم إرسال ردك")) {
+        if (await this.act("admin_reply_thread", [th.id, this.state.reply], _t("Your reply was sent"))) {
             this.state.reply = "";
         }
     }
@@ -408,7 +476,7 @@ class Requests extends AdminBase {
     }
     csv(b) {
         const rows = this.branchExp(b).mine;
-        downloadCsv(`expenses-${b.code}-${this.state.d.month_start.slice(0, 7)}.csv`, [["التاريخ", "النوع", "التفاصيل", "الموظفة", "المبلغ", "الحالة"],
+        downloadCsv(`expenses-${b.code}-${this.state.d.month_start.slice(0, 7)}.csv`, [[_t("Date"), _t("Type"), _t("Details"), _t("Employee"), _t("Amount"), _t("Status")],
             ...rows.map((x) => [x.day, x.category_label, x.details, x.employee, x.amount, EXST[x.state][1]])]);
     }
     note(id) {
@@ -462,21 +530,21 @@ class Lost extends AdminBase {
         };
     }
     tops(o) {
-        return Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${k} (${n})`).join(" · ");
+        return Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${vlabel(k)} (${n})`).join(" · ");
     }
     brs(set) {
-        return [...set].map((id) => this.bName(id)).join("، ");
+        return [...set].map((id) => this.bName(id)).join(SEP);
     }
     async contacted(w) {
-        await this.act("admin_lost_contacted", [w.id], "تم");
+        await this.act("admin_lost_contacted", [w.id], _t("Done"));
     }
     dlNext(v) {
-        downloadCsv(`next-order-${this.props.f.from}-${this.props.f.to}.csv`, [["رقم المؤسسة", "الموديل", "اللون", "المقاس", "كم مرة", "الفروع", "الشرح"],
-            ...v.next.map((x) => [x.item_no, x.model, x.color, x.size, x.n, this.brs(x.br), x.notes.join(" | ")])]);
+        downloadCsv(`next-order-${this.props.f.from}-${this.props.f.to}.csv`, [[_t("Item no."), _t("Model"), _t("Color"), _t("Size"), _t("Times"), _t("Branches"), _t("Notes")],
+            ...v.next.map((x) => [x.item_no, x.model, vlabel(x.color), x.size, x.n, this.brs(x.br), x.notes.join(" | ")])]);
     }
     dlAll(v) {
-        downloadCsv(`lost-sales-${this.props.f.from}-${this.props.f.to}.csv`, [["التاريخ", "الفرع", "الموظفة", "السبب", "رقم المؤسسة", "الموديل", "اللون", "المقاس", "السعر", "ملاحظة"],
-            ...v.rows.map((r) => [r.day, this.bName(r.branch_id), r.employee, LOSTL[r.reason] || r.reason, r.item_no, r.model, r.color, r.size, r.price, r.note])]);
+        downloadCsv(`lost-sales-${this.props.f.from}-${this.props.f.to}.csv`, [[_t("Date"), _t("Branch"), _t("Employee"), _t("Reason"), _t("Item no."), _t("Model"), _t("Color"), _t("Size"), _t("Price"), _t("Note")],
+            ...v.rows.map((r) => [r.day, this.bName(r.branch_id), r.employee, LOSTL[r.reason] || r.reason, r.item_no, r.model, vlabel(r.color), r.size, r.price, r.note])]);
     }
 }
 
@@ -511,15 +579,18 @@ class Day extends AdminBase {
         const emps = d.employees.filter((e) => e.branch_id === b.id);
         const ev = r ? r.events.map((e) => [e.level, e.title + ": " + e.text]) : [];
         if (r) {
-            r.exch_labels.forEach((e) => ev.push(["neutral", `استبدال (${e.reason}): ${e.detail} · باعت ${e.soldBy} · استبدلت ${e.by}`]));
+            r.exch_labels.forEach((e) => ev.push(["neutral", _t("Exchange (%(reason)s): %(detail)s · sold by %(sold)s · exchanged by %(by)s",
+                { reason: e.reason, detail: e.detail, sold: e.soldBy, by: e.by })]));
         }
-        vs.filter((v) => v.lost_color || v.lost_size).forEach((v) => ev.push(["neutral", "مبيعات ضائعة: " + [v.lost_model, v.lost_color, v.lost_size && "مقاس " + v.lost_size].filter(Boolean).join(" · ")]));
+        vs.filter((v) => v.lost_color || v.lost_size).forEach((v) => ev.push(["neutral", _t("Lost sales: %s",
+            [v.lost_model, vlabel(v.lost_color), v.lost_size && _t("Size %s", v.lost_size)].filter(Boolean).join(" · "))]));
         d.cases.filter((c) => (E[c.employee_id] || {}).branch_id === b.id).forEach((c) => ev.push([c.state === "rejected" ? "bad" : "warn",
-            `${c.kind === "break" ? "تجاوز استراحة" : "تأخير"} ${(E[c.employee_id] || {}).name} ${c.minutes} د${c.reason ? " · السبب: " + c.reason : ""}${c.penalty ? " · " + c.penalty : ""}`]));
+            _t("%(kind)s %(name)s %(min)s min", { kind: c.kind === "break" ? _t("Break overrun") : _t("Late arrival"), name: (E[c.employee_id] || {}).name, min: c.minutes })
+            + (c.reason ? " · " + _t("Reason: %s", c.reason) : "") + (c.penalty ? " · " + c.penalty : "")]));
         const rows = emps.map((e) => {
             const a = d.attendance.find((y) => y.employee_id === e.id);
             const bm = Math.ceil(d.breaks.filter((y) => y.employee_id === e.id && y.ended_at).reduce((t, y) => t + (Date.parse(y.ended_at) - Date.parse(y.started_at)) / 6e4, 0));
-            const st = a ? ["good", "حضرت"] : d.off[e.id] ? ["neutral", "🌙 إجازة"] : ["bad", "لم تسجل حضور"];
+            const st = a ? ["good", _t("Attended")] : d.off[e.id] ? ["neutral", _t("🌙 Day off")] : ["bad", _t("Not checked in")];
             return { e, a, bm, st };
         });
         return {
@@ -569,11 +640,12 @@ class Compare extends AdminBase {
         return Math.max(1, ...this.rows.map((r) => +r.sales || 0));
     }
     exportCsv() {
-        const head = ["الفرع", "التارقت", "المبيعات", "التحقق %", "الضريبة", "الصافي", "الفواتير", "متوسط الفاتورة", "القطع", "قطع/فاتورة",
-            "المرتجع (قطع)", "قيمة المرتجع", "نقدي", "شبكة", "عميلات العدّاد", "اشترت (العدّاد)", "التحويل %", "فرق الفواتير عن العدّاد", "مبيعات التقارير", "فرق التقرير عن النظام"];
+        const head = [_t("Branch"), _t("Target"), _t("Sales"), _t("Achieved %"), _t("VAT"), _t("Net"), _t("Invoices"), _t("Average invoice"), _t("Items"), _t("Items/invoice"),
+            _t("Returns (items)"), _t("Returns value"), _t("Cash"), _t("Card"), _t("Counter customers"), _t("Bought (counter)"), _t("Conversion %"),
+            _t("Invoices vs counter gap"), _t("Report sales"), _t("Report vs system gap")];
         const line = (r) => [r.name, r.target, r.sales, r.achieved ?? "", r.tax, r.net, r.invoices, r.avg_invoice, r.items, r.items_per_invoice,
             r.returns, r.returns_amount, r.cash, r.card, r.visits, r.bought, r.conversion ?? "", r.counter_gap, r.report_sales, r.report_gap ?? ""];
-        downloadCsv(`branches-${this.props.f.from}-${this.props.f.to}.csv`, [head, ...this.rows.map(line), line(Object.assign({ name: "الإجمالي" }, this.total))]);
+        downloadCsv(`branches-${this.props.f.from}-${this.props.f.to}.csv`, [head, ...this.rows.map(line), line(Object.assign({ name: _t("Total") }, this.total))]);
     }
 }
 
@@ -586,8 +658,10 @@ export class AdminApp extends Component {
         this.orm = useService("orm");
         this.state = useState({ tab: (this.props.action.params && this.props.action.params.tab) || "dashboard", branches: [] });
         this.f = useState(loadFilter());
-        this.tabs = [["dashboard", "لوحة الإدارة"], ["compare", "📊 مقارنة الفروع"], ["sales", "المبيعات والتارقت"], ["requests", "📦 طلبات الفروع"],
-            ["lost", "💸 المبيعات الضائعة"], ["day", "سجل الأيام"]];
+        this.DIR = DIR;
+        this.LANG = LANG;
+        this.tabs = [["dashboard", _t("Dashboard")], ["compare", _t("📊 Branch comparison")], ["sales", _t("Sales and targets")], ["requests", _t("📦 Branch requests")],
+            ["lost", _t("💸 Lost sales")], ["day", _t("Daily log")]];
         onWillStart(async () => {
             const d = await api(this.orm, "admin_filters");
             if (!d.error) {

@@ -9,61 +9,64 @@ from datetime import timedelta
 
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
+from odoo.tools.translate import LazyTranslate
 
 from .cash import DENOMS
 from .common import (EXCHANGE_REASONS, LEAVE_TYPES, LOST_REASONS, OUT_OF_STOCK, TOPICS, SUPPLIES,
-                     EXPENSE_CATEGORIES, GOODS_REASONS, EMERGENCIES, SHELF, app_minute, app_today, fmt_time,
-                     hours_to_min, iso, label)
+                     EXPENSE_CATEGORIES, GOODS_REASONS, EMERGENCIES, SHELF, app_minute, app_today, cashier_text, choices,
+                     fmt_time, hours_to_min, iso, label, sel_label, selection)
+
+_lt = LazyTranslate(__name__)
 
 PHONE_RE = re.compile(r"^(05\d{8}|9665\d{8})$")
 
 ERRORS = {
-    "wrong_pin": "الرمز غير صحيح",
-    "locked": "محاولات كثيرة خاطئة، حاولي بعد قليل",
-    "no_pin": "لم تحدد الإدارة رمزك بعد",
-    "forbidden": "ليس لديك صلاحية",
-    "already_in": "تم تسجيل الحضور مسبقًا اليوم",
-    "not_in": "لا يوجد تسجيل حضور اليوم",
-    "reply_required": "اذكري سبب التأخير أو تجاوز الاستراحة أولًا من «تنبيهاتي»",
-    "on_break": "أنهي الاستراحة أولًا",
-    "open_visits": "أوقفي واحفظي الزيارات المفتوحة أولًا",
-    "reason_required": "اكتبي السبب",
-    "bad_minutes": "المدة غير صحيحة",
-    "overlap": "عندك إجازة أو طلب في نفس الفترة",
-    "bad_dates": "تأكدي من التواريخ",
-    "no_chances": "استُخدمت فرص المسامحة لهذا الشهر",
-    "already_off": "هذا اليوم أصلًا إجازة لها",
-    "not_found": "الطلب غير موجود أو تم التعامل معه",
-    "body_required": "اكتبي الرسالة",
-    "wrong_pw": "كلمة السر غير صحيحة",
-    "no_target_pw": "الإدارة ما حددت كلمة السر بعد",
-    "pw_short": "كلمة السر لازم 4 خانات أو أكثر",
-    "bad_amount": "المبلغ غير صحيح",
-    "month_over": "هذا الشهر انتهى",
-    "bad_qty": "الكمية غير صحيحة",
-    "model_required": "اكتبي رقم الموديل",
-    "bad_file": "الصورة غير صالحة، صوريها مرة ثانية",
-    "expired": "انتهى الكود، اطلبي كود جديد من جهاز الفرع",
-    "no_employee": "الموظفة غير موجودة",
-    "note_required": "اشرحي وش تبي العميلة بالضبط",
-    "bad_phone": "رقم الجوال غير صحيح، اكتبيه مثل 05XXXXXXXX",
-    "color_required": "اختاري اللون المطلوب",
-    "size_required": "اختاري المقاس المطلوب",
-    "outcome_required": "اختاري نتيجة الزيارة",
-    "not_checked_in": "سجلي حضورك أولًا",
-    "break_used": "استُخدمت الاستراحة اليوم",
-    "pending_edit": "فيه طلب تعديل بانتظار الإدارة",
-    "visit_running": "اضغطي «خرجت العميلة» أولًا",
-    "name_required": "اختاري اسم الموظفة اللي تكتب التقرير",
-    "bad_exchange": "استبدال: اكتبي السبب بالتفصيل ومن باعت ومن استبدلت",
-    "bad_lost": "المبيعات الضائعة: اكتبي اللون أو المقاس",
-    "not_edit": "هذا ليس طلب تعديل مدة",
-    "bad_decision": "قرار غير معروف",
-    "pick_cover": "اختاري الزميلة اللي بتغطي الفرع",
-    "cash_open_required": "عدّي العهدة أولًا، بعدها ينفتح العدّاد",
-    "already_counted": "تم عدّ العهدة اليوم",
-    "bad_count": "تأكدي من الأعداد",
-    "tasks_pending": "كمّلي مهام الإغلاق أولًا، بعدها تظهر بصمة الانصراف",
+    "wrong_pin": _lt("Wrong PIN"),
+    "locked": _lt("Too many wrong attempts, try again shortly"),
+    "no_pin": _lt("Management hasn't set your PIN yet"),
+    "forbidden": _lt("You don't have permission"),
+    "already_in": _lt("Already checked in today"),
+    "not_in": _lt("No check-in today"),
+    "reply_required": _lt("First give the reason for the late arrival or break overrun in “My alerts”"),
+    "on_break": _lt("End the break first"),
+    "open_visits": _lt("Stop and save the open visits first"),
+    "reason_required": _lt("Enter the reason"),
+    "bad_minutes": _lt("Invalid duration"),
+    "overlap": _lt("You already have a leave or request in the same period"),
+    "bad_dates": _lt("Check the dates"),
+    "no_chances": _lt("This month's grace chances are used up"),
+    "already_off": _lt("This day is already a day off for her"),
+    "not_found": _lt("The request doesn't exist or has already been handled"),
+    "body_required": _lt("Write the message"),
+    "wrong_pw": _lt("Wrong password"),
+    "no_target_pw": _lt("Management hasn't set the password yet"),
+    "pw_short": _lt("The password must be at least 4 characters"),
+    "bad_amount": _lt("Invalid amount"),
+    "month_over": _lt("This month is over"),
+    "bad_qty": _lt("Invalid quantity"),
+    "model_required": _lt("Enter the model number"),
+    "bad_file": _lt("Invalid photo, take it again"),
+    "expired": _lt("The code has expired, ask the branch device for a new code"),
+    "no_employee": _lt("Employee not found"),
+    "note_required": _lt("Describe exactly what the customer wants"),
+    "bad_phone": _lt("Invalid mobile number, enter it like 05XXXXXXXX"),
+    "color_required": _lt("Choose the requested color"),
+    "size_required": _lt("Choose the requested size"),
+    "outcome_required": _lt("Choose the visit outcome"),
+    "not_checked_in": _lt("Check in first"),
+    "break_used": _lt("Today's break is used up"),
+    "pending_edit": _lt("A change request is waiting for management"),
+    "visit_running": _lt("Press “Customer out” first"),
+    "name_required": _lt("Choose the name of the employee writing the report"),
+    "bad_exchange": _lt("Exchange: enter the reason in detail, who sold and who exchanged"),
+    "bad_lost": _lt("Lost sales: enter the color or size"),
+    "not_edit": _lt("This is not a duration change request"),
+    "bad_decision": _lt("Unknown decision"),
+    "pick_cover": _lt("Choose the colleague who will cover the branch"),
+    "cash_open_required": _lt("Count the cash float first, then the counter opens"),
+    "already_counted": _lt("The cash float was already counted today"),
+    "bad_count": _lt("Check the counts"),
+    "tasks_pending": _lt("Finish the closing tasks first, then the check-out punch appears"),
 }
 
 
@@ -74,7 +77,8 @@ class NavittaApi(models.AbstractModel):
     # ------------------------------------------------------------------ helpers
     @api.model
     def _err_text(self, code):
-        return _(ERRORS.get(code, code))
+        text = ERRORS.get(code)
+        return self.env._(text) if text is not None else code
 
     @api.model
     def _err(self, code):
@@ -95,8 +99,8 @@ class NavittaApi(models.AbstractModel):
             b = self.env["navitta.branch"].sudo().browse(int(self.env.context.get("navitta_branch") or 0)).exists()
             if b:
                 return b
-            raise AccessError(_("اختر الفرع أولًا"))
-        raise AccessError(_("هذه الشاشة لأجهزة الفروع فقط. اربط حساب الجهاز بفرع من الإعدادات."))
+            raise AccessError(_("Choose the branch first"))
+        raise AccessError(_("This screen is for branch devices only. Link the device account to a branch in the settings."))
 
     @api.model
     def branch_access(self):
@@ -112,14 +116,14 @@ class NavittaApi(models.AbstractModel):
     def _emp(self, branch, emp_id):
         e = self.env["navitta.employee"].sudo().browse(int(emp_id or 0)).exists()
         if not e or e.branch_id != branch or not e.active:
-            raise AccessError(_("الموظفة ليست من هذا الفرع"))
+            raise AccessError(_("The employee is not from this branch"))
         return e
 
     @api.model
     def _rec(self, model, rec_id, branch, field="branch_id"):
         r = self.env[model].sudo().browse(int(rec_id or 0)).exists()
         if not r or r[field] != branch:
-            raise AccessError(_("السجل ليس من هذا الفرع"))
+            raise AccessError(_("The record is not from this branch"))
         return r
 
     @api.model
@@ -185,7 +189,7 @@ class NavittaApi(models.AbstractModel):
             "visits": [self._visit_dict(v) for v in visits],
             "cases": [self._case_dict(c) for c in cases],
             "covers": [{"id": r.id, "cover_employee_id": r.cover_employee_id.id, "requester": r.employee_id.name,
-                        "type": label(LEAVE_TYPES, r.type), "from_day": fields.Date.to_string(r.from_day),
+                        "type": sel_label(self.env, "navitta.leave.request", "type", r.type), "from_day": fields.Date.to_string(r.from_day),
                         "to_day": fields.Date.to_string(r.to_day)} for r in covers],
             "edit_requests": [{"visit_id": r.visit_id.id, "state": r.state} for r in ereq],
             "emp_sales": {l.employee_id.id: l.amount for l in lines},
@@ -323,7 +327,7 @@ class NavittaApi(models.AbstractModel):
             return self._err("not_found")
         att.check_out = False
         self.env["navitta.notification"]._notify_admin(
-            _("إلغاء انصراف: %s", e.name), _("%s سجلت انصراف بالغلط ورجعت للدوام بكلمة سر الإدارة.", e.name))
+            _("Check-out undone: %s", e.name), _("%s checked out by mistake and went back to work with the management password.", e.name))
         return {"ok": True}
 
     def _working(self, e, day):
@@ -428,10 +432,10 @@ class NavittaApi(models.AbstractModel):
                 req = req.sudo().create({
                     "branch_id": b.id, "kind": "goods", "employee_id": v.employee_id.id,
                     "model": model + (" (%s)" % item_no if item_no else ""), "color": color or False, "size": size or False,
-                    "qty": 1, "reason": label(GOODS_REASONS, "asked"), "note": _("من مبيعة ضائعة")})
+                    "qty": 1, "reason": label(GOODS_REASONS, "asked", self.env), "note": _("From a lost sale")})
                 self.env["navitta.notification"]._notify_admin(
-                    _("طلب جديد من %s", b.name),
-                    _("%(w)s طلبت بضاعة: %(m)s (زبونة طلبته)", w=v.employee_id.name, m=" · ".join(x for x in (model, color, size) if x)))
+                    _("New request from %s", b.name),
+                    _("%(w)s requested goods: %(m)s (a customer asked for it)", w=v.employee_id.name, m=" · ".join(x for x in (model, color, size) if x)))
             vals = {
                 "visit_id": v.id, "branch_id": b.id, "employee_id": v.employee_id.id, "day": v.day, "reason": reason,
                 "item_no": (lost.get("item_no") or "").strip() or False, "model": model or False, "color": color or False,
@@ -494,17 +498,18 @@ class NavittaApi(models.AbstractModel):
             "chances": {"used": self.env["navitta.late.case"]._chances_used(e, day), "max": self.env.company.navitta_chances},
             "cases": [self._case_dict(c) for c in cases],
             "leave_requests": [{
-                "id": r.id, "type": label(LEAVE_TYPES, r.type), "from_day": fields.Date.to_string(r.from_day),
+                "id": r.id, "type": sel_label(self.env, "navitta.leave.request", "type", r.type), "from_day": fields.Date.to_string(r.from_day),
                 "to_day": fields.Date.to_string(r.to_day), "reason": r.reason, "state": r.state,
                 "cover_name": r.cover_employee_id.name or "", "cover_note": r.cover_note or "", "note": r.note or ""} for r in lreqs],
-            "cover_requests": [{"id": r.id, "type": label(LEAVE_TYPES, r.type), "from_day": fields.Date.to_string(r.from_day),
+            "cover_requests": [{"id": r.id, "type": sel_label(self.env, "navitta.leave.request", "type", r.type), "from_day": fields.Date.to_string(r.from_day),
                                 "to_day": fields.Date.to_string(r.to_day), "requester": r.employee_id.name} for r in covers],
             "deferred": [{"id": x.id, "original_day": fields.Date.to_string(x.original_day),
                           "new_day": x.new_day and fields.Date.to_string(x.new_day)} for x in defs],
-            "threads": [{"id": t.id, "topic": label(TOPICS, t.topic), "state": t.state,
+            "threads": [{"id": t.id, "topic": sel_label(self.env, "navitta.thread", "topic", t.topic), "state": t.state,
                          "messages": [{"id": m.id, "sender": m.sender, "body": m.body, "created_at": iso(m.create_date)} for m in t.message_ids]}
                         for t in threads],
-            "leave_types": LEAVE_TYPES, "topics": TOPICS,
+            "leave_types": selection(self.env, "navitta.leave.request", "type"),
+            "topics": selection(self.env, "navitta.thread", "topic"),
         }
         threads.write({"emp_read_at": fields.Datetime.now()})
         return res
@@ -563,9 +568,9 @@ class NavittaApi(models.AbstractModel):
             "employee_id": e.id, "type": type_, "from_day": d0, "to_day": d1, "reason": reason,
             "cover_employee_id": mate.id or False, "state": "cover" if mate else "pending"})
         if mate:
-            mate._notify(_("طلب تغطية من زميلتك"),
-                         _("مرحبًا %(m)s، %(n)s تطلب تغطيتك أثناء إجازتها %(t)s من %(a)s إلى %(b)s. افتحي «تنبيهاتي» برمزك السري للموافقة أو الاعتذار.",
-                           m=mate.name, n=e.name, t=label(LEAVE_TYPES, type_), a=d0, b=d1))
+            mate._notify(_("Cover request from your colleague"),
+                         _("Hello %(m)s, %(n)s asks you to cover during her %(t)s leave from %(a)s to %(b)s. Open “My alerts” with your PIN to accept or decline.",
+                           m=mate.name, n=e.name, t=sel_label(self.env, "navitta.leave.request", "type", type_), a=d0, b=d1))
         return {"ok": True, "id": r.id, "cover": bool(mate)}
 
     @api.model
@@ -578,9 +583,9 @@ class NavittaApi(models.AbstractModel):
             return self._err("not_found")
         r.write({"state": "pending" if ok else "cover_no", "cover_note": (note or "").strip() or False})
         r.employee_id._notify(
-            _("زميلتك وافقت على التغطية") if ok else _("زميلتك اعتذرت عن التغطية"),
-            _("وافقت زميلتك على تغطية الفرع أثناء إجازتك، وطلبك الحين عند الإدارة.") if ok else
-            _("اعتذرت زميلتك عن تغطية الفرع أثناء إجازتك. قدّمي طلبًا جديدًا بتاريخ آخر أو بدون تغطية."))
+            _("Your colleague accepted to cover") if ok else _("Your colleague declined to cover"),
+            _("Your colleague agreed to cover the branch during your leave, and your request is now with management.") if ok else
+            _("Your colleague declined to cover the branch during your leave. Submit a new request with other dates or without cover."))
         return {"ok": True}
 
     @api.model
@@ -675,7 +680,8 @@ class NavittaApi(models.AbstractModel):
             "stock": b._stock_summary()[b.id], "cash": cash,
             "expenses": [self._expense_dict(x) for x in exps],
             "waiting": [self._lost_dict(w) for w in wait],
-            "choices": {"supplies": SUPPLIES, "goods_reasons": GOODS_REASONS, "expense_categories": EXPENSE_CATEGORIES},
+            "choices": {"supplies": selection(self.env, "navitta.branch.request", "supply"), "goods_reasons": choices(self.env, GOODS_REASONS),
+                        "expense_categories": selection(self.env, "navitta.expense", "category")},
         }
 
     @api.model
@@ -689,7 +695,7 @@ class NavittaApi(models.AbstractModel):
     @api.model
     def _expense_dict(self, x):
         return {"id": x.id, "branch_id": x.branch_id.id, "day": fields.Date.to_string(x.day), "amount": x.amount,
-                "category": x.category, "category_label": label(EXPENSE_CATEGORIES, x.category), "details": x.details,
+                "category": x.category, "category_label": sel_label(self.env, "navitta.expense", "category", x.category), "details": x.details,
                 "receipt_id": x.receipt_id.id or False, "state": x.state, "admin_note": x.admin_note or "",
                 "employee": x.employee_id.name or "", "employee_id": x.employee_id.id or False}
 
@@ -707,7 +713,7 @@ class NavittaApi(models.AbstractModel):
             return self.env["navitta.photo"]
         p = self.env["navitta.photo"].sudo().browse(int(photo_id)).exists()
         if not p or p.branch_id != branch:
-            raise AccessError(_("الصورة ليست من هذا الفرع"))
+            raise AccessError(_("The photo is not from this branch"))
         return p
 
     @api.model
@@ -735,12 +741,12 @@ class NavittaApi(models.AbstractModel):
         r = self.env["navitta.branch.request"].sudo().create({
             "branch_id": b.id, "kind": kind, "supply": supply if kind == "supply" else False, "employee_id": e.id,
             "model": model or False, "color": (vals.get("color") or "").strip() or False, "size": (vals.get("size") or "").strip() or False,
-            "qty": qty, "reason": label(GOODS_REASONS, reason) if reason else False, "note": (vals.get("note") or "").strip() or False,
+            "qty": qty, "reason": label(GOODS_REASONS, reason, self.env) if reason else False, "note": (vals.get("note") or "").strip() or False,
             "urgent": bool(vals.get("urgent")), "photo_id": photo.id or False})
         self.env["navitta.notification"]._notify_admin(
-            _("طلب جديد من %s", b.name),
-            _("%(n)s طلبت %(k)s: %(w)s%(u)s", n=e.name, k=_("بضاعة") if kind == "goods" else _("مستلزمات"), w=r._what(),
-              u=_(" (عاجل)") if r.urgent else ""))
+            _("New request from %s", b.name),
+            _("%(n)s requested %(k)s: %(w)s%(u)s", n=e.name, k=_("goods") if kind == "goods" else _("supplies"), w=r._what(),
+              u=_(" (urgent)") if r.urgent else ""))
         return {"ok": True, "id": r.id}
 
     @api.model
@@ -776,9 +782,9 @@ class NavittaApi(models.AbstractModel):
             "branch_id": b.id, "day": app_today(self.env), "employee_id": e.id, "amount": amount,
             "category": category, "details": details, "receipt_id": receipt.id or False})
         self.env["navitta.notification"]._notify_admin(
-            _("مصروف جديد بانتظار اعتمادك"),
-            "%s: %s ر.س · %s · %s%s" % (b.name, amount, label(EXPENSE_CATEGORIES, category), details,
-                                         "" if receipt else _(" (⚠️ بدون إيصال)")))
+            _("New expense waiting for your approval"),
+            _("%(b)s: %(a)s SAR · %(c)s · %(d)s%(r)s", b=b.name, a=amount, c=sel_label(self.env, "navitta.expense", "category", category),
+              d=details, r="" if receipt else _(" (⚠️ no receipt)")))
         return {"ok": True, "id": x.id}
 
     @api.model
@@ -845,8 +851,10 @@ class NavittaApi(models.AbstractModel):
                 "lost": [{"model": v.lost_model or "", "color": v.lost_color or "", "size": v.lost_size or ""}
                          for v in visits if v.lost_color or v.lost_size],
             },
-            "choices": {"exchange_reasons": EXCHANGE_REASONS, "lost_reasons": [r for r in LOST_REASONS if r[0] not in ("manufacture",)],
-                        "shelf": SHELF, "emergencies": EMERGENCIES},
+            "choices": {"exchange_reasons": selection(self.env, "navitta.daily.report.exchange", "reason"),
+                        "lost_reasons": [r for r in selection(self.env, "navitta.visit", "lost_reason") if r[0] not in ("manufacture",)],
+                        "shelf": selection(self.env, "navitta.daily.report", "shelf"),
+                        "emergencies": selection(self.env, "navitta.daily.report", "emergency")},
         }
 
     @api.model
@@ -861,7 +869,7 @@ class NavittaApi(models.AbstractModel):
         return {
             "sales": row.sales, "tax": row.vat_amount, "invoices": row.invoices, "items": row.items, "returns": row.returns,
             "returns_amount": row.returns_amount, "cash": row.cash, "card": row.card,
-            "emp": [{"employee_id": l.employee_id.id or False, "name": l.employee_id.name or l.cashier or _("بدون كاشير"),
+            "emp": [{"employee_id": l.employee_id.id or False, "name": l.employee_id.name or cashier_text(self.env, l.cashier),
                      "amount": l.amount, "invoices": l.invoices, "items": l.items, "returns": l.returns} for l in lines],
         }
 
