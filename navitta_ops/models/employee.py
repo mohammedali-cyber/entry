@@ -87,6 +87,18 @@ class NavittaEmployee(models.Model):
         return {"type": "ir.actions.act_window", "name": _("حضور %s", self.name), "res_model": "navitta.attendance",
                 "view_mode": "kanban,list,form", "domain": [("employee_id", "=", self.id)]}
 
+    def action_sales(self):
+        """Her sales day by day: from the cash register (her cashier account) when the branch is linked to one,
+        otherwise from the daily report."""
+        self.ensure_one()
+        return {"type": "ir.actions.act_window", "name": _("مبيعات %s", self.name), "res_model": "navitta.employee.sales",
+                "view_mode": "list,pivot", "domain": [("employee_id", "=", self.id)]}
+
+    def action_cash_counts(self):
+        self.ensure_one()
+        return {"type": "ir.actions.act_window", "name": _("عدّ العهدة: %s", self.name), "res_model": "navitta.cash.count",
+                "view_mode": "list,form", "domain": [("employee_id", "=", self.id)]}
+
     @api.depends("pin_hash")
     def _compute_has_pin(self):
         for e in self:

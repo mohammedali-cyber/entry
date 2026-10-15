@@ -83,14 +83,14 @@
         <field name="name">navitta.device.punch.list</field>
         <field name="model">navitta.device.punch</field>
         <field name="arch" type="xml">
-            <list create="0" decoration-danger="state in ('unmatched', 'error')" decoration-muted="state == 'duplicate'">
+            <list create="0" decoration-danger="state in ('unmatched', 'error')" decoration-warning="state == 'tasks'" decoration-muted="state == 'duplicate'">
                 <field name="punched_at"/>
                 <field name="device_id"/>
                 <field name="branch_id"/>
                 <field name="device_user_id"/>
                 <field name="employee_id"/>
                 <field name="verify_label"/>
-                <field name="state" widget="badge" decoration-success="state in ('in', 'out')" decoration-danger="state in ('unmatched', 'error')"/>
+                <field name="state" widget="badge" decoration-success="state in ('in', 'out')" decoration-warning="state == 'tasks'" decoration-danger="state in ('unmatched', 'error')"/>
                 <field name="message"/>
             </list>
         </field>
@@ -101,7 +101,7 @@
         <field name="arch" type="xml">
             <form create="0" edit="0">
                 <header>
-                    <button name="action_reprocess" type="object" string="إعادة المعالجة" invisible="state not in ('unmatched', 'error')"/>
+                    <button name="action_reprocess" type="object" string="إعادة المعالجة" invisible="state not in ('unmatched', 'tasks', 'error')"/>
                     <field name="state" widget="statusbar"/>
                 </header>
                 <sheet>

@@ -38,6 +38,10 @@
                         <setting string="صورة مع البصمة في الآيباد" help="لحظة كتابة الرمز للحضور أو الانصراف يصوّر الآيباد الموظفة بالكاميرا الأمامية، وتقارن الإدارة الصورة بصورتها المرجعية. إذا رفض الآيباد الكاميرا تنسجل البصمة وتنعلّم «بدون صورة».">
                             <field name="navitta_checkin_photo"/>
                         </setting>
+                        <setting string="عدّ العهدة ومهام الإغلاق" help="أول موظفة تحضر تعدّ العهدة بالفئات قبل فتح العدّاد. وكل موظفة ما تظهر لها بصمة الانصراف قبل ما تقفل زياراتها ويُرسل التقرير اليومي وتعدّ كاش الإغلاق. أي فرق في المبلغ يوصل الإدارة بالإيميل.">
+                            <field name="navitta_cash_tasks"/>
+                            <div class="mt-2"><button name="%(navitta_ops.action_cash_counts)d" type="action" string="سجل عدّ العهدة" class="btn-link" icon="fa-money"/></div>
+                        </setting>
                         <setting string="أجهزة البصمة (ZKTeco)" help="أجهزة بصمة حقيقية ترسل الحضور إلى النظام مباشرة عبر الإنترنت، بخاصية «الخادم السحابي» في الجهاز.">
                             <button name="%(navitta_ops.action_devices)d" type="action" string="أجهزة البصمة" class="btn-link" icon="fa-hand-pointer-o"/>
                         </setting>

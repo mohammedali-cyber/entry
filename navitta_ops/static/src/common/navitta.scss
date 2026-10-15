@@ -675,6 +675,16 @@ td .m,td.m{font-size:12px;color:var(--fg-2)}
 .sysbox .sys-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:10px}
 .sysbox .sys-kpis div{display:flex;flex-direction:column;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
 .sysbox .sys-kpis span{font-size:12px;color:var(--muted)}
+// cash custody and closing tasks
+.cashlock{border-color:var(--info);background:var(--info-bg)}
+.cashbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:13px}
+.nv-btn.tasks-btn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn);font-size:12.5px;padding:4px 10px}
+.cashcount{display:flex;flex-direction:column;gap:12px;min-width:420px;max-width:86vw}
+.cashcount h2{margin:0}
+.cc-tbl input.ctl{max-width:120px;text-align:center}
+.cc-tbl td,.cc-tbl th{padding:6px 8px}
+.cc-tbl tfoot td{border-top:2px solid var(--line)}
+.topnav a.logout{color:var(--muted)}
 }
 // modals are rendered inside .o_navitta too (position: fixed)
 

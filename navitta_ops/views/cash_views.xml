@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cash_count_list" model="ir.ui.view">
+        <field name="name">navitta.cash.count.list</field>
+        <field name="model">navitta.cash.count</field>
+        <field name="arch" type="xml">
+            <list create="0" decoration-danger="has_expected and difference &lt; -0.99" decoration-warning="has_expected and difference &gt; 0.99">
+                <field name="day"/>
+                <field name="branch_id"/>
+                <field name="kind" widget="badge" decoration-info="kind == 'open'" decoration-muted="kind == 'close'"/>
+                <field name="employee_id"/>
+                <field name="counted_at" optional="hide"/>
+                <field name="total" sum="الإجمالي"/>
+                <field name="has_expected" column_invisible="1"/>
+                <field name="expected" invisible="not has_expected"/>
+                <field name="difference" invisible="not has_expected"/>
+                <field name="note" optional="show"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_cash_count_form" model="ir.ui.view">
+        <field name="name">navitta.cash.count.form</field>
+        <field name="model">navitta.cash.count</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <sheet>
+                    <div class="oe_title"><h2><field name="kind" readonly="1"/> – <field name="branch_id" readonly="1"/></h2></div>
+                    <group>
+                        <group string="العدّ">
+                            <field name="day"/>
+                            <field name="employee_id"/>
+                            <field name="counted_at"/>
+                            <field name="note"/>
+                        </group>
+                        <group string="الفئات">
+                            <field name="n500"/><field name="n200"/><field name="n100"/><field name="n50"/>
+                            <field name="n20"/><field name="n10"/><field name="n5"/><field name="n1"/><field name="coins"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="النتيجة">
+                            <field name="total"/>
+                            <field name="has_expected"/>
+                            <field name="expected" invisible="not has_expected"/>
+                            <field name="difference" invisible="not has_expected"/>
+                        </group>
+                    </group>
+                    <div class="text-muted">
+                        <b>الافتتاح:</b> يُقارن بآخر عدّ إغلاق للفرع.
+                        <b>الإغلاق:</b> يُقارن بعهدة الافتتاح + مبيعات النقدي اليوم − الإيداع البنكي.
+                        الفرق الموجب زيادة، والسالب نقص.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_cash_count_search" model="ir.ui.view">
+        <field name="name">navitta.cash.count.search</field>
+        <field name="model">navitta.cash.count</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="branch_id"/>
+                <field name="employee_id"/>
+                <filter name="diff" string="فيها فرق" domain="[('has_expected', '=', True), '|', ('difference', '&gt;=', 1), ('difference', '&lt;=', -1)]"/>
+                <separator/>
+                <filter name="open" string="عهدة الافتتاح" domain="[('kind', '=', 'open')]"/>
+                <filter name="close" string="كاش الإغلاق" domain="[('kind', '=', 'close')]"/>
+                <filter name="f_day" string="اليوم" date="day"/>
+                <group>
+                    <filter name="g_branch" string="الفرع" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_day" string="اليوم" context="{'group_by': 'day:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_cash_counts" model="ir.actions.act_window">
+        <field name="name">عدّ العهدة</field>
+        <field name="res_model">navitta.cash.count</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html"><p>تظهر هنا عهدة الافتتاح التي تعدّها أول موظفة، وكاش الإغلاق الذي تعدّه كل موظفة قبل انصرافها، بالفئات.</p></field>
+    </record>
+</odoo>

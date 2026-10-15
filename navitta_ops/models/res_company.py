@@ -26,6 +26,9 @@ class ResCompany(models.Model):
                                     help="المبيعات المسجلة شاملة الضريبة. تُستخدم لحساب الضريبة والصافي في تقارير المبيعات فقط.")
     navitta_checkin_photo = fields.Boolean("صورة مع البصمة", default=True,
                                            help="الآيباد يصوّر الموظفة بالكاميرا الأمامية لحظة كتابة رمزها للحضور والانصراف")
+    navitta_cash_tasks = fields.Boolean("عدّ العهدة ومهام الإغلاق", default=True,
+                                        help="أول موظفة تعدّ العهدة بعد حضورها قبل فتح العدّاد، وكل موظفة ما تقدر تسجل انصراف "
+                                             "قبل ما تقفل زياراتها ويُرسل التقرير اليومي وتعدّ كاش الإغلاق")
 
     @api.constrains("navitta_shift_start", "navitta_shift_end", "navitta_grace", "navitta_break_max", "navitta_chances")
     def _check_navitta_rules(self):

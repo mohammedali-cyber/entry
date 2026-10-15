@@ -25,7 +25,7 @@ class NavittaCase(TransactionCase):
         cls.company = cls.env.company
         cls.company.write({"navitta_tz": "Asia/Riyadh", "navitta_shift_start": 15.5, "navitta_shift_end": 23.5,
                            "navitta_grace": 5, "navitta_break_max": 30, "navitta_chances": 3,
-                           "navitta_report_email": "boss@example.com"})
+                           "navitta_report_email": "boss@example.com", "navitta_cash_tasks": False})
         cls.dwd = cls.env.ref("navitta_ops.branch_dwd")
         cls.qsm = cls.env.ref("navitta_ops.branch_qsm")
         cls.reem = cls.env.ref("navitta_ops.emp_dwd_1")       # weekly off: Monday
@@ -127,6 +127,78 @@ class NavittaCase(TransactionCase):
         for f in ("pin_hash", "email", "photo"):
             with self.assertRaises(AccessError):
                 self.reem.with_user(self.dev).read([f])
+
+    # ------------------------------------------------------------------ cash custody and closing tasks
+    def test_cash_custody_and_closing_tasks(self):
+        """The first employee counts the custody before the counter opens; nobody checks out before her open visits
+        are closed, the daily report is sent and she counted the closing cash (screen and fingerprint device)."""
+        self.company.navitta_cash_tasks = True
+        Count = self.env["navitta.cash.count"]
+        # yesterday's closing count: today's custody is compared with it
+        Count.create({"branch_id": self.dwd.id, "day": DAY - timedelta(days=1), "kind": "close", "employee_id": self.shima.id,
+                      "n500": 2, "n100": 3, "coins": 2.5})
+        with freeze_time(utc(15, 20)):
+            self.assertTrue(self.api().check_in(self.reem.id, "2468")["ok"])
+        with freeze_time(utc(15, 25)):
+            self.assertTrue(self.api().check_in(self.shima.id, "2468")["ok"])
+            st = self.api().branch_state()["cash"]
+            self.assertEqual((st["required"], st["open"], st["opener_id"], st["open_expected"]), (True, False, self.reem.id, 1302.5))
+            self.assertEqual(st["tasks"][self.reem.id], ["report", "cash_close"])
+            self.assertEqual(self.api().visit_start(self.shima.id)["error"], "cash_open_required")   # counter locked for all
+            self.assertEqual(self.api().cash_count(self.reem.id, "0000", "open", {"500": 2})["error"], "wrong_pin")
+            self.assertEqual(self.api().cash_count(self.reem.id, "2468", "open", {"500": -1})["error"], "bad_count")
+            with self.assertRaises(AccessError):                                   # another branch's employee
+                self.api().cash_count(self.hubour.id, "2468", "open", {"500": 1})
+            r = self.api().cash_count(self.reem.id, "2468", "open", {"500": 2, "100": 3})
+            self.assertEqual((r["total"], r["expected"], r["difference"]), (1300, 1302.5, -2.5))      # 2.50 short
+            self.assertTrue(self.env["navitta.notification"].search([("subject", "like", "فرق في عهدة الافتتاح")]))
+            self.assertEqual(self.api().cash_count(self.shima.id, "2468", "open", {"500": 3})["error"], "already_counted")
+            vid = self.api().visit_start(self.shima.id)["id"]
+        with freeze_time(utc(23, 30)):
+            self.api().visit_end(vid)
+            # the check-out is refused while tasks are left, and the screen lists them
+            r = self.api().check_out(self.shima.id, "2468")
+            self.assertEqual((r["error"], r["tasks"]), ("tasks_pending", ["visits", "report", "cash_close"]))
+            self.assertTrue(self.api().visit_save(vid, {"buy": True})["ok"])
+            self.assertTrue(self.api().report_save({"employee_name": "شيمة", "sales": 900, "cash": 500, "card": 400, "deposit": 300})["ok"])
+            self.assertEqual(self.api().check_out(self.shima.id, "2468")["tasks"], ["cash_close"])
+            r = self.api().cash_count(self.shima.id, "2468", "close", {"500": 3, "1": 2}, "ok")
+            self.assertEqual((r["total"], r["expected"], r["difference"]), (1502, 1500, 2))           # 1300 + 500 cash - 300 deposit
+            r = self.api().cash_count(self.shima.id, "2468", "close", {"500": 3})                      # she may count again
+            self.assertEqual(r["difference"], 0)
+            self.assertEqual(Count.search_count([("employee_id", "=", self.shima.id), ("kind", "=", "close"), ("day", "=", DAY)]), 1)
+            self.assertTrue(self.api().check_out(self.shima.id, "2468")["ok"])
+            # the fingerprint device can't check reem out either until her closing count
+            dev = self.env["navitta.device"].create({"serial_number": "NVCASH", "branch_id": self.dwd.id, "state": "active"})
+            self.reem.device_user_id = "8"
+            punch = self.env["navitta.device.punch"].create({"device_id": dev.id, "device_user_id": "8", "punched_at": utc(23, 31)})
+            punch._process()
+            att = self.env["navitta.attendance"].search([("employee_id", "=", self.reem.id), ("day", "=", DAY)])
+            self.assertEqual((punch.state, bool(att.check_out)), ("tasks", False))
+            self.assertIn("كاش الإغلاق", punch.message)
+            self.api().cash_count(self.reem.id, "2468", "close", {"500": 3})
+            punch.action_reprocess()
+            self.assertEqual((punch.state, bool(att.check_out)), ("out", True))
+        # management: every count, and the employee's own buttons
+        self.assertEqual(self.env["navitta.cash.count"].with_user(self.boss).search_count([("day", "=", DAY)]), 3)
+        self.assertEqual(self.env["navitta.cash.count"].with_user(self.dev_qsm).search_count([]), 0)
+        self.assertEqual(self.shima.action_sales()["domain"], [("employee_id", "=", self.shima.id)])
+        # switched off: the counter opens right away and only open visits block the check-out
+        self.company.navitta_cash_tasks = False
+        with freeze_time(utc(15, 20, d=DAY + timedelta(days=1))):
+            self.assertTrue(self.api().check_in(self.reem.id, "2468")["ok"])
+            self.assertTrue(self.api().visit_start(self.reem.id)["ok"])
+
+    def test_device_sees_branch_screen_only(self):
+        """Like the old app, a branch device has the branch screen only (no Discuss, Employees, Dashboards…)."""
+        Menu = self.env["ir.ui.menu"]
+        root = self.env.ref("navitta_ops.menu_root")
+        dev_menus = Menu.browse(Menu.with_user(self.dev)._visible_menu_ids())
+        self.assertTrue(dev_menus)
+        self.assertTrue(all(m.parent_path.startswith("%d/" % root.id) for m in dev_menus))
+        self.assertIn(self.env.ref("navitta_ops.menu_branch_app"), dev_menus)
+        boss_menus = Menu.browse(Menu.with_user(self.boss)._visible_menu_ids())
+        self.assertIn(self.env.ref("navitta_ops.menu_admin_dashboard"), boss_menus)
 
     def test_pin_lockout(self):
         with freeze_time(utc(15, 20)):
@@ -555,7 +627,8 @@ class NavittaHttp(HttpCase):
     def test_fingerprint_device_push(self):
         """A ZKTeco terminal in cloud (ADMS) mode: unknown -> pending, approved -> punches become attendance."""
         env = self.env
-        env.company.write({"navitta_tz": "Asia/Riyadh", "navitta_shift_start": 15.5, "navitta_shift_end": 23.5, "navitta_grace": 5})
+        env.company.write({"navitta_tz": "Asia/Riyadh", "navitta_shift_start": 15.5, "navitta_shift_end": 23.5, "navitta_grace": 5,
+                           "navitta_cash_tasks": False})
         dwd = env.ref("navitta_ops.branch_dwd")
         emp = env["navitta.employee"].create({"name": "تجربة البصمة", "branch_id": dwd.id, "device_user_id": "5"})
         y = (fields.Datetime.now() + timedelta(hours=3)).date() - timedelta(days=1)   # yesterday, Riyadh

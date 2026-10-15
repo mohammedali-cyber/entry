@@ -11,6 +11,7 @@
                         <a href="#" t-att-class="state.tab === 'inbox' ? 'on' : ''" t-on-click.prevent="() => this.go('inbox')">تنبيهاتي</a>
                         <a href="#" t-att-class="state.tab === 'requests' ? 'on' : ''" t-on-click.prevent="() => this.go('requests')">📦 طلبات الفرع</a>
                         <a href="#" t-att-class="state.tab === 'report' ? 'on' : ''" t-on-click.prevent="() => this.go('report')">التقرير اليومي</a>
+                        <a t-if="!state.branches" href="/web/session/logout" class="logout">خروج</a>
                     </nav>
                 </header>
                 <div class="sheen"/>
@@ -64,6 +65,12 @@
                     <h2><t t-esc="state.block.emp.name"/>، ما تقدرين تسجلين انصراف الحين</h2>
                     <p class="why">عندك أشياء ما خلصت. كمّليها وبعدها تنفتح بصمة الانصراف.</p>
                     <ul>
+                        <li t-if="(state.block.tasks or []).includes('report')"><span class="e">📝</span>
+                            <div><b>التقرير اليومي ما انرسل</b><small>تكتبه أي موظفة في الفرع، ويكفي مرة واحدة في اليوم</small></div>
+                            <button type="button" class="nv-btn primary" t-on-click="() => this.toReport()">افتحي التقرير</button></li>
+                        <li t-if="(state.block.tasks or []).includes('cash_close')"><span class="e">💵</span>
+                            <div><b>عدّ كاش الإغلاق</b><small>عدّي النقدية في الصندوق فئة فئة</small></div>
+                            <button type="button" class="nv-btn primary" t-on-click="() => this.countCash(state.block.emp, 'close')">عدّي الكاش</button></li>
                         <li t-foreach="state.block.open" t-as="v" t-key="v.id"><span class="e">⏱️</span>
                             <div><b class="num" t-esc="v.ended_at ? 'زيارة ' + clock(v.started_at) + ' – ' + clock(v.ended_at) : 'زيارة شغالة من ' + clock(v.started_at)"/>
                                 <small t-esc="v.ended_at ? 'ما اخترتي نتيجتها (اشترت / ما اشترت والسبب)' : 'اضغطي «خرجت العميلة» واختاري النتيجة'"/></div>
@@ -73,6 +80,10 @@
                 </div>
             </NvModal>
             <TargetBar/>
+            <div t-if="d.cash.required and d.cash.open" class="cashbar num">💵 عهدة اليوم <b><t t-esc="f0(d.cash.open.total)"/> ر.س</b> · عدّتها <t t-esc="d.cash.open.employee"/> <t t-esc="clock(d.cash.open.counted_at)"/>
+                <span t-if="d.cash.open.expected !== null and Math.abs(d.cash.open.difference) &gt;= 1" t-att-class="'chip ' + (d.cash.open.difference &lt; 0 ? 'bad' : 'warn')">
+                    <t t-esc="d.cash.open.difference &lt; 0 ? 'نقص ' : 'زيادة '"/><t t-esc="f0(Math.abs(d.cash.open.difference))"/> ر.س عن آخر إغلاق</span>
+                <span t-elif="d.cash.open.expected !== null" class="chip good">مطابقة لآخر إغلاق</span></div>
             <div class="split">
                 <t t-foreach="d.employees" t-as="emp" t-key="emp.id">
                     <t t-set="p" t-value="pane(emp)"/>
@@ -90,7 +101,8 @@
                                                 <button t-if="p.left &gt; 0" type="button" class="nv-btn coffee" t-on-click="() => this.breakStart(emp, p.open)">☕ استراحة (<t t-esc="Math.ceil(p.left / 60)"/> د)</button>
                                                 <span t-else="" class="chip neutral">☕ استُخدمت الاستراحة</span>
                                             </t>
-                                            <button type="button" class="del" t-on-click="() => this.out(emp)">بصمة انصراف</button>
+                                            <button t-if="p.tasks.length" type="button" class="nv-btn tasks-btn" t-on-click="() => this.tasks(emp)">📋 مهام قبل الانصراف (<t t-esc="p.tasks.length"/>)</button>
+                                            <button t-else="" type="button" class="del" t-on-click="() => this.out(emp)">بصمة انصراف</button>
                                         </t>
                                         <t t-else="">انصرفت <t t-esc="clock(p.att.check_out)"/> <button type="button" class="del" t-on-click="() => state.undo = emp">↩️ انصرفت بالغلط؟</button></t>
                                     </t>
@@ -133,7 +145,19 @@
                             <button type="button" class="nv-btn primary" t-on-click="() => this.breakEnd(p.onBreak)">إنهاء الاستراحة والرجوع للعمل</button>
                         </div>
 
-                        <div t-if="p.isIn and !p.onBreak" class="visits">
+                        <div t-if="p.isIn and !p.onBreak and p.needOpen" class="lock cashlock">
+                            <t t-if="d.cash.opener_id === emp.id">
+                                <p class="lock-t">💵 مهمتك الأولى: عدّي العهدة فئة فئة</p>
+                                <p class="hint">العدّاد ينفتح للجميع بعد عدّ العهدة.<t t-if="d.cash.open_expected !== null"> آخر إغلاق للفرع: <b class="num"><t t-esc="f0(d.cash.open_expected)"/> ر.س</b></t></p>
+                                <button type="button" class="nv-btn primary" t-on-click="() => this.countCash(emp, 'open')">عدّ العهدة</button>
+                            </t>
+                            <t t-else="">
+                                <p class="lock-t">🔒 العدّاد مقفل حتى تُعدّ العهدة</p>
+                                <p class="hint">تعدّها <b t-esc="empName(d.cash.opener_id)"/> لأنها أول من حضر.</p>
+                                <button type="button" class="nv-btn" t-on-click="() => this.countCash(emp, 'open')">أعدّها أنا</button>
+                            </t>
+                        </div>
+                        <div t-if="p.isIn and !p.onBreak and !p.needOpen" class="visits">
                             <button type="button" class="start" t-on-click="() => this.startVisit(emp)">دخلت عميلة <kbd t-if="num &lt; 10" t-esc="num"/></button>
                             <t t-foreach="p.open" t-as="v" t-key="v.id">
                                 <t t-set="x" t-value="dr(v)"/>
@@ -178,11 +202,63 @@
                     </div>
                 </t>
             </div>
+            <NvModal t-if="state.cash" onClose="() => this.cashDone()">
+                <CashCount emp="state.cash.emp" kind="state.cash.kind" denoms="st.denoms" expected="state.cash.expected"
+                           onClose="() => this.cashDone()" onDone="() => this.cashDone()"/>
+            </NvModal>
             <NvModal t-if="state.pin" onClose="() => state.pin = null">
                 <FaceCam t-if="st.checkin_photo" register="(c) => this.cam = c"/>
                 <PinPad title="(state.pin.mode === 'in' ? 'حضور ' : 'انصراف ') + state.pin.emp.name" onCancel="() => state.pin = null" onDone="(code) => this.pinDone(code)"/>
             </NvModal>
         </t>
+    </t>
+
+    <t t-name="navitta_ops.CashCount">
+        <div class="cashcount">
+            <t t-if="state.step === 'count'">
+                <h2 t-esc="title"/>
+                <p class="hint" t-if="props.kind === 'open'">اكتبي عدد الأوراق من كل فئة في العهدة.<t t-if="props.expected !== null and props.expected !== undefined"> آخر إغلاق للفرع: <b class="num"><t t-esc="f0(props.expected)"/> ر.س</b></t></p>
+                <p class="hint" t-else="">اكتبي عدد الأوراق من كل فئة في الصندوق الحين.</p>
+                <table class="nv-tbl cc-tbl">
+                    <thead><tr><th>الفئة</th><th>العدد</th><th>المبلغ</th></tr></thead>
+                    <tbody>
+                        <tr t-foreach="props.denoms" t-as="dn" t-key="dn">
+                            <td class="num"><b t-esc="dn"/> ريال</td>
+                            <td><input class="ctl num" type="number" inputmode="numeric" min="0" step="1" dir="ltr" t-model="state.counts[dn]" t-att-aria-label="'عدد أوراق ' + dn + ' ريال'"/></td>
+                            <td class="num" t-esc="f0(line(dn))"/>
+                        </tr>
+                        <tr>
+                            <td>معدن وهللات</td>
+                            <td><input class="ctl num" type="number" inputmode="decimal" min="0" step="0.01" dir="ltr" t-model="state.coins" aria-label="مبلغ المعدن والهللات"/></td>
+                            <td class="num" t-esc="f0(n(state.coins))"/>
+                        </tr>
+                    </tbody>
+                    <tfoot><tr><td colspan="2"><b>المجموع</b></td><td class="num"><b><t t-esc="f0(total)"/> ر.س</b></td></tr></tfoot>
+                </table>
+                <label class="lr-l">ملاحظة (اختياري)<input class="ctl" t-model="state.note" placeholder="مثال: ورقة 50 تالفة"/></label>
+                <div class="vrow">
+                    <button type="button" class="nv-btn primary" t-on-click="() => state.step = 'pin'">تأكيد برمزي السري</button>
+                    <button type="button" class="nv-btn" t-on-click="props.onClose">إلغاء</button>
+                </div>
+            </t>
+            <t t-elif="state.step === 'pin'">
+                <PinPad title="title" sub="'المجموع ' + f0(total) + ' ر.س'" onCancel="() => state.step = 'count'" onDone="(code) => this.pinDone(code)"/>
+            </t>
+            <t t-else="">
+                <t t-set="r" t-value="state.res"/>
+                <div class="blk">
+                    <div class="bi" aria-hidden="true" t-esc="r.expected === null or Math.abs(r.difference) &lt; 1 ? '✅' : '⚠️'"/>
+                    <h2>تم حفظ <t t-esc="props.kind === 'open' ? 'عدّ العهدة' : 'كاش الإغلاق'"/></h2>
+                    <p class="why num">المعدود <b><t t-esc="f0(r.total)"/> ر.س</b>
+                        <t t-if="r.expected !== null"> · المتوقع <b><t t-esc="f0(r.expected)"/> ر.س</b></t></p>
+                    <p t-if="r.expected !== null and Math.abs(r.difference) &gt;= 1" class="why">
+                        <span t-att-class="'chip ' + (r.difference &lt; 0 ? 'bad' : 'warn')"><t t-esc="r.difference &lt; 0 ? 'نقص ' : 'زيادة '"/><t t-esc="f0(Math.abs(r.difference))"/> ر.س</span>
+                        وصل تنبيه للإدارة.</p>
+                    <p t-elif="r.expected !== null" class="why"><span class="chip good">مطابق</span></p>
+                    <button type="button" class="nv-btn primary" t-on-click="props.onDone">تم</button>
+                </div>
+            </t>
+        </div>
     </t>
 
     <t t-name="navitta_ops.Outcome">
@@ -312,11 +388,10 @@
                         <label>آخر يوم إجازة<input type="date" class="ctl num" t-model="state.lv.to"/></label>
                     </div>
                     <label class="lr-l">السبب *<textarea class="ctl" rows="2" t-model="state.lv.why"/></label>
-                    <label t-if="box.mates.length" class="lr-l">مين تغطي الفرع أثناء إجازتك؟
+                    <label t-if="box.mates.length" class="lr-l">مين تغطي الفرع أثناء إجازتك؟ (توافق زميلتك أولًا، ثم الإدارة)
                         <select class="ctl" t-model="state.lv.cover">
                             <option t-if="box.mates.length &gt; 1" value="">— اختاري الزميلة —</option>
                             <t t-foreach="box.mates" t-as="m" t-key="m.id"><option t-att-value="m.id" t-esc="m.name"/></t>
-                            <option value="0">بدون تغطية</option>
                         </select></label>
                     <div class="vrow"><button type="button" class="nv-btn primary" t-on-click="sendLeave">إرسال الطلب</button></div>
                 </div>

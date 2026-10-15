@@ -10,6 +10,7 @@ from datetime import timedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 
+from .cash import DENOMS
 from .common import (EXCHANGE_REASONS, LEAVE_TYPES, LOST_REASONS, OUT_OF_STOCK, TOPICS, SUPPLIES,
                      EXPENSE_CATEGORIES, GOODS_REASONS, EMERGENCIES, SHELF, app_minute, app_today, fmt_time,
                      hours_to_min, iso, label)
@@ -59,6 +60,10 @@ ERRORS = {
     "not_edit": "هذا ليس طلب تعديل مدة",
     "bad_decision": "قرار غير معروف",
     "pick_cover": "اختاري الزميلة اللي بتغطي الفرع",
+    "cash_open_required": "عدّي العهدة أولًا، بعدها ينفتح العدّاد",
+    "already_counted": "تم عدّ العهدة اليوم",
+    "bad_count": "تأكدي من الأعداد",
+    "tasks_pending": "كمّلي مهام الإغلاق أولًا، بعدها تظهر بصمة الانصراف",
 }
 
 
@@ -131,7 +136,7 @@ class NavittaApi(models.AbstractModel):
                 "grace": c.navitta_grace, "break_max": c.navitta_break_max, "chances": c.navitta_chances,
                 "min_roll_invoice": c.navitta_min_roll_invoice, "min_roll_card": c.navitta_min_roll_card,
                 "min_bags": c.navitta_min_bags, "tz": c.navitta_tz or "Asia/Riyadh", "vat_rate": c.navitta_vat_rate,
-                "checkin_photo": c.navitta_checkin_photo}
+                "checkin_photo": c.navitta_checkin_photo, "cash_tasks": c.navitta_cash_tasks, "denoms": list(DENOMS)}
 
     @api.model
     def _visit_dict(self, v):
@@ -185,7 +190,83 @@ class NavittaApi(models.AbstractModel):
             "edit_requests": [{"visit_id": r.visit_id.id, "state": r.state} for r in ereq],
             "emp_sales": {l.employee_id.id: l.amount for l in lines},
             "day_target": target or 0.0,
+            "cash": self._cash_state(b, day, emps),
         }
+
+    # ------------------------------------------------------------------ cash custody and closing tasks
+    @api.model
+    def _cash_open(self, branch, day):
+        return self.env["navitta.cash.count"].sudo().search(
+            [("branch_id", "=", branch.id), ("day", "=", day), ("kind", "=", "open")], limit=1)
+
+    @api.model
+    def _opener(self, branch, day):
+        """Who counts the opening custody: the first employee of the day who is still in the branch."""
+        att = self.env["navitta.attendance"].sudo().search(
+            [("branch_id", "=", branch.id), ("day", "=", day), ("check_out", "=", False)], order="check_in, id", limit=1)
+        return att.employee_id
+
+    @api.model
+    def _tasks(self, e, day):
+        """What she must finish before her check-out (empty when nothing is left, or when the setting is off)."""
+        tasks = []
+        if self.env["navitta.visit"].sudo().search_count([("employee_id", "=", e.id), ("day", "=", day), ("saved", "=", False)]):
+            tasks.append("visits")
+        if not self.env.company.navitta_cash_tasks:
+            return tasks
+        if not self.env["navitta.daily.report"].sudo().search_count([("branch_id", "=", e.branch_id.id), ("day", "=", day)]):
+            tasks.append("report")
+        if not self.env["navitta.cash.count"].sudo().search_count(
+                [("employee_id", "=", e.id), ("day", "=", day), ("kind", "=", "close")]):
+            tasks.append("cash_close")
+        return tasks
+
+    @api.model
+    def _cash_state(self, branch, day, emps):
+        Count = self.env["navitta.cash.count"].sudo()
+        on = self.env.company.navitta_cash_tasks
+        opening = self._cash_open(branch, day)
+        closes = Count.search([("branch_id", "=", branch.id), ("day", "=", day), ("kind", "=", "close")])
+        expected, known = Count._expected(branch, day, "open")
+        att = self.env["navitta.attendance"].sudo().search(
+            [("employee_id", "in", emps.ids), ("day", "=", day), ("check_out", "=", False)])
+        return {
+            "required": on, "open": opening._dict() if opening else False,
+            "opener_id": self._opener(branch, day).id or False, "open_expected": expected if known else None,
+            "closes": {c.employee_id.id: c._dict() for c in closes},
+            "tasks": {a.employee_id.id: self._tasks(a.employee_id, day) for a in att},
+        }
+
+    @api.model
+    def cash_count(self, emp_id, pin, kind, counts, note=None):
+        """The custody count of the opening (once a day for the branch) or an employee's closing count (she may
+        count again until she checks out)."""
+        e, err = self._auth(emp_id, pin)
+        if err:
+            return self._err(err)
+        if kind not in ("open", "close"):
+            return self._err("bad_count")
+        day = app_today(self.env)
+        if not self._working(e, day):
+            return self._err("not_checked_in")
+        Count = self.env["navitta.cash.count"].sudo()
+        vals, err = Count._vals_from(counts)
+        if err:
+            return self._err(err)
+        if kind == "open" and self._cash_open(e.branch_id, day):
+            return self._err("already_counted")
+        expected, known = Count._expected(e.branch_id, day, kind)
+        vals.update({"branch_id": e.branch_id.id, "day": day, "kind": kind, "employee_id": e.id,
+                     "counted_at": fields.Datetime.now(), "expected": expected, "has_expected": known,
+                     "note": (note or "").strip()[:500] or False})
+        old = Count.search([("employee_id", "=", e.id), ("day", "=", day), ("kind", "=", "close")]) if kind == "close" else Count
+        if old:
+            old.write(vals)
+            c = old[:1]
+        else:
+            c = Count.create(vals)
+        c._alert_difference()
+        return {"ok": True, **c._dict()}
 
     @api.model
     def _punch_photo(self, branch, data):
@@ -218,8 +299,11 @@ class NavittaApi(models.AbstractModel):
             return self._err("reply_required")
         if self.env["navitta.break"].sudo().search_count([("employee_id", "=", e.id), ("day", "=", day), ("ended_at", "=", False)]):
             return self._err("on_break")
-        if self.env["navitta.visit"].sudo().search_count([("employee_id", "=", e.id), ("day", "=", day), ("saved", "=", False)]):
+        tasks = self._tasks(e, day)
+        if tasks == ["visits"]:
             return self._err("open_visits")
+        if tasks:
+            return dict(self._err("tasks_pending"), tasks=tasks)
         att = self.env["navitta.attendance"].sudo().search([("employee_id", "=", e.id), ("day", "=", day), ("check_out", "=", False)], limit=1)
         if not att:
             return self._err("not_in")
@@ -280,6 +364,8 @@ class NavittaApi(models.AbstractModel):
             return self._err("not_checked_in")
         if self.env["navitta.break"].sudo().search_count([("employee_id", "=", e.id), ("day", "=", day), ("ended_at", "=", False)]):
             return self._err("on_break")
+        if self.env.company.navitta_cash_tasks and not self._cash_open(b, day):
+            return self._err("cash_open_required")
         v = self.env["navitta.visit"].sudo().create({"branch_id": b.id, "employee_id": e.id, "day": day,
                                                     "started_at": fields.Datetime.now()})
         return {"ok": True, "id": v.id}
@@ -459,8 +545,11 @@ class NavittaApi(models.AbstractModel):
         if (self.env["navitta.leave"].sudo().search_count(overlap)
                 or self.env["navitta.leave.request"].sudo().search_count(overlap + [("state", "in", ("cover", "pending"))])):
             return self._err("overlap")
-        # cover: False (no cover), a colleague's id, or True when she has a single colleague
+        # cover: a colleague's id, or True when she has a single colleague. With colleagues in the branch the
+        # request always goes to one of them first, then to management; alone in the branch it goes to management.
         mates, mate = e._mates(), self.env["navitta.employee"]
+        if mates and not cover:
+            return self._err("pick_cover")
         if cover:
             if cover is True:
                 if len(mates) != 1:

@@ -152,6 +152,19 @@
         <field name="groups" eval="[(4, ref('group_navitta_branch'))]"/>
     </record>
 
+    <record id="rule_branch_cash_count" model="ir.rule">
+        <field name="name">Navitta: own branch cash counts</field>
+        <field name="model_id" ref="model_navitta_cash_count"/>
+        <field name="domain_force">[('branch_id', '=', user.navitta_branch_id.id)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_branch'))]"/>
+    </record>
+
+    <record id="rule_admin_navitta_cash_count" model="ir.rule">
+        <field name="name">Navitta admin: all (navitta_cash_count)</field>
+        <field name="model_id" ref="model_navitta_cash_count"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_admin'))]"/>
+    </record>
     <!-- management sees everything (also when an account is in both groups) -->
     <record id="rule_admin_navitta_branch" model="ir.rule">
         <field name="name">Navitta admin: all (navitta_branch)</field>

@@ -175,7 +175,7 @@ class NavittaDevicePunch(models.Model):
     employee_id = fields.Many2one("navitta.employee", "الموظفة", index=True, ondelete="set null")
     attendance_id = fields.Many2one("navitta.attendance", "سجل الحضور", ondelete="set null")
     state = fields.Selection([("new", "جديدة"), ("in", "حضور"), ("out", "انصراف"), ("duplicate", "مكررة"),
-                              ("unmatched", "بدون موظفة"), ("error", "خطأ")], "النتيجة", default="new", required=True, index=True)
+                              ("unmatched", "بدون موظفة"), ("tasks", "انصراف قبل مهام الإغلاق"), ("error", "خطأ")], "النتيجة", default="new", required=True, index=True)
     message = fields.Char("ملاحظة")
     raw = fields.Char("السطر كما وصل")
 
@@ -213,6 +213,11 @@ class NavittaDevicePunch(models.Model):
                 vals.update(state="duplicate", attendance_id=att.id, message=_("بصمة مكررة خلال دقيقتين"))
             elif att.check_out and p.punched_at <= att.check_out:
                 vals.update(state="duplicate", attendance_id=att.id, message=_("قبل آخر انصراف مسجل"))
+            elif not att.check_out and (tasks := self.env["navitta.api"]._tasks(emp, day)):
+                # the out punch only counts once her closing tasks are done: she finishes them and punches again
+                labels = {"visits": _("زيارات مفتوحة في العدّاد"), "report": _("التقرير اليومي ما انرسل"),
+                          "cash_close": _("ما عدّت كاش الإغلاق")}
+                vals.update(state="tasks", attendance_id=att.id, message="، ".join(labels[t] for t in tasks))
             else:
                 att._register_out(p.punched_at, "device", device=dev)
                 vals.update(state="out", attendance_id=att.id)
@@ -226,4 +231,4 @@ class NavittaDevicePunch(models.Model):
                                 ("device_id.branch_id", "=", e.branch_id.id)])._process()
 
     def action_reprocess(self):
-        self.filtered(lambda p: p.state in ("unmatched", "error", "new"))._process()
+        self.filtered(lambda p: p.state in ("unmatched", "tasks", "error", "new"))._process()

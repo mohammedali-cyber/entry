@@ -30,6 +30,8 @@
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_attendance" type="object" class="oe_stat_button" icon="fa-clock-o" string="الحضور"/>
+                        <button name="action_sales" type="object" class="oe_stat_button" icon="fa-shopping-bag" string="المبيعات"/>
+                        <button name="action_cash_counts" type="object" class="oe_stat_button" icon="fa-money" string="عدّ العهدة"/>
                     </div>
                     <widget name="web_ribbon" title="مؤرشفة" bg_color="text-bg-danger" invisible="active"/>
                     <field name="photo" widget="image" class="oe_avatar" options="{'preview_image': 'photo'}"/>

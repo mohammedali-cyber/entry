@@ -25,6 +25,7 @@
         <menuitem id="menu_rec_reports" name="التقارير اليومية" action="action_daily_reports" sequence="10"/>
         <menuitem id="menu_rec_sales" name="التارقت والمبيعات اليومية" action="action_daily_sales" sequence="11"/>
         <menuitem id="menu_rec_emp_sales" name="مبيعات الموظفات" action="action_employee_sales" sequence="12"/>
+        <menuitem id="menu_rec_cash" name="عدّ العهدة والكاش" action="action_cash_counts" sequence="12"/>
         <menuitem id="menu_rec_target_log" name="سجل تعديل التارقت" action="action_target_log" sequence="13"/>
         <menuitem id="menu_rec_requests" name="سجل طلبات الفروع" action="action_branch_requests" sequence="14"/>
         <menuitem id="menu_rec_expenses" name="المصروفات" action="action_expenses" sequence="15"/>
