@@ -15,6 +15,7 @@ class NavittaPinWizard(models.TransientModel):
 
     employee_id = fields.Many2one("navitta.employee", readonly=True)
     pin = fields.Char("PIN", readonly=True)
+    mail = fields.Selection([("sent", "Sent"), ("failed", "Sending failed"), ("queued", "Queued"), ("no_email", "No email")], readonly=True)
 
 
 class NavittaAdminPasswordWizard(models.TransientModel):

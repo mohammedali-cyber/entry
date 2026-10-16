@@ -64,7 +64,7 @@
                 <div class="head">
                     <div><div class="brand">NAVITTA</div><h1>Daily branches summary</h1></div>
                     <div class="meta"><span t-esc="s['day'].strftime('%Y-%m-%d')" class="num"/><br/>
-                        <t t-esc="len(s['branches'])"/> branches · Shift <t t-esc="s['shift']"/></div>
+                        <t t-esc="len(s['branches'])"/> branches · Morning <t t-esc="s['am_shift']"/> · Evening <t t-esc="s['shift']"/></div>
                 </div>
                 <div class="sheen"/>
                 <div t-if="s['missing']" class="alert"><t t-esc="('\u060c ' if nv_rtl else ', ').join(s['missing'])"/>: daily report not sent by sending time</div>

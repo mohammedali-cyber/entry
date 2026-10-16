@@ -96,8 +96,8 @@ export const EXST = lazy({
 });
 export const CASEST = lazy({
     reply: () => ["bad", _t("Needs your reply")], review: () => ["warn", _t("Awaiting management decision")],
-    forgiven: () => ["good", _t("Counted as a grace chance")], rejected: () => ["bad", _t("Rejected")],
-    edited: () => ["good", _t("Duration adjusted")],
+    forgiven: () => ["good", _t("Counted as a grace chance")], rejected: () => ["bad", _t("A penalty was issued")],
+    edited: () => ["good", _t("Duration adjusted")], excused: () => ["good", _t("Excuse accepted")],
 });
 export const LEAVEST = lazy({
     cover: () => ["info", _t("Awaiting colleague's approval to cover")], cover_no: () => ["bad", _t("Colleague declined to cover")],

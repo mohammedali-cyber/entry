@@ -8,7 +8,7 @@
                     <div class="brand"><span class="nv-mark">NAVITTA</span><h1 t-esc="title"/></div>
                     <nav class="topnav">
                         <a href="#" t-att-class="state.tab === 'counter' ? 'on' : ''" t-on-click.prevent="() => this.go('counter')">Visit counter</a>
-                        <a href="#" t-att-class="state.tab === 'inbox' ? 'on' : ''" t-on-click.prevent="() => this.go('inbox')">My alerts</a>
+                        <a href="#" t-att-class="state.tab === 'inbox' ? 'on' : ''" t-on-click.prevent="() => this.go('inbox')">My alerts<span t-if="state.unread" class="nb num" t-esc="state.unread"/></a>
                         <a href="#" t-att-class="state.tab === 'requests' ? 'on' : ''" t-on-click.prevent="() => this.go('requests')">📦 Branch requests</a>
                         <a href="#" t-att-class="state.tab === 'report' ? 'on' : ''" t-on-click.prevent="() => this.go('report')">Daily report</a>
                         <a t-if="!state.branches" href="/web/session/logout" class="logout">Sign out</a>
@@ -36,7 +36,7 @@
                 </div>
                 <t t-else="">
                     <Counter t-if="state.tab === 'counter'" t-key="state.key" goto="(tab, opts) => this.go(tab, opts)"/>
-                    <Inbox t-if="state.tab === 'inbox'" t-key="state.key" open="state.inboxOpen" empId="state.inboxEmp"/>
+                    <Inbox t-if="state.tab === 'inbox'" t-key="state.key" open="state.inboxOpen" empId="state.inboxEmp" onRead="() => this.loadUnread()"/>
                     <Requests t-if="state.tab === 'requests'" t-key="state.key" tab="state.reqTab"/>
                     <Report t-if="state.tab === 'report'" t-key="state.key"/>
                 </t>
@@ -91,14 +91,15 @@
                     <div class="pane">
                         <div class="pane-h">
                             <div style="min-width:0;flex:1">
-                                <div class="slot">Employee <t t-esc="num"/></div>
-                                <div class="ename" style="border:0" t-esc="emp.name"/>
+                                <div class="slot">Employee <t t-esc="num"/> · <t t-esc="shiftLabel(emp)"/></div>
+                                <div class="ename" style="border:0"><t t-esc="emp.name"/>
+                                    <a t-if="p.unread" href="#" class="bell" t-on-click.prevent="() => props.goto('inbox', {emp: emp.id})" t-esc="bellText(p.unread)"/></div>
                                 <div class="att num">
                                     <t t-if="p.att">
                                         <t t-if="p.isIn">
                                             <span class="on">● In since <t t-esc="clock(p.att.check_in)"/></span>
                                             <t t-if="!p.onBreak">
-                                                <button t-if="p.left &gt; 0" type="button" class="nv-btn coffee" t-on-click="() => this.breakStart(emp, p.open)">☕ Break (<t t-esc="Math.ceil(p.left / 60)"/> min)</button>
+                                                <button t-if="p.left &gt; 0" type="button" class="nv-btn coffee" t-on-click="() => this.breakStart(emp, p.open)" t-esc="breakBtn(p)"/>
                                                 <span t-else="" class="chip neutral">☕ Break used</span>
                                             </t>
                                             <button t-if="p.tasks.length" type="button" class="nv-btn tasks-btn" t-on-click="() => this.tasks(emp)">📋 Tasks before check-out (<t t-esc="p.tasks.length"/>)</button>
@@ -119,6 +120,7 @@
                             </div>
                         </div>
 
+                        <div t-if="p.isIn and !p.onBreak and p.backRecently and p.left &gt; 0" class="brk-left" t-esc="backText(p)"/>
                         <div t-if="p.mySales &gt; 0" class="emp-t">💰 Her sales today <b class="num"><t t-esc="f0(p.mySales)"/> SAR</b>
                             <span t-if="d.day_target">· <bdi dir="ltr"><t t-esc="Math.round(p.mySales / d.day_target * 100)"/>%</bdi> of the Branch target</span></div>
                         <div t-foreach="p.covers" t-as="c" t-key="c.id" class="nfy coverbox"><p>🏖️ <b t-esc="c.requester"/> asks you to cover from <t t-esc="c.from_day"/> to <t t-esc="c.to_day"/>. Reply from “My alerts”.</p>
@@ -129,11 +131,11 @@
 
                         <div t-if="!p.att" class="lock">
                             <p class="lock-t"><t t-esc="emp.name"/>, check in to open the counter
-                                <span t-if="!emp.off and p.lateBy &gt; st.grace and minuteNow() &lt; st.shift_end" class="chip warn">Late <t t-esc="p.lateBy"/> min</span></p>
+                                <span t-if="!emp.off and p.lateBy &gt; st.grace and minuteNow() &lt; p.sh.end" class="chip warn">Late <t t-esc="p.lateBy"/> min</span></p>
                             <button type="button" class="fp" aria-label="Check in" t-on-click="() => state.pin = {emp: emp, mode: 'in'}">
                                 <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M12 10a2 2 0 0 0-2 2c0 1.020-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>
                             </button>
-                            <p class="hint">Tap and enter your PIN to check in. Shift <t t-esc="h12(st.shift_start)"/> – <t t-esc="h12(st.shift_end)"/></p>
+                            <p class="hint" t-esc="checkinHint(p.sh)"/>
                         </div>
 
                         <div t-if="p.isIn and p.onBreak" class="brk">
@@ -343,8 +345,8 @@
         <div class="filters"><span class="range-note">Choose your name and enter your PIN to open your alerts</span></div>
         <div class="who">
             <t t-foreach="state.emps" t-as="e" t-key="e.id">
-                <button type="button" t-att-class="'who-b' + (state.emp and state.emp.id === e.id ? ' sel' : '')" t-on-click="() => this.pick(e)">
-                    <b t-esc="e.name"/><span t-esc="lockLabel(e)"/>
+                <button type="button" t-att-class="'who-b' + (state.emp and state.emp.id === e.id ? ' sel' : '')" t-att-aria-pressed="state.emp and state.emp.id === e.id ? 'true' : 'false'" t-on-click="() => this.pick(e)">
+                    <b><t t-esc="e.name"/><span t-if="badge(e)" class="nb num" t-esc="badge(e)"/></b><span t-esc="lockLabel(e)"/>
                 </button>
             </t>
         </div>
@@ -362,6 +364,29 @@
                     <div class="kpi"><span class="lbl">Minutes late or over break</span><span class="val num" t-esc="monthCases.reduce((t, c) => t + c.minutes, 0)"/></div>
                     <div class="kpi"><span class="lbl">Rejected</span><span class="val num" t-esc="monthCases.filter((c) => c.state === 'rejected').length"/></div>
                 </div>
+            </div>
+
+            <InboxNotes t-if="box.notes.length" notes="box.notes"/>
+
+            <div t-if="showPens" class="nv-card" style="margin-bottom:12px">
+                <h2>⚖️ Your chances and penalties this month</h2>
+                <div t-if="box.chances.used &gt;= box.chances.max" class="pbox">Chances: <Dots used="box.chances.used" max="box.chances.max"/> <b>Your chances for this month are used up</b><br/>
+                    Any late arrival or break overrun from now on gets a penalty per the penalty table.</div>
+                <div t-foreach="pens" t-as="c" t-key="c.id" class="case">
+                    <div class="nv-card-h"><b>⚖️ Penalty · <t t-esc="longDate(c.day)"/></b><span class="chip bad" t-esc="c.penalty"/></div>
+                    <div class="meta" t-esc="penLine(c)"/>
+                    <div t-if="c.note" class="meta">Management note: <t t-esc="c.note"/></div>
+                    <span t-if="c.ack_at" class="chip good">✍️ You signed that you read it</span>
+                    <div t-else="" class="vrow"><button type="button" class="nv-btn primary" t-on-click="() => this.signPenalty(c)">✍️ I read the penalty, I sign with my PIN</button></div>
+                </div>
+                <p class="sub" t-esc="resetText"/>
+            </div>
+
+            <div t-if="box.rules.length" class="nv-card" style="margin-bottom:12px">
+                <div class="nv-card-h"><h2>📜 Branch rules</h2>
+                    <span t-if="box.rules_signed" class="chip good">✍️ You signed them</span><span t-else="" class="chip warn">Read and sign</span></div>
+                <ol class="rules-l"><li t-foreach="box.rules" t-as="r" t-key="r.id" t-esc="r.body"/></ol>
+                <div t-if="!box.rules_signed" class="vrow"><button type="button" class="nv-btn primary" t-on-click="() => this.signRules()">✍️ I read the rules, I sign with my PIN</button></div>
             </div>
 
             <div t-if="box.cover_requests.length" class="nv-card" style="margin-bottom:12px"><h2>Cover requests awaiting your reply</h2>
@@ -464,7 +489,21 @@
             <div t-if="c.state === 'forgiven'" class="meta">A grace chance was used; no penalty.</div>
             <div t-if="c.state === 'edited'" class="meta">Request accepted: break duration changed from <t t-esc="c.old_break_used"/> min to <t t-esc="c.break_used"/> min; no penalty.</div>
             <div t-if="c.state === 'rejected'" class="meta">Excuse rejected · Penalty: <b t-esc="c.penalty"/> (occurrence <t t-esc="c.penalty_occ"/>)</div>
+            <div t-if="c.state === 'excused'" class="meta">Management accepted your excuse; it counts as neither a chance nor a penalty.</div>
             <div t-if="c.note" class="meta">Management note: <t t-esc="c.note"/></div>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.InboxNotes">
+        <div class="nv-card" style="margin-bottom:12px">
+            <div class="nv-card-h"><h2>📬 Latest alerts</h2><span t-if="nNew" class="chip bad" t-esc="newChip"/></div>
+            <div class="inbx">
+                <div t-foreach="shown" t-as="n" t-key="n.id" t-att-class="'note-i' + (n.new ? ' new' : '')">
+                    <div class="nh"><b t-esc="n.subject"/><span class="m" t-esc="ago(n.at)"/></div>
+                    <div t-att-class="'nbody ' + tone(n)" t-esc="n.body"/>
+                </div>
+            </div>
+            <button t-if="props.notes.length &gt; shown.length" type="button" class="linkbtn" t-on-click="() => state.all = true">Show all ▾</button>
         </div>
     </t>
 

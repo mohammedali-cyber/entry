@@ -8,6 +8,7 @@
                 <field name="sequence" widget="handle"/>
                 <field name="name"/>
                 <field name="code"/>
+                <field name="two_shifts"/>
                 <field name="cash_balance"/>
                 <field name="month_expenses"/>
                 <field name="stock_roll_invoice"/>
@@ -29,6 +30,7 @@
                         <group string="Branch">
                             <field name="code"/>
                             <field name="sequence"/>
+                            <field name="two_shifts"/>
                             <field name="active" invisible="1"/>
                         </group>
                         <group string="Cash box">
@@ -52,6 +54,7 @@
                                     <field name="slot" widget="handle"/>
                                     <field name="name"/>
                                     <field name="weekly_off"/>
+                                    <field name="shift" readonly="not parent.two_shifts"/>
                                     <field name="device_user_id"/>
                                     <field name="has_pin"/>
                                 </list>

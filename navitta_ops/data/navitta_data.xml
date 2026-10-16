@@ -25,7 +25,7 @@
     <!-- branches -->
     <record id="branch_dwd" model="navitta.branch"><field name="name">فرع الدوادمي</field><field name="code">dwd</field><field name="sequence">1</field></record>
     <record id="branch_qsm" model="navitta.branch"><field name="name">فرع القصيم</field><field name="code">qsm</field><field name="sequence">2</field></record>
-    <record id="branch_ahs" model="navitta.branch"><field name="name">فرع الأحساء</field><field name="code">ahs</field><field name="sequence">3</field></record>
+    <record id="branch_ahs" model="navitta.branch"><field name="name">فرع الأحساء</field><field name="code">ahs</field><field name="sequence">3</field><field name="two_shifts" eval="True"/></record>
     <record id="branch_hfb" model="navitta.branch"><field name="name">فرع حفر الباطن</field><field name="code">hfb</field><field name="sequence">4</field></record>
     <record id="branch_skk" model="navitta.branch"><field name="name">فرع سكاكا</field><field name="code">skk</field><field name="sequence">5</field></record>
 

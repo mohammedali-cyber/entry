@@ -67,6 +67,8 @@ ERRORS = {
     "already_counted": _lt("The cash float was already counted today"),
     "bad_count": _lt("Check the counts"),
     "tasks_pending": _lt("Finish the closing tasks first, then the check-out punch appears"),
+    "rule_required": _lt("Write the rule"),
+    "tier_required": _lt("Fill in every cell of the penalty table"),
 }
 
 
@@ -137,6 +139,8 @@ class NavittaApi(models.AbstractModel):
     def _settings(self):
         c = self.env.company
         return {"shift_start": hours_to_min(c.navitta_shift_start), "shift_end": hours_to_min(c.navitta_shift_end),
+                "am_start": hours_to_min(c.navitta_am_start), "am_end": hours_to_min(c.navitta_am_end),
+                "no_am_days": sorted(c._navitta_no_am()),
                 "grace": c.navitta_grace, "break_max": c.navitta_break_max, "chances": c.navitta_chances,
                 "min_roll_invoice": c.navitta_min_roll_invoice, "min_roll_card": c.navitta_min_roll_card,
                 "min_bags": c.navitta_min_bags, "tz": c.navitta_tz or "Asia/Riyadh", "vat_rate": c.navitta_vat_rate,
@@ -155,7 +159,23 @@ class NavittaApi(models.AbstractModel):
                 "minutes": c.minutes, "check_in": iso(c.check_in), "break_used": c.break_used,
                 "old_break_used": c.old_break_used, "reason": c.reason or "", "request": c.request or "",
                 "requested_minutes": c.requested_minutes, "state": c.state, "penalty": c.penalty or "",
-                "penalty_occ": c.penalty_occ, "note": c.note or "", "decided_at": iso(c.decided_at)}
+                "penalty_occ": c.penalty_occ, "note": c.note or "", "decided_at": iso(c.decided_at),
+                "ack_at": iso(c.ack_at), "settled_at": iso(c.settled_at)}
+
+    @api.model
+    def _shift_dict(self, e, day):
+        """Her shift that day for the screens: kind am/pm, start/end minutes, moved (morning employee on evening)."""
+        return dict(e._shift(day), shift=e.shift)
+
+    @api.model
+    def _unread(self, employees):
+        """{employee_id: n} new alerts per employee (counts only, never the content), last 30 days, no secret ones."""
+        if not employees:
+            return {}
+        rows = self.env["navitta.notification"].sudo()._read_group(
+            [("employee_id", "in", employees.ids), ("read_at", "=", False), ("secret", "=", False),
+             ("create_date", ">", fields.Datetime.now() - timedelta(days=30))], ["employee_id"], ["__count"])
+        return {e.id: n for e, n in rows}
 
     @api.model
     def _today_bits(self, employees, day):
@@ -183,8 +203,10 @@ class NavittaApi(models.AbstractModel):
         target = self.env["navitta.daily.sales"].sudo().search([("branch_id", "=", b.id), ("day", "=", day)], limit=1).target
         return {
             "server_now": iso(fields.Datetime.now()), "day": fields.Date.to_string(day),
-            "branch": {"id": b.id, "name": b.name}, "settings": self._settings(),
-            "employees": [{"id": e.id, "slot": e.slot, "name": e.name, "weekly_off": e.weekly_off, "off": e._is_off(day)} for e in emps],
+            "branch": {"id": b.id, "name": b.name, "two_shifts": b.two_shifts}, "settings": self._settings(),
+            "employees": [{"id": e.id, "slot": e.slot, "name": e.name, "weekly_off": e.weekly_off, "off": e._is_off(day),
+                           "shift": self._shift_dict(e, day)} for e in emps],
+            "unread": self._unread(emps),
             "attendance": att, "breaks": brk,
             "visits": [self._visit_dict(v) for v in visits],
             "cases": [self._case_dict(c) for c in cases],
@@ -357,7 +379,8 @@ class NavittaApi(models.AbstractModel):
         brk = self._rec("navitta.break", break_id, b)
         brk._end()
         used = brk._used_minutes(brk.employee_id, brk.day)
-        return {"ok": True, "over": max(0, used - self.env.company.navitta_break_max)}
+        left = self.env.company.navitta_break_max * 60 - brk._used_seconds(brk.employee_id, brk.day)
+        return {"ok": True, "over": max(0, used - self.env.company.navitta_break_max), "left_sec": max(0, int(left))}
 
     @api.model
     def visit_start(self, emp_id):
@@ -482,6 +505,13 @@ class NavittaApi(models.AbstractModel):
 
     # ------------------------------------------------------------------ employee inbox (PIN)
     @api.model
+    def branch_unread(self):
+        """New alerts per employee of the branch (counts only) for the badges on the screen."""
+        b = self._branch()
+        emps = self.env["navitta.employee"].sudo().search([("branch_id", "=", b.id), ("active", "=", True)])
+        return {"unread": self._unread(emps)}
+
+    @api.model
     def inbox(self, emp_id, pin):
         e, err = self._auth(emp_id, pin)
         if err:
@@ -492,6 +522,10 @@ class NavittaApi(models.AbstractModel):
         covers = self.env["navitta.leave.request"].sudo().search([("cover_employee_id", "=", e.id), ("state", "=", "cover")])
         defs = self.env["navitta.deferred.off"].sudo().search([("employee_id", "=", e.id), "|", ("new_day", "=", False), ("new_day", ">=", day)])
         threads = self.env["navitta.thread"].sudo().search([("employee_id", "=", e.id)])
+        notes = self.env["navitta.notification"].sudo().search(
+            [("employee_id", "=", e.id), ("secret", "=", False)], order="create_date desc, id desc", limit=40)
+        Rule = self.env["navitta.rule"]
+        rules = Rule.sudo().search([])
         res = {
             "employee": {"id": e.id, "name": e.name},
             "mates": [{"id": m.id, "name": m.name} for m in e._mates()],
@@ -509,10 +543,36 @@ class NavittaApi(models.AbstractModel):
                          "messages": [{"id": m.id, "sender": m.sender, "body": m.body, "created_at": iso(m.create_date)} for m in t.message_ids]}
                         for t in threads],
             "leave_types": selection(self.env, "navitta.leave.request", "type"),
-            "topics": selection(self.env, "navitta.thread", "topic"),
+            # «راتب أو سلفة» (salary or advance) is no longer a topic employees can pick
+            "topics": [t for t in selection(self.env, "navitta.thread", "topic") if t[0] != "salary"],
+            "notes": [{"id": n.id, "subject": n.subject, "body": n._body_text(), "at": iso(n.create_date), "new": not n.read_at}
+                      for n in notes],
+            "rules": [{"id": r.id, "body": r.body} for r in rules],
+            "rules_signed": Rule._status(e)[e.id]["current"] if rules else True,
         }
-        threads.write({"emp_read_at": fields.Datetime.now()})
+        now = fields.Datetime.now()
+        threads.write({"emp_read_at": now})
+        self.env["navitta.notification"].sudo().search([("employee_id", "=", e.id), ("read_at", "=", False)]).write({"read_at": now})
         return res
+
+    @api.model
+    def case_ack(self, emp_id, pin, case_id):
+        """She signs with her PIN that she read her penalty."""
+        e, err = self._auth(emp_id, pin)
+        if err:
+            return self._err(err)
+        c = self.env["navitta.late.case"].sudo().browse(int(case_id or 0)).exists()
+        err = c._ack(e) if c else "not_found"
+        return self._err(err) if err else {"ok": True}
+
+    @api.model
+    def rules_ack(self, emp_id, pin):
+        """She signs with her PIN that she read the branch rules (again after any change)."""
+        e, err = self._auth(emp_id, pin)
+        if err:
+            return self._err(err)
+        self.env["navitta.rule.ack"]._sign(e)
+        return {"ok": True}
 
     @api.model
     def reply_case(self, emp_id, pin, case_id, reason, request="forgive", minutes=None):
@@ -597,7 +657,8 @@ class NavittaApi(models.AbstractModel):
         if not body:
             return self._err("body_required")
         now = fields.Datetime.now()
-        t = self.env["navitta.thread"].sudo().create({"employee_id": e.id, "topic": topic if topic in dict(TOPICS) else "other",
+        topic = topic if topic in dict(TOPICS) and topic != "salary" else "other"
+        t = self.env["navitta.thread"].sudo().create({"employee_id": e.id, "topic": topic,
                                                      "emp_read_at": now, "last_at": now})
         self.env["navitta.message"].sudo().create({"thread_id": t.id, "sender": "emp", "body": body})
         return {"ok": True, "id": t.id}
@@ -633,7 +694,7 @@ class NavittaApi(models.AbstractModel):
                       "invoices": r.invoices} for r in rows],
             "log": {"by_admin": log.by_admin, "changed_at": iso(log.create_date), "scope": log.scope, "ref": log.ref,
                     "old_amount": log.old_amount, "new_amount": log.new_amount} if log else False,
-            "shift_end": hours_to_min(self.env.company.navitta_shift_end),
+            "shift_end": branch._shift_end_today(day),
         }
 
     @api.model

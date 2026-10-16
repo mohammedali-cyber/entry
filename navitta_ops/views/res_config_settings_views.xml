@@ -9,12 +9,31 @@
             <xpath expr="//form" position="inside">
                 <app data-string="Navitta Branches" string="Navitta Branches" name="navitta_ops" groups="navitta_ops.group_navitta_admin">
                     <block title="Shift &amp; rules" name="navitta_shift">
-                        <setting string="Shift" help="Shift start and end, in the branches' local time">
+                        <setting string="🌙 Evening shift" help="Start and end of the evening shift (every branch), in the branches' local time">
                             <div class="d-flex gap-2 align-items-center">
                                 <field name="navitta_shift_start" widget="float_time" class="w-25"/> <span>to</span>
                                 <field name="navitta_shift_end" widget="float_time" class="w-25"/>
                             </div>
                             <field name="navitta_tz"/>
+                        </setting>
+                        <setting string="☀️ Morning shift" help="Only in the branches with a morning shift. Lateness counts from each employee's own shift start; choose her shift in her employee form.">
+                            <div class="d-flex gap-2 align-items-center">
+                                <field name="navitta_am_start" widget="float_time" class="w-25"/> <span>to</span>
+                                <field name="navitta_am_end" widget="float_time" class="w-25"/>
+                            </div>
+                            <div class="mt-2"><span>Branches with a morning shift:</span>
+                                <field name="navitta_two_shift_branch_ids" widget="many2many_tags" options="{'no_create': True}"/></div>
+                        </setting>
+                        <setting string="Days without a morning shift" help="On these days morning employees work the evening shift">
+                            <div class="d-flex flex-wrap gap-3">
+                                <span><field name="navitta_no_am_0"/> <label for="navitta_no_am_0"/></span>
+                                <span><field name="navitta_no_am_1"/> <label for="navitta_no_am_1"/></span>
+                                <span><field name="navitta_no_am_2"/> <label for="navitta_no_am_2"/></span>
+                                <span><field name="navitta_no_am_3"/> <label for="navitta_no_am_3"/></span>
+                                <span><field name="navitta_no_am_4"/> <label for="navitta_no_am_4"/></span>
+                                <span><field name="navitta_no_am_5"/> <label for="navitta_no_am_5"/></span>
+                                <span><field name="navitta_no_am_6"/> <label for="navitta_no_am_6"/></span>
+                            </div>
                         </setting>
                         <setting string="Check-in grace period" help="After it, lateness counts from the start of the shift">
                             <field name="navitta_grace"/> <span>min</span>

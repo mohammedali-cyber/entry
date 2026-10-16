@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="navitta_ops.Dots">
+        <span t-att-class="'dots' + (props.used &gt;= props.max ? ' out' : '')" role="img" t-att-aria-label="label">
+            <t t-foreach="list" t-as="i" t-key="i"><i t-att-class="i &lt; props.used ? 'u' : ''"/></t>
+        </span>
+    </t>
+
+    <t t-name="navitta_ops.CaseDecide">
+        <t t-set="c" t-value="props.c"/>
+        <div t-att-class="'req pending case-d' + (out ? ' out' : '')">
+            <div class="req-main"><span t-att-class="'chip ' + (out ? 'bad' : 'warn')">Awaiting your decision</span>
+                <div style="min-width:0">
+                    <div class="what"><b t-esc="props.name"/> · <t t-esc="props.branch"/> · <t t-esc="longDate(c.day)"/> · <span class="chip neutral" t-esc="kind"/></div>
+                    <div class="meta num" t-esc="line"/>
+                    <div class="meta">Reason: <t t-esc="c.reason"/></div>
+                    <div t-if="c.request === 'edit'" class="meta num"><span class="chip info">Duration change request</span> <t t-esc="c.break_used"/> min <t t-esc="ARROW"/> <b><t t-esc="c.requested_minutes"/> min</b></div>
+                    <div t-if="pv" t-att-class="out ? 'pbox' : 'gbox'">Chances: <Dots used="pv.used" max="pv.max"/>
+                        <b t-if="out" t-esc="usedUp"/><t t-else="" t-esc="chancesLine"/>
+                        <t t-if="pv.penalty"><br/>⚖️ If rejected: <b t-esc="pv.penalty.text"/> (<t t-esc="pv.penalty.tier"/> · <t t-esc="occ"/>)</t>
+                    </div>
+                </div>
+            </div>
+            <div class="req-act">
+                <input class="ctl" placeholder="Reason / note to the employee" aria-label="Reason / note to the employee" t-model="state.note" t-on-input="() => state.err = ''"/>
+                <span t-if="state.err" class="hint err" role="alert" t-esc="state.err"/>
+                <button t-if="c.request === 'edit'" type="button" class="nv-btn primary" t-att-disabled="state.busy" t-on-click="() => this.act('edit')">Accept duration change</button>
+                <button type="button" class="nv-btn red" t-att-disabled="state.busy" t-on-click="() => this.act('penalty')">❌ Rejected (penalty)</button>
+                <button type="button" class="nv-btn primary" t-att-disabled="out or state.busy" t-att-title="out ? usedUp : ''" t-on-click="() => this.act('chance')" t-esc="chanceBtn"/>
+                <button type="button" class="nv-btn" t-att-disabled="state.busy" t-on-click="() => this.act('excuse')">✅ Excuse accepted, not counted</button>
+            </div>
+        </div>
+    </t>
+
+</templates>

@@ -686,6 +686,51 @@ td .m,td.m{font-size:12px;color:var(--fg-2)}
 .cc-tbl td,.cc-tbl th{padding:6px 8px}
 .cc-tbl tfoot td{border-top:2px solid var(--line)}
 .topnav a.logout{color:var(--muted)}
+// 26.3: shifts, unread alerts, split break, violations and rules
+.nb{display:inline-grid;place-items:center;min-width:19px;height:19px;border-radius:10px;background:var(--bad);color:#fff;font-size:11.5px;font-weight:800;margin-inline-start:6px;padding:0 5px;vertical-align:middle;font-family:inherit;line-height:1}
+.topnav a.on .nb{box-shadow:0 0 0 2px var(--bg)}
+.bell{display:inline-flex;align-items:center;gap:4px;margin-inline-start:10px;background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad);border-radius:999px;padding:2px 11px;font:inherit;font-size:12.5px;font-weight:700;text-decoration:none;vertical-align:middle;animation:nvbellp 1.8s infinite;cursor:pointer}
+@keyframes nvbellp{50%{box-shadow:0 0 0 5px rgba(163,36,43,.18)}}
+.shift-i{cursor:default}
+.brk-left{background:var(--good-bg);color:var(--good);border:1px solid rgba(29,116,72,.3);border-radius:10px;padding:8px 12px;font-size:13.5px;font-weight:600;margin:6px 0}
+.inbx{display:flex;flex-direction:column;gap:8px}
+.note-i{border:1px solid var(--line);border-radius:12px;padding:10px 12px;position:relative}
+.note-i.new{border-color:var(--warn);background:var(--warn-bg)}
+.note-i.new::before{content:"";position:absolute;top:14px;inset-inline-end:12px;width:9px;height:9px;border-radius:50%;background:var(--bad)}
+.note-i .nh{display:flex;justify-content:space-between;gap:10px;padding-inline-end:16px}
+.note-i .m{font-size:12px;color:var(--muted);white-space:nowrap}
+.nbody{white-space:pre-line;font-size:13.5px;margin-top:4px;color:var(--fg-2)}
+.nbody.ok{background:var(--good-bg);color:var(--good);border-radius:8px;padding:6px 8px}
+.nbody.no{background:var(--bad-bg);color:var(--bad);border-radius:8px;padding:6px 8px}
+.kv4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.kv4 div,.flow4 div{background:var(--surface-2);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.kv4 span{font-size:12px;color:var(--muted)}
+.kv4 b{font-size:19px}
+.flow4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;font-size:13px;line-height:1.7}
+.flow4 b{font-size:14px}
+.flow4 .pen{background:var(--bad-bg)}
+@media (max-width:860px){.kv4,.flow4{grid-template-columns:1fr 1fr}}
+.rl{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.rl > span:first-child{white-space:pre-line;min-width:0}
+.acks{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px}
+.ptab td{vertical-align:top;font-size:13px}
+.ptab textarea{width:100%;min-width:120px}
+.dots{display:inline-flex;gap:4px;vertical-align:middle}
+.dots i{width:13px;height:13px;border-radius:50%;border:2px solid var(--good);display:inline-block}
+.dots i.u{background:var(--good)}
+.dots.out i{border-color:var(--bad)}
+.dots.out i.u{background:var(--bad)}
+.pbox{background:var(--bad-bg);color:var(--bad);border-radius:10px;padding:8px 12px;font-size:13.5px;margin-top:6px;line-height:1.8}
+.gbox{background:var(--good-bg);color:var(--good);border-radius:10px;padding:8px 12px;font-size:13.5px;margin-top:6px}
+.case-d.out{border-color:var(--bad)}
+.case-d .req-act .hint.err{flex-basis:100%}
+.case-d .req-main{flex:1 1 440px}
+.case-d .req-main > div{flex:1 1 auto}
+.case-d .req-act{flex:1 1 440px;justify-content:flex-end}
+.ptab .m,.tscroll td .m{font-size:12px;color:var(--muted)}
+.rules-l{margin:0;padding-inline-start:22px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.rules-l li{white-space:pre-line}
+.nv-btn.red{background:var(--bad);color:#fff;border-color:var(--bad)}
 }
 // modals are rendered inside .o_navitta too (position: fixed)
 

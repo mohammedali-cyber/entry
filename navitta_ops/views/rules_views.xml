@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_rule_list" model="ir.ui.view">
+        <field name="name">navitta.rule.list</field>
+        <field name="model">navitta.rule</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="body"/>
+                <field name="updated_at"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_rules" model="ir.actions.act_window">
+        <field name="name">Branch rules</field>
+        <field name="res_model">navitta.rule</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Add the branch rules</p>
+            <p>The employees read them in “My alerts” and sign with their PIN. After any change they sign again.</p></field>
+    </record>
+
+    <record id="view_rule_ack_list" model="ir.ui.view">
+        <field name="name">navitta.rule.ack.list</field>
+        <field name="model">navitta.rule.ack</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0">
+                <field name="branch_id"/>
+                <field name="employee_id"/>
+                <field name="ack_at"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_rule_acks" model="ir.actions.act_window">
+        <field name="name">Branch rules signatures</field>
+        <field name="res_model">navitta.rule.ack</field>
+        <field name="view_mode">list</field>
+    </record>
+</odoo>

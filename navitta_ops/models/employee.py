@@ -3,7 +3,9 @@ from datetime import timedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
-from .common import CRYPT, WEEKDAYS, dow, new_pin
+from .common import CRYPT, WEEKDAYS, dow, hours_to_min, new_pin
+
+SHIFTS = [("am", "Morning shift"), ("pm", "Evening shift")]
 
 
 class NavittaEmployee(models.Model):
@@ -21,6 +23,10 @@ class NavittaEmployee(models.Model):
                          help="A clear face photo that management compares punch photos with")
     email = fields.Char("Email", groups="navitta_ops.group_navitta_admin", help="Alerts and decisions are sent to this address")
     weekly_off = fields.Selection(WEEKDAYS, "Weekly day off")
+    shift = fields.Selection(SHIFTS, "Work shift", default="pm", required=True,
+                             help="Morning is possible only in a branch with a morning shift. On the days without a morning shift "
+                                  "(settings), morning employees work the evening shift. Lateness counts from her own shift start.")
+    branch_two_shifts = fields.Boolean(related="branch_id.two_shifts", string="Branch has a morning shift")
     active = fields.Boolean(default=True)
     company_id = fields.Many2one(related="branch_id.company_id", store=True)
 
@@ -45,6 +51,26 @@ class NavittaEmployee(models.Model):
             if other:
                 raise ValidationError(_("Fingerprint device ID %(n)s is already used by another employee in the same branch: %(o)s", n=e.device_user_id, o=other.name))
 
+    @api.constrains("shift", "branch_id")
+    def _check_shift(self):
+        for e in self:
+            if e.shift == "am" and not e.branch_id.two_shifts:
+                raise ValidationError(_("This employee's branch has no morning shift. Enable it for the branch "
+                                        "(Branches → “Has a morning shift”) first"))
+
+    def _shift(self, day):
+        """Her shift on `day`: {'kind': 'am'|'pm', 'start', 'end' (minutes from midnight), 'moved'} — `moved` when a
+        morning employee works the evening shift because that weekday has no morning shift."""
+        self.ensure_one()
+        c = self.env.company
+        if self.shift == "am" and self.branch_id.two_shifts:
+            if dow(day) not in c._navitta_no_am():
+                return {"kind": "am", "start": hours_to_min(c.navitta_am_start), "end": hours_to_min(c.navitta_am_end), "moved": False}
+            moved = True
+        else:
+            moved = False
+        return {"kind": "pm", "start": hours_to_min(c.navitta_shift_start), "end": hours_to_min(c.navitta_shift_end), "moved": moved}
+
     def init(self):
         # versions before 18.0.1.2 allowed only 2 employees per branch (slot 1/2, unique)
         self.env.cr.execute("DROP INDEX IF EXISTS navitta_employee_branch_slot_active")
@@ -62,6 +88,9 @@ class NavittaEmployee(models.Model):
     def write(self, vals):
         if vals.get("device_user_id"):
             vals["device_user_id"] = str(vals["device_user_id"]).strip()
+        if vals.get("branch_id") and "shift" not in vals and \
+                not self.env["navitta.branch"].sudo().browse(vals["branch_id"]).two_shifts:
+            vals["shift"] = "pm"            # moved to a branch without a morning shift
         if "branch_id" in vals:
             from .common import app_today
             moving = self.filtered(lambda e: e.branch_id.id != vals["branch_id"])
@@ -111,12 +140,32 @@ class NavittaEmployee(models.Model):
             raise ValidationError(_("The PIN must be 4 digits"))
         self.sudo().write({"pin_hash": CRYPT.hash(pin), "pin_fail_count": 0, "pin_locked_until": False})
 
-    def action_new_pin(self):
-        """Admin: generate a new random PIN and show it once."""
+    def _new_pin(self):
+        """Management creates a new PIN: saved hashed, and emailed to her right away when she has an email (the
+        text of that email is wiped once sent). Returns (pin, mail) with mail = 'sent' | 'failed' | 'queued' | 'no_email'."""
         self.ensure_one()
         pin = new_pin()
         self._set_pin(pin)
-        wiz = self.env["navitta.pin.wizard"].create({"employee_id": self.id, "pin": pin})
+        e = self.sudo()
+        if not e.email:
+            return pin, "no_email"
+        env = self.with_context(lang=self.env.company._navitta_lang()).env      # written to the employee in the company's language
+        n = env["navitta.notification"]._send(
+            e.email, env._("🔐 Your new PIN"),
+            env._("Hello %(n)s 👋\nManagement created a new PIN for you: %(p)s\n\nUse it on the branch device for:\n✅ Check-in and check-out\n"
+                  "📬 Opening “My alerts”\n📦 Requests and receiving\n\n🔒 Don't give the PIN to anyone, not even your colleague. "
+                  "If you think someone knows it, ask management to change it.", n=e.name, p=pin),
+            employee=e, secret=True)
+        n._send_now()
+        if n.secret_wiped:
+            return pin, "sent"
+        return pin, "failed" if n.state == "exception" else "queued"
+
+    def action_new_pin(self):
+        """Admin: generate a new random PIN and show it once (and email it to her)."""
+        self.ensure_one()
+        pin, mail = self._new_pin()
+        wiz = self.env["navitta.pin.wizard"].create({"employee_id": self.id, "pin": pin, "mail": mail})
         return {
             "type": "ir.actions.act_window", "res_model": "navitta.pin.wizard", "res_id": wiz.id,
             "view_mode": "form", "target": "new", "name": _("New PIN"),
@@ -186,6 +235,9 @@ class NavittaNotification(models.Model):
     subject = fields.Char("Subject", required=True)
     body = fields.Text("Text", required=True)
     mail_id = fields.Many2one("mail.mail", ondelete="set null", copy=False)
+    secret = fields.Boolean("Secret", help="A new PIN: never shown in “My alerts”, and its text is wiped after sending")
+    read_at = fields.Datetime("Read by the employee", help="When she opened “My alerts” after this alert")
+    body_text = fields.Text("Message text", compute="_compute_body_text")
     state = fields.Selection([("no_email", "No email"), ("outgoing", "Waiting to be sent"), ("sent", "Sent"),
                               ("exception", "Sending failed")], compute="_compute_state", string="Status")
     failure_reason = fields.Text(related="mail_id.failure_reason", string="Failure reason")
@@ -214,9 +266,15 @@ class NavittaNotification(models.Model):
             '<div style="height:2px;background:#C7CACF;margin:6px 0 16px"></div>%s</div>'
         ) % (direction, Markup("<br/>").join(escape(body).split("\n")))
 
+    WIPED = "🔐 (الرمز انمسح بعد الإرسال)"       # stored marker; shown translated by _body_text()
+
+    @property
+    def secret_wiped(self):
+        return bool(self.secret and self.body == self.WIPED)
+
     @api.model
-    def _send(self, to_email, subject, body, employee=None, attachments=None):
-        vals = {"employee_id": employee and employee.id, "to_email": to_email, "subject": subject, "body": body}
+    def _send(self, to_email, subject, body, employee=None, attachments=None, secret=False):
+        vals = {"employee_id": employee and employee.id, "to_email": to_email, "subject": subject, "body": body, "secret": secret}
         if to_email:
             company = self.env.company
             mail = self.env["mail.mail"].sudo().create({
@@ -224,11 +282,29 @@ class NavittaNotification(models.Model):
                 "body_html": self._html(body),
                 "email_to": to_email,
                 "email_from": company.email_formatted or company.partner_id.email_formatted,
-                "auto_delete": False,
+                # a PIN email is deleted from the mail queue once sent (only the wiped notification stays)
+                "auto_delete": bool(secret),
                 "attachment_ids": [(6, 0, attachments.ids)] if attachments else False,
             })
             vals["mail_id"] = mail.id
         return self.sudo().create(vals)
+
+    def _send_now(self):
+        """Sends the email now instead of waiting for the mail queue (a failure stays in the queue's log)."""
+        for n in self.sudo().filtered("mail_id"):
+            n.mail_id.send(raise_exception=False)
+
+    def _wipe_secret(self):
+        self.sudo().filtered(lambda n: n.secret and n.body != self.WIPED).write({"body": self.WIPED})
+
+    def _body_text(self):
+        self.ensure_one()
+        return self.env._("🔐 (The PIN was wiped after sending)") if self.body == self.WIPED else self.body
+
+    @api.depends("body")
+    def _compute_body_text(self):
+        for n in self:
+            n.body_text = n._body_text()
 
     @api.model
     def _notify_employee(self, employee, subject, body):
@@ -238,3 +314,13 @@ class NavittaNotification(models.Model):
     @api.model
     def _notify_admin(self, subject, body):
         return self._send(self.env.company.navitta_report_email, subject, body)
+
+
+class MailMail(models.Model):
+    _inherit = "mail.mail"
+
+    def _postprocess_sent_message(self, success_pids, failure_reason=False, failure_type=None):
+        if not failure_type:
+            # a new PIN is not kept after its email went out
+            self.env["navitta.notification"].sudo().search([("mail_id", "in", self.ids), ("secret", "=", True)])._wipe_secret()
+        return super()._postprocess_sent_message(success_pids, failure_reason=failure_reason, failure_type=failure_type)

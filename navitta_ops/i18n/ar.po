@@ -30,6 +30,20 @@ msgstr " ملاحظة الإدارة: %s"
 
 #. module: navitta_ops
 #. odoo-python
+#: code:addons/navitta_ops/models/attendance.py:0
+msgid " Reason: %s"
+msgstr " السبب: %s"
+
+#. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/attendance.py:0
+msgid ""
+" Your chances for this month are used up; any violation after this gets a "
+"penalty per the table."
+msgstr " خلصت فرصك لهذا الشهر، وأي مخالفة بعدها عليها عقوبة حسب الجدول."
+
+#. module: navitta_ops
+#. odoo-python
 #: code:addons/navitta_ops/models/request.py:0
 msgid "%(a)s SAR · %(c)s%(n)s"
 msgstr "%(a)s ر.س · %(c)s%(n)s"
@@ -55,6 +69,12 @@ msgstr ""
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 msgid "%(kind)s %(name)s %(min)s min"
 msgstr "%(kind)s %(name)s %(min)s د"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.js:0
+msgid "%(n)s of %(m)s"
+msgstr "%(n)s من %(m)s"
 
 #. module: navitta_ops
 #. odoo-python
@@ -149,15 +169,33 @@ msgstr ""
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "%s min"
+msgstr "%s د"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "%s min ago"
 msgstr "قبل %s د"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "%s new"
+msgstr "%s جديد"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/components.js:0
 msgid "%s of 4"
 msgstr "%s من 4"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "%s per month"
+msgstr "%s بالشهر"
 
 #. module: navitta_ops
 #: model:ir.actions.report,print_report_name:navitta_ops.action_report_daily_summary
@@ -169,6 +207,12 @@ msgstr "'ملخص-الفروع'"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "(occurrence"
 msgstr "(المرة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "(occurrence %s)"
+msgstr "(المرة %s)"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -365,6 +409,11 @@ msgid "<span>Average invoice</span>"
 msgstr "<span>متوسط الفاتورة</span>"
 
 #. module: navitta_ops
+#: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
+msgid "<span>Branches with a morning shift:</span>"
+msgstr "<span>فروع فيها شفت صباح:</span>"
+
+#. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.report_daily_summary
 msgid "<span>Customers</span>"
 msgstr "<span>العملاء</span>"
@@ -439,6 +488,18 @@ msgid "A grace chance was used; no penalty."
 msgstr "احتُسبت لك فرصة مسامحة، ولا توجد عقوبة."
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "A late arrival or a break overrun; the employee writes the reason."
+msgstr "تأخير أو تجاوز استراحة، والموظفة تكتب السبب."
+
+#. module: navitta_ops
+#: model:ir.model.fields,help:navitta_ops.field_navitta_notification__secret
+msgid ""
+"A new PIN: never shown in “My alerts”, and its text is wiped after sending"
+msgstr "رمز سري جديد: ما يطلع في «تنبيهاتي»، وينمسح نصه بعد الإرسال"
+
+#. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_device_form
 msgid ""
 "A new device connected to Odoo. Make sure it is your branch's device (the serial number is on the device label), set the branch, then click \"Approve device\".\n"
@@ -459,6 +520,12 @@ msgstr ""
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/utils.js:0
+msgid "A penalty was issued"
+msgstr "صدرت عقوبة"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "A photo from this device"
 msgstr "صورة من هذا الجهاز"
@@ -472,6 +539,12 @@ msgstr "يوجد سجل لنفس الفرع واليوم"
 #: model:ir.model.constraint,message:navitta_ops.constraint_navitta_daily_report_branch_day_uniq
 msgid "A report already exists for this branch and day"
 msgstr "يوجد تقرير لنفس الفرع واليوم"
+
+#. module: navitta_ops
+#: model:ir.model.fields,help:navitta_ops.field_navitta_rule__updated_at
+msgid ""
+"A signature counts only if it is newer than the last change of the rules"
+msgstr "التوقيع ينحسب بس إذا كان بعد آخر تعديل على الأنظمة"
 
 #. module: navitta_ops
 #. odoo-python
@@ -489,7 +562,7 @@ msgstr "قبول"
 
 #. module: navitta_ops
 #. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: code:addons/navitta_ops/static/src/common/cases.xml:0
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_form
 msgid "Accept duration change"
 msgstr "قبول تعديل المدة"
@@ -548,6 +621,11 @@ msgid "Actual sales"
 msgstr "المبيعات الفعلية"
 
 #. module: navitta_ops
+#: model_terms:ir.actions.act_window,help:navitta_ops.action_rules
+msgid "Add the branch rules"
+msgstr "أضف أنظمة الفرع"
+
+#. module: navitta_ops
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_supply_move__kind__adjust
 msgid "Adjustment"
 msgstr "تعديل"
@@ -556,6 +634,16 @@ msgstr "تعديل"
 #: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
 msgid "After it, lateness counts from the start of the shift"
 msgstr "بعدها يُحتسب التأخير من بداية الدوام"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid ""
+"After that the penalty table starts at “occurrence 1”: the column is the "
+"violation's number after the chances, the row is the length of the lateness."
+msgstr ""
+"بعدها يبدأ جدول المخالفات من «المرة 1»: العمود حسب رقم المخالفة بعد الفرص، "
+"والصف حسب مدة التأخير."
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -692,6 +780,15 @@ msgstr "تكتبه أي موظفة في الفرع، ويكفي مرة واحد�
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid ""
+"Any late arrival or break overrun from now on gets a penalty per the penalty"
+" table."
+msgstr ""
+"أي تأخير أو تجاوز استراحة من الحين يصدر عليه عقوبة حسب جدول المخالفات."
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "Apply to 7 days starting from this day"
 msgstr "طبّقيه على 7 أيام من هذا اليوم"
@@ -773,6 +870,12 @@ msgid "Arrived"
 msgstr "وصل"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.js:0
+msgid "Arrived %s"
+msgstr "حضرت %s"
+
+#. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_branch__cash_opening_date
 msgid "As of"
 msgstr "في تاريخ"
@@ -788,6 +891,14 @@ msgstr "حسب لائحة الجزاءات"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Assigned"
 msgstr "وزّعتِ"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid ""
+"At the end of the month, download the file and give it to the accountant for"
+" payroll."
+msgstr "آخر الشهر نزّل الملف وأعطه المحاسب للرواتب."
 
 #. module: navitta_ops
 #. odoo-python
@@ -926,7 +1037,7 @@ msgstr "بانتظار موافقتك"
 
 #. module: navitta_ops
 #. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: code:addons/navitta_ops/static/src/common/cases.xml:0
 msgid "Awaiting your decision"
 msgstr "بانتظار قرارك"
 
@@ -1144,6 +1255,7 @@ msgstr "أولادي"
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_leave_request__branch_id
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_lost_sale__branch_id
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_photo__branch_id
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_rule_ack__branch_id
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_supply_move__branch_id
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_target_log__branch_id
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_thread__branch_id
@@ -1234,6 +1346,11 @@ msgid "Branch expense"
 msgstr "مصروف فرع"
 
 #. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_employee__branch_two_shifts
+msgid "Branch has a morning shift"
+msgstr "فرعها فيه شفت صباح"
+
+#. module: navitta_ops
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_attendance__in_source__ipad
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_attendance__out_source__ipad
 msgid "Branch iPad"
@@ -1266,6 +1383,28 @@ msgstr "طلبات الفروع"
 #: model:ir.actions.client,name:navitta_ops.action_admin_requests
 msgid "Branch requests & expenses"
 msgstr "طلبات الفروع والمصروفات"
+
+#. module: navitta_ops
+#: model:ir.model,name:navitta_ops.model_navitta_rule
+msgid "Branch rule"
+msgstr "نظام الفرع"
+
+#. module: navitta_ops
+#: model:ir.actions.act_window,name:navitta_ops.action_rules
+#: model:ir.ui.menu,name:navitta_ops.menu_cfg_rules
+msgid "Branch rules"
+msgstr "أنظمة الفرع"
+
+#. module: navitta_ops
+#: model:ir.model,name:navitta_ops.model_navitta_rule_ack
+msgid "Branch rules signature"
+msgstr "توقيع أنظمة الفرع"
+
+#. module: navitta_ops
+#: model:ir.actions.act_window,name:navitta_ops.action_rule_acks
+#: model:ir.ui.menu,name:navitta_ops.menu_rec_rule_acks
+msgid "Branch rules signatures"
+msgstr "توقيعات أنظمة الفرع"
 
 #. module: navitta_ops
 #: model:ir.actions.client,name:navitta_ops.action_branch_app
@@ -1318,6 +1457,11 @@ msgid "Branches time zone"
 msgstr "المنطقة الزمنية للفروع"
 
 #. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_two_shift_branch_ids
+msgid "Branches with a morning shift"
+msgstr "فروع فيها شفت صباح"
+
+#. module: navitta_ops
 #. odoo-python
 #: code:addons/navitta_ops/models/api_admin.py:0
 msgid "Branches without a device account: %s"
@@ -1335,6 +1479,12 @@ msgstr "ملخص-الفروع-%s.pdf"
 #: model:ir.model,name:navitta_ops.model_navitta_break
 msgid "Break"
 msgstr "الاستراحة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.js:0
+msgid "Break %(a)s min · over by %(m)s min"
+msgstr "استراحة %(a)s د · تجاوز %(m)s د"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -1361,15 +1511,24 @@ msgstr "طلب تعديل مدة الاستراحة"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.js:0
-msgid "Break ended"
-msgstr "انتهت الاستراحة"
+msgid "Break ended, %s min left"
+msgstr "انتهت الاستراحة، باقي لك %s د"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_late_case__kind__break
 #: model_terms:ir.ui.view,arch_db:navitta_ops.report_daily_summary
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_search
 msgid "Break overrun"
 msgstr "تجاوز استراحة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "Break overrun of %s minutes"
+msgstr "تجاوز الاستراحة %s دقيقة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -1413,6 +1572,7 @@ msgstr "الكاميرا غير متاحة، تنسجل البصمة بدون ص
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_admin_password_wizard
@@ -1536,6 +1696,25 @@ msgstr "اسم الكاشير"
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "Casual"
 msgstr "كاجوال"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Chances"
+msgstr "الفرص"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Chances reset to %s at the start of each month"
+msgstr "الفرص ترجع %s أول كل شهر"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+#: code:addons/navitta_ops/static/src/common/cases.xml:0
+msgid "Chances:"
+msgstr "الفرص:"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -2500,6 +2679,12 @@ msgid "Days off postponed for cover"
 msgstr "أوفات مؤجلة بسبب التغطية"
 
 #. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_res_company__navitta_no_am_days
+#: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
+msgid "Days without a morning shift"
+msgstr "أيام بدون شفت صباح"
+
+#. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "Days:"
@@ -2534,10 +2719,41 @@ msgstr "إنقاص"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_late_case__settled
+msgid "Deducted"
+msgstr "انخصم"
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_late_case__settled_at
+msgid "Deducted from salary"
+msgstr "انخصمت من الراتب"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Deduction"
+msgstr "الخصم"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Deduction undone"
+msgstr "انلغى الخصم"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "Delete"
 msgstr "حذف"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Delete this rule?"
+msgstr "تحذف هذا النظام؟"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -2729,13 +2945,13 @@ msgstr "المدة قبل التعديل (د)"
 
 #. module: navitta_ops
 #. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: code:addons/navitta_ops/static/src/common/cases.js:0
 msgid "Duration change accepted"
 msgstr "تم قبول تعديل المدة"
 
 #. module: navitta_ops
 #. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: code:addons/navitta_ops/static/src/common/cases.xml:0
 msgid "Duration change request"
 msgstr "طلب تعديل مدة"
 
@@ -2773,6 +2989,12 @@ msgstr ""
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Edit"
+msgstr "تعديل"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.js:0
 msgid "Edit approved"
 msgstr "تم قبول التعديل"
@@ -2796,6 +3018,8 @@ msgid "Edit target"
 msgstr "تعديل التارقت"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_employee__email
 msgid "Email"
 msgstr "الإيميل"
@@ -2846,6 +3070,7 @@ msgstr "حدث طارئ"
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_lost_sale__employee_id
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_notification__employee_id
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_pin_wizard__employee_id
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_rule_ack__employee_id
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_thread__employee_id
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_visit__employee_id
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_visit_edit_request__employee_id
@@ -3052,6 +3277,25 @@ msgstr "سهرة"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_employee__shift__pm
+msgid "Evening shift"
+msgstr "شفت المساء"
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_res_company__navitta_shift_end
+#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_shift_end
+msgid "Evening shift end"
+msgstr "نهاية شفت المساء"
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_res_company__navitta_shift_start
+#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_shift_start
+msgid "Evening shift start"
+msgstr "بداية شفت المساء"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 msgid "Event"
 msgstr "حدث"
 
@@ -3128,9 +3372,17 @@ msgstr "الاستبدالات"
 
 #. module: navitta_ops
 #. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
-msgid "Excuse rejected and the penalty recorded per the table"
-msgstr "رُفض العذر وسُجلت العقوبة حسب الجدول"
+#: code:addons/navitta_ops/static/src/common/utils.js:0
+#: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_late_case__state__excused
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_search
+msgid "Excuse accepted"
+msgstr "عذر مقبول"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.js:0
+msgid "Excuse accepted; nothing was counted"
+msgstr "قُبل العذر، وما انحسب شي"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -3234,6 +3486,12 @@ msgstr ""
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_catalog_item__sequence
 msgid "File order"
 msgstr "ترتيب الملف"
+
+#. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+msgid "Fill in every cell of the penalty table"
+msgstr "عبّ كل خانات جدول المخالفات"
 
 #. module: navitta_ops
 #. odoo-python
@@ -3386,6 +3644,7 @@ msgstr "الرابعة فأكثر"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/utils.js:0
+#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_no_am_5
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_employee__weekly_off__5
 msgid "Friday"
 msgstr "الجمعة"
@@ -3548,7 +3807,7 @@ msgstr "طلب فرصة مسامحة"
 
 #. module: navitta_ops
 #. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: code:addons/navitta_ops/static/src/common/cases.js:0
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_late_case__state__forgiven
 msgid "Grace chance used"
 msgstr "احتُسبت فرصة مسامحة"
@@ -3570,6 +3829,11 @@ msgstr "فرص المسامحة شهريًا"
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_employee__has_pin
 msgid "Has a PIN"
 msgstr "لها رمز سري"
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_branch__two_shifts
+msgid "Has a morning shift"
+msgstr "فيه شفت صباح"
 
 #. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_cash_count__has_expected
@@ -3620,6 +3884,30 @@ msgstr ""
 
 #. module: navitta_ops
 #. odoo-python
+#: code:addons/navitta_ops/models/employee.py:0
+msgid ""
+"Hello %(n)s 👋\n"
+"Management created a new PIN for you: %(p)s\n"
+"\n"
+"Use it on the branch device for:\n"
+"✅ Check-in and check-out\n"
+"📬 Opening “My alerts”\n"
+"📦 Requests and receiving\n"
+"\n"
+"🔒 Don't give the PIN to anyone, not even your colleague. If you think someone knows it, ask management to change it."
+msgstr ""
+"أهلًا %(n)s 👋\n"
+"الإدارة أنشأت لك رمز سري جديد: %(p)s\n"
+"\n"
+"استخدميه في جهاز الفرع لـ:\n"
+"✅ بصمة الحضور والانصراف\n"
+"📬 فتح «تنبيهاتي»\n"
+"📦 الطلبات والاستلام\n"
+"\n"
+"🔒 لا تعطين الرمز لأحد، ولا حتى زميلتك. إذا تحسين إن أحد عرفه، كلمي الإدارة يغيّرونه."
+
+#. module: navitta_ops
+#. odoo-python
 #: code:addons/navitta_ops/models/visit.py:0
 msgid "Hello %(n)s, %(m)s.%(x)s"
 msgstr "مرحبًا %(n)s، %(m)s.%(x)s"
@@ -3638,11 +3926,32 @@ msgstr ""
 #. odoo-python
 #: code:addons/navitta_ops/models/attendance.py:0
 msgid ""
+"Hello %(n)s, management accepted your excuse for the %(k)s on %(d)s; it "
+"counts as neither a chance nor a penalty.%(x)s Navitta Management"
+msgstr ""
+"مرحبًا %(n)s، قبلت الإدارة عذرك على %(k)s يوم %(d)s، وما انحسبت عليك فرصة "
+"ولا عقوبة.%(x)s إدارة نافيتا"
+
+#. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/attendance.py:0
+msgid ""
 "Hello %(n)s, management accepted your request: your break on %(d)s is now "
 "%(m)s minutes.%(x)s Navitta Management"
 msgstr ""
 "مرحبًا %(n)s، قبلت الإدارة طلبك: مدة استراحتك يوم %(d)s صارت %(m)s "
 "دقيقة.%(x)s إدارة نافيتا"
+
+#. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/attendance.py:0
+msgid ""
+"Hello %(n)s, management rejected the %(k)s on %(d)s and issued a penalty: "
+"%(p)s (%(t)s · occurrence %(o)s). Open “My alerts” and sign that you read "
+"it.%(x)s Navitta Management"
+msgstr ""
+"مرحبًا %(n)s، رفضت الإدارة %(k)s يوم %(d)s، وصدرت عقوبة: %(p)s (%(t)s · "
+"المرة %(o)s). افتحي «تنبيهاتي» ووقّعي إنك قرأتيها.%(x)s إدارة نافيتا"
 
 #. module: navitta_ops
 #. odoo-python
@@ -3669,22 +3978,12 @@ msgstr ""
 #. odoo-python
 #: code:addons/navitta_ops/models/attendance.py:0
 msgid ""
-"Hello %(n)s, your check-in was recorded at %(t)s, %(l)s minutes after the "
+"Hello %(n)s, your check-in was recorded at %(t)s, %(l)s minutes after your "
 "shift start (%(s)s). Please give the reason for being late in “My alerts”. "
 "Navitta Management"
 msgstr ""
-"مرحبًا %(n)s، تم تسجيل حضورك الساعة %(t)s بتأخير %(l)s دقيقة عن بداية الدوام"
-" %(s)s. يجب ذكر سبب التأخير من «تنبيهاتي». إدارة نافيتا"
-
-#. module: navitta_ops
-#. odoo-python
-#: code:addons/navitta_ops/models/attendance.py:0
-msgid ""
-"Hello %(n)s, your excuse for the %(k)s on %(d)s was rejected. Penalty: %(p)s"
-" (occurrence %(o)s, %(t)s).%(x)s Navitta Management"
-msgstr ""
-"مرحبًا %(n)s، رُفض العذر على %(k)s يوم %(d)s، والعقوبة: %(p)s (المرة %(o)s، "
-"%(t)s).%(x)s إدارة نافيتا"
+"مرحبًا %(n)s، تم تسجيل حضورك الساعة %(t)s بتأخير %(l)s دقيقة عن بداية شفتك "
+"%(s)s. يجب ذكر سبب التأخير من «تنبيهاتي». إدارة نافيتا"
 
 #. module: navitta_ops
 #. odoo-python
@@ -3696,6 +3995,12 @@ msgid ""
 msgstr ""
 "مرحبًا %(n)s، دوامك يبدأ الساعة %(s)s ولم يُسجَّل حضورك حتى %(t)s. سجلي "
 "حضورك واذكري سبب التأخير من «تنبيهاتي». إدارة نافيتا"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.js:0
+msgid "Her chances are used up"
+msgstr "خلصت فرصها"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -3775,6 +4080,14 @@ msgstr "أفكار وملاحظات"
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "If it has a camera"
 msgstr "إذا فيه كاميرا"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid ""
+"If the reason is acceptable, accept it: it counts as neither a chance nor a "
+"penalty."
+msgstr "إذا السبب مقبول تقبله، وما ينحسب لا فرصة ولا عقوبة."
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -4075,6 +4388,11 @@ msgid "Last IP"
 msgstr "آخر IP"
 
 #. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_rule__updated_at
+msgid "Last change"
+msgstr "آخر تعديل"
+
+#. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_device__last_seen
 msgid "Last connection"
 msgstr "آخر اتصال"
@@ -4121,6 +4439,7 @@ msgstr "متأخرة"
 #. odoo-python
 #: code:addons/navitta_ops/models/api_admin.py:0
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: code:addons/navitta_ops/static/src/common/cases.js:0
 msgid "Late %s min"
 msgstr "متأخرة %s د"
 
@@ -4132,7 +4451,9 @@ msgstr "متأخرة %s دقيقة"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+#: code:addons/navitta_ops/static/src/common/cases.js:0
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_late_case__kind__late
 msgid "Late arrival"
 msgstr "تأخير حضور"
@@ -4162,10 +4483,28 @@ msgstr "تأخير أو تجاوز استراحة"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Late arrivals"
+msgstr "تأخير"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "Late by %s minutes"
+msgstr "تأخير %s دقيقة"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_search
 msgid "Late check-in"
 msgstr "تأخير حضور"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Lateness"
+msgstr "مدة التأخير"
 
 #. module: navitta_ops
 #: model:ir.actions.act_window,name:navitta_ops.action_late_cases
@@ -4329,6 +4668,14 @@ msgid "Management"
 msgstr "الإدارة"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid ""
+"Management accepted your excuse; it counts as neither a chance nor a "
+"penalty."
+msgstr "قبلت الإدارة عذرك، وما انحسبت عليك فرصة ولا عقوبة."
+
+#. module: navitta_ops
 #. odoo-python
 #: code:addons/navitta_ops/models/visit.py:0
 msgid ""
@@ -4338,8 +4685,8 @@ msgstr "قبلت الإدارة طلبك وصارت مدة الزيارة %(m)s:
 #. module: navitta_ops
 #. odoo-python
 #: code:addons/navitta_ops/models/attendance.py:0
-msgid "Management decision: excuse rejected"
-msgstr "قرار الإدارة: رُفض العذر"
+msgid "Management decision: excuse accepted"
+msgstr "قرار الإدارة: عذرك مقبول"
 
 #. module: navitta_ops
 #. odoo-python
@@ -4449,6 +4796,19 @@ msgstr "مارس"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_form
+msgid "Mark as deducted"
+msgstr "علّمها انخصمت"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Marked as deducted"
+msgstr "تعلّمت إنها انخصمت"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Matches"
 msgstr "مطابق"
@@ -4482,6 +4842,11 @@ msgid "Message"
 msgstr "رسالة"
 
 #. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_notification__body_text
+msgid "Message text"
+msgstr "نص الرسالة"
+
+#. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_thread__message_ids
 msgid "Messages"
 msgstr "الرسائل"
@@ -4510,6 +4875,8 @@ msgid "Minimum: receipt rolls"
 msgstr "الحد الأدنى: رول فاتورة"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_late_case__minutes
 msgid "Minutes"
 msgstr "الدقائق"
@@ -4598,6 +4965,7 @@ msgstr "تم تحديث ملف الموديلات: %s قطعة"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/utils.js:0
+#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_no_am_1
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_employee__weekly_off__1
 msgid "Monday"
 msgstr "الإثنين"
@@ -4643,6 +5011,36 @@ msgstr "زيارات «اشترت» أكثر من الفواتير"
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 msgid "More ▾"
 msgstr "المزيد ▾"
+
+#. module: navitta_ops
+#: model:ir.model.fields,help:navitta_ops.field_navitta_employee__shift
+msgid ""
+"Morning is possible only in a branch with a morning shift. On the days "
+"without a morning shift (settings), morning employees work the evening "
+"shift. Lateness counts from her own shift start."
+msgstr ""
+"الصباح ممكن بس في فرع فيه شفت صباح. في الأيام اللي ما فيها شفت صباح "
+"(الإعدادات) تداوم موظفات الصباح على شفت المساء. التأخير ينحسب من بداية "
+"شفتها."
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_employee__shift__am
+msgid "Morning shift"
+msgstr "شفت الصباح"
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_res_company__navitta_am_end
+#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_am_end
+msgid "Morning shift end"
+msgstr "نهاية شفت الصباح"
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_res_company__navitta_am_start
+#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_am_start
+msgid "Morning shift start"
+msgstr "بداية شفت الصباح"
 
 #. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.report_daily_summary
@@ -4853,6 +5251,12 @@ msgstr "طلبات جديدة"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "New rule, e.g. No mobile phone while serving a customer"
+msgstr "نظام جديد، مثل: الجوال ممنوع وقت خدمة العميلة"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "Next →"
 msgstr "التالي ←"
@@ -4921,6 +5325,7 @@ msgstr "لا توجد بيانات لهذه الفترة"
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_notification__state__no_email
+#: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_pin_wizard__mail__no_email
 msgid "No email"
 msgstr "لا يوجد إيميل"
 
@@ -5044,6 +5449,12 @@ msgstr "لا توجد إشعارات بعد"
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "No open requests"
 msgstr "لا توجد طلبات مفتوحة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "No penalties this month"
+msgstr "ما فيه عقوبات هذا الشهر"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -5174,6 +5585,12 @@ msgstr "لم يُحدد"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Not signed yet"
+msgstr "ما وقّعت بعد"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_branch_request__note
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_cash_count__note
@@ -5199,12 +5616,6 @@ msgstr "ملاحظة للفرع (تُرسل مع التحديث)"
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_expense_form
 msgid "Note to the employee"
 msgstr "ملاحظة للموظفة"
-
-#. module: navitta_ops
-#. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
-msgid "Note to the employee (optional)"
-msgstr "ملاحظة للموظفة (اختياري)"
 
 #. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_form
@@ -5293,14 +5704,52 @@ msgid "Number of punches"
 msgstr "عدد البصمات"
 
 #. module: navitta_ops
+#: model:ir.model.fields,help:navitta_ops.field_navitta_late_case__penalty_occ
+msgid ""
+"Number of this penalty among the employee's penalties of the same month"
+msgstr "ترتيب هذي العقوبة بين عقوبات الموظفة في نفس الشهر"
+
+#. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_visit__visit_count
 msgid "Number of visits"
 msgstr "عدد الزيارات"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_late_case__penalty_occ
 msgid "Occurrence"
 msgstr "رقم المرة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "Occurrence %s"
+msgstr "المرة %s"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Occurrence 1"
+msgstr "المرة 1"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Occurrence 2"
+msgstr "المرة 2"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Occurrence 3"
+msgstr "المرة 3"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Occurrence 4 or more"
+msgstr "المرة 4 فأكثر"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -5338,6 +5787,16 @@ msgstr ""
 "مباشرة. بعدها «إضافة إلى الشاشة الرئيسية»."
 
 #. module: navitta_ops
+#: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
+msgid "On these days morning employees work the evening shift"
+msgstr "بدون شفت صباح هالأيام: موظفات الصباح يداومون على شفت المساء"
+
+#. module: navitta_ops
+#: model:ir.model.constraint,message:navitta_ops.constraint_navitta_rule_ack_emp_uniq
+msgid "One signature per employee"
+msgstr "توقيع واحد لكل موظفة"
+
+#. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_device__online
 msgid "Online"
 msgstr "متصل"
@@ -5346,6 +5805,15 @@ msgstr "متصل"
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_device_list
 msgid "Online now"
 msgstr "متصل الحين"
+
+#. module: navitta_ops
+#: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
+msgid ""
+"Only in the branches with a morning shift. Lateness counts from each "
+"employee's own shift start; choose her shift in her employee form."
+msgstr ""
+"بس في الفروع اللي فيها شفت صباح. التأخير ينحسب من بداية شفت كل موظفة؛ اختر "
+"شفتها من بطاقة الموظفة."
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -5471,6 +5939,11 @@ msgid ""
 msgstr "اختياري: عنوان IP الثابت لإنترنت الفرع. فاضي = أي عنوان"
 
 #. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_rule__sequence
+msgid "Order"
+msgstr "الترتيب"
+
+#. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_employee__slot
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_employee_form
 msgid "Order on screen"
@@ -5577,9 +6050,29 @@ msgid "Password"
 msgstr "كلمة المرور"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_search
+msgid "Penalties"
+msgstr "العقوبات"
+
+#. module: navitta_ops
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_search
+msgid "Penalties not deducted yet"
+msgstr "عقوبات ما انخصمت بعد"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_late_case__penalty
 msgid "Penalty"
 msgstr "العقوبة"
+
+#. module: navitta_ops
+#: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_late_case__state__rejected
+msgid "Penalty issued"
+msgstr "صدرت عقوبة"
 
 #. module: navitta_ops
 #: model:ir.actions.act_window,name:navitta_ops.action_penalty_tiers
@@ -5587,6 +6080,12 @@ msgstr "العقوبة"
 #: model:ir.ui.menu,name:navitta_ops.menu_cfg_penalty
 msgid "Penalty table"
 msgstr "جدول المخالفات"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Penalty table saved"
+msgstr "تم حفظ جدول المخالفات"
 
 #. module: navitta_ops
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_thread__topic__personal
@@ -5838,6 +6337,11 @@ msgid "Quantity"
 msgstr "الكمية"
 
 #. module: navitta_ops
+#: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_pin_wizard__mail__queued
+msgid "Queued"
+msgstr "بالانتظار"
+
+#. module: navitta_ops
 #. odoo-python
 #: code:addons/navitta_ops/models/device.py:0
 msgid "RFID card"
@@ -5847,6 +6351,17 @@ msgstr "بطاقة"
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_device_punch__raw
 msgid "Raw line"
 msgstr "السطر كما وصل"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "Read and sign"
+msgstr "اقريها ووقّعي"
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_notification__read_at
+msgid "Read by the employee"
+msgstr "قرأته الموظفة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -5873,6 +6388,12 @@ msgstr "السبب (أخرى)"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Reason *"
 msgstr "السبب *"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.xml:0
+msgid "Reason / note to the employee"
+msgstr "السبب / ملاحظة للموظفة"
 
 #. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_visit__lost_reason
@@ -5902,6 +6423,7 @@ msgstr "تم إرسال السبب للإدارة"
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+#: code:addons/navitta_ops/static/src/common/cases.xml:0
 msgid "Reason:"
 msgstr "السبب:"
 
@@ -6053,16 +6575,9 @@ msgid "Reject"
 msgstr "رفض"
 
 #. module: navitta_ops
-#. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_form
-msgid "Reject and apply penalty"
-msgstr "رفض وتطبيق العقوبة"
-
-#. module: navitta_ops
-#: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_form
-msgid "Reject the excuse and record the penalty according to the table?"
-msgstr "رفض العذر وتسجيل العقوبة حسب الجدول؟"
+msgid "Reject and record the penalty according to the table?"
+msgstr "ترفضها وتسجل العقوبة حسب الجدول؟"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -6073,12 +6588,16 @@ msgstr "رفض العذر وتسجيل العقوبة حسب الجدول؟"
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_branch_request__state__rejected
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_expense__state__rejected
-#: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_late_case__state__rejected
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_leave_request__state__rejected
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_visit_edit_request__state__rejected
-#: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_search
 msgid "Rejected"
 msgstr "مرفوضة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.js:0
+msgid "Rejected; the penalty was issued and sent to the employee"
+msgstr "انرفضت وصدرت العقوبة ووصلت للموظفة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -6337,6 +6856,34 @@ msgstr "قيمة المرتجع"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid ""
+"Row = length of the lateness · Column = the violation's number after the "
+"chances are used up, in the same month"
+msgstr ""
+"الصف = مدة التأخير · العمود = رقم المخالفة بعد خلوص الفرص في نفس الشهر"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_rule__body
+msgid "Rule"
+msgstr "النظام"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Rule deleted"
+msgstr "انحذف النظام"
+
+#. module: navitta_ops
+#: model:ir.actions.client,name:navitta_ops.action_admin_rules
+#: model:ir.ui.menu,name:navitta_ops.menu_admin_rules
+msgid "Rules and violations"
+msgstr "الأنظمة والمخالفات"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Running the Branch screen of:"
 msgstr "تشغّل شاشة فرع:"
@@ -6453,11 +7000,14 @@ msgstr "راضٍ"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/utils.js:0
+#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_no_am_6
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_employee__weekly_off__6
 msgid "Saturday"
 msgstr "السبت"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_admin_password_wizard
 msgid "Save"
 msgstr "حفظ"
@@ -6485,6 +7035,12 @@ msgstr "حفظ الزيارة"
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_visit_search
 msgid "Saved"
 msgstr "محفوظة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Saved; the employees sign again"
+msgstr "تم الحفظ، والموظفات يوقّعون من جديد"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -6519,6 +7075,11 @@ msgstr "المرة الثانية"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Seconds"
 msgstr "ثوانٍ"
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_notification__secret
+msgid "Secret"
+msgstr "سري"
 
 #. module: navitta_ops
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_daily_report__emergency__security
@@ -6570,6 +7131,7 @@ msgstr "إرسال للإدارة"
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_notification__state__exception
+#: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_pin_wizard__mail__failed
 msgid "Sending failed"
 msgstr "فشل الإرسال"
 
@@ -6577,6 +7139,7 @@ msgstr "فشل الإرسال"
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_notification__state__sent
+#: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_pin_wizard__mail__sent
 msgid "Sent"
 msgstr "أُرسل"
 
@@ -6671,6 +7234,11 @@ msgid "Shared between late check-ins and break overruns"
 msgstr "مشتركة بين تأخير الحضور وتجاوز الاستراحة"
 
 #. module: navitta_ops
+#: model:ir.model.fields,help:navitta_ops.field_navitta_late_case__ack_at
+msgid "She read the penalty and signed with her PIN"
+msgstr "قرأت العقوبة ووقّعت برمزها"
+
+#. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Shelf arrangement"
@@ -6688,33 +7256,9 @@ msgid "Shelves"
 msgstr "الرفوف"
 
 #. module: navitta_ops
-#. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
-#: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
-msgid "Shift"
-msgstr "الدوام"
-
-#. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
 msgid "Shift & rules"
 msgstr "الدوام والقواعد"
-
-#. module: navitta_ops
-#: model:ir.model.fields,field_description:navitta_ops.field_res_company__navitta_shift_end
-#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_shift_end
-msgid "Shift end"
-msgstr "نهاية الدوام"
-
-#. module: navitta_ops
-#: model:ir.model.fields,field_description:navitta_ops.field_res_company__navitta_shift_start
-#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_shift_start
-msgid "Shift start"
-msgstr "بداية الدوام"
-
-#. module: navitta_ops
-#: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
-msgid "Shift start and end, in the branches' local time"
-msgstr "بداية ونهاية الدوام بتوقيت الفروع"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -6756,6 +7300,12 @@ msgstr "النقص"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "Show all ▾"
+msgstr "عرض الكل ▾"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/components.js:0
 msgid "Show less ▴"
 msgstr "عرض أقل ▴"
@@ -6785,6 +7335,16 @@ msgid ""
 msgstr "يظهر مرة وحدة بس. اكتبه وأعطه للموظفة بشكل خاص. الرمز القديم توقف."
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid ""
+"Shown to the employees in “My alerts”; each one signs with her PIN that she "
+"read them. Any change asks them to sign again."
+msgstr ""
+"تطلع للموظفات في «تنبيهاتي»، وكل وحدة توقّع برمزها إنها قرأتها. أي تعديل "
+"يطلب منهم توقيع جديد."
+
+#. module: navitta_ops
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_leave__type__sick
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_leave_request__type__sick
 msgid "Sick"
@@ -6801,6 +7361,26 @@ msgstr "دخول"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Sign out"
 msgstr "خروج"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "Signature recorded"
+msgstr "تم التوقيع"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_late_case__signed
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_rule_ack__ack_at
+msgid "Signed"
+msgstr "وقّعت"
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_late_case__ack_at
+msgid "Signed by the employee"
+msgstr "وقّعت الموظفة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -6888,6 +7468,13 @@ msgstr "المصدر"
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "Sports"
 msgstr "رياضي"
+
+#. module: navitta_ops
+#: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
+msgid ""
+"Start and end of the evening shift (every branch), in the branches' local "
+"time"
+msgstr "بداية ونهاية شفت المساء (كل الفروع)، بتوقيت الفروع"
 
 #. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_break__started_at
@@ -6978,6 +7565,7 @@ msgstr "اقتراحات"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/utils.js:0
+#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_no_am_0
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_employee__weekly_off__0
 msgid "Sunday"
 msgstr "الأحد"
@@ -7052,9 +7640,9 @@ msgstr "يستغرق تعبئته حوالي 3 دقائق في نهاية الد
 
 #. module: navitta_ops
 #. odoo-javascript
-#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
-msgid "Tap and enter your PIN to check in. Shift"
-msgstr "اضغطي واكتبي رمزك السري لتسجيل الحضور. الدوام"
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "Tap and enter your PIN to check in. Shift %(a)s – %(b)s"
+msgstr "اضغطي واكتبي رمزك السري لتسجيل الحضور. الدوام %(a)s – %(b)s"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -7171,6 +7759,16 @@ msgid "The branch code is already used"
 msgstr "رمز الفرع مستخدم"
 
 #. module: navitta_ops
+#: model:ir.model.fields,help:navitta_ops.field_navitta_branch__two_shifts
+#: model:ir.model.fields,help:navitta_ops.field_navitta_employee__branch_two_shifts
+msgid ""
+"The branch works a morning and an evening shift. Each employee then has her "
+"own shift (morning or evening); otherwise everyone works the evening shift."
+msgstr ""
+"الفرع يشتغل بشفت صباح وشفت مساء، وكل موظفة لها شفتها (صباح أو مساء). غير كذا"
+" الكل على شفت المساء."
+
+#. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "The camera did not take a photo"
@@ -7270,6 +7868,15 @@ msgstr ""
 "رقم الموظفة المسجل في جهاز البصمة (ZKTeco) بفرعها. تُربط به بصماتها تلقائيًا"
 
 #. module: navitta_ops
+#: model_terms:ir.actions.act_window,help:navitta_ops.action_rules
+msgid ""
+"The employees read them in “My alerts” and sign with their PIN. After any "
+"change they sign again."
+msgstr ""
+"تطلع للموظفات في «تنبيهاتي»، وكل وحدة توقّع برمزها إنها قرأتها. أي تعديل "
+"يطلب منهم توقيع جديد."
+
+#. module: navitta_ops
 #. odoo-python
 #: code:addons/navitta_ops/wizard/navitta_wizards.py:0
 msgid "The file is empty"
@@ -7291,6 +7898,13 @@ msgid ""
 "The fingerprint device ID must contain digits only (like the employee's "
 "number on the device)"
 msgstr "رقم البصمة لازم يكون أرقام فقط (مثل رقم الموظفة في الجهاز)"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid ""
+"The first %s violations in a month count as a “chance”, with no penalty."
+msgstr "أول %s مخالفات بالشهر تنحسب «فرصة» بدون عقوبة."
 
 #. module: navitta_ops
 #: model:ir.model.fields,help:navitta_ops.field_res_company__navitta_cash_tasks
@@ -7385,6 +7999,12 @@ msgid "The shift start must be before its end"
 msgstr "بداية الدوام لازم تكون قبل نهايته"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "The shift, grace period, break and chances are changed in Settings."
+msgstr "الدوام والمهلة والاستراحة والفرص تتعدل من الإعدادات."
+
+#. module: navitta_ops
 #. odoo-python
 #: code:addons/navitta_ops/models/request.py:0
 msgid "The status of this request cannot be changed"
@@ -7425,6 +8045,15 @@ msgstr "هذا اليوم أصلًا إجازة لها"
 #: model:ir.model.constraint,message:navitta_ops.constraint_navitta_deferred_off_emp_day_uniq
 msgid "This day off is already postponed"
 msgstr "هذا الأوف مؤجل مسبقًا"
+
+#. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/employee.py:0
+msgid ""
+"This employee's branch has no morning shift. Enable it for the branch "
+"(Branches → “Has a morning shift”) first"
+msgstr ""
+"فرع هالموظفة ما فيه شفت صباح. فعّله للفرع (الفروع ← «فيه شفت صباح») أول"
 
 #. module: navitta_ops
 #. odoo-python
@@ -7524,6 +8153,7 @@ msgstr "الزيارة لها مبيعة ضائعة مسجلة"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/utils.js:0
+#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_no_am_4
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_employee__weekly_off__4
 msgid "Thursday"
 msgstr "الخميس"
@@ -7744,6 +8374,7 @@ msgstr "تأخر المواصلات"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/utils.js:0
+#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_no_am_2
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_employee__weekly_off__2
 msgid "Tuesday"
 msgstr "الثلاثاء"
@@ -7810,6 +8441,11 @@ msgstr "المقاس غير مريح"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Undo check-out:"
 msgstr "إلغاء انصراف"
+
+#. module: navitta_ops
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_form
+msgid "Undo deducted"
+msgstr "إلغاء «انخصمت»"
 
 #. module: navitta_ops
 #. odoo-python
@@ -7894,17 +8530,6 @@ msgid "Urgent family call"
 msgstr "مكالمة عائلية ضرورية"
 
 #. module: navitta_ops
-#: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_form
-msgid "Use a grace chance"
-msgstr "احتساب فرصة مسامحة"
-
-#. module: navitta_ops
-#. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
-msgid "Use a grace chance (%s left)"
-msgstr "احتساب فرصة (يبقى %s)"
-
-#. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_attendance_form
 msgid "Use check-in photo as reference photo"
 msgstr "اعتماد صورة الحضور كصورة مرجعية"
@@ -7919,6 +8544,12 @@ msgstr "استخدمي «"
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_supply_move__kind__used
 msgid "Used"
 msgstr "مستخدم"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.js:0
+msgid "Used %(n)s of %(m)s · %(r)s left"
+msgstr "استخدمت %(n)s من %(m)s · باقي لها %(r)s"
 
 #. module: navitta_ops
 #. odoo-python
@@ -8023,6 +8654,13 @@ msgstr "عرض PDF"
 #: code:addons/navitta_ops/static/src/common/components.js:0
 msgid "View receipt"
 msgstr "عرض الإيصال"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Violation"
+msgstr "المخالفة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -8171,9 +8809,19 @@ msgstr "ويدج"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/utils.js:0
+#: model:ir.model.fields,field_description:navitta_ops.field_res_config_settings__navitta_no_am_3
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_employee__weekly_off__3
 msgid "Wednesday"
 msgstr "الأربعاء"
+
+#. module: navitta_ops
+#: model:ir.model.fields,help:navitta_ops.field_res_company__navitta_no_am_days
+msgid ""
+"Weekdays (0 = Sunday … 6 = Saturday) when morning employees work the evening"
+" shift"
+msgstr ""
+"أيام الأسبوع (0 = الأحد … 6 = السبت) اللي تداوم فيها موظفات الصباح على شفت "
+"المساء"
 
 #. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_employee__weekly_off
@@ -8197,6 +8845,11 @@ msgstr "ما الذي ممكن يحسن المبيعات؟"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "What do you need? *"
 msgstr "وش تحتاجين؟ *"
+
+#. module: navitta_ops
+#: model:ir.model.fields,help:navitta_ops.field_navitta_notification__read_at
+msgid "When she opened “My alerts” after this alert"
+msgstr "متى فتحت «تنبيهاتي» بعد هذا التنبيه"
 
 #. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
@@ -8286,6 +8939,11 @@ msgid "Work problem"
 msgstr "مشكلة في العمل"
 
 #. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_employee__shift
+msgid "Work shift"
+msgstr "الشفت"
+
+#. module: navitta_ops
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_expense__category__worker
 msgid "Worker's salary"
 msgstr "راتب العامل"
@@ -8307,6 +8965,25 @@ msgstr "اكتبي الشكوى"
 #: code:addons/navitta_ops/models/api_branch.py:0
 msgid "Write the message"
 msgstr "اكتبي الرسالة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Write the rule"
+msgstr "اكتب النظام"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.js:0
+msgid "Write why the excuse is accepted"
+msgstr "اكتب سبب قبول العذر"
+
+#. module: navitta_ops
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_form
+msgid "Write why the excuse is accepted in the note first"
+msgstr "اكتب سبب قبول العذر في الملاحظة أول"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -8422,6 +9099,18 @@ msgstr "تأخرتِ %s دقيقة"
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "Your PIN is private. Forgot it? Ask management."
 msgstr "الرمز خاص فيك. نسيتيه؟ اطلبيه من الإدارة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "Your chances for this month are used up"
+msgstr "خلصت فرصك لهذا الشهر"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "Your chances reset to %s next month."
+msgstr "الفرص ترجع %s أول الشهر الجاي."
 
 #. module: navitta_ops
 #. odoo-python
@@ -8555,8 +9244,8 @@ msgstr "بانتظار سبب الموظفة"
 
 #. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.report_daily_summary
-msgid "branches · Shift"
-msgstr "فروع · الدوام"
+msgid "branches · Morning"
+msgstr "فروع · صباح"
 
 #. module: navitta_ops
 #. odoo-python
@@ -8726,6 +9415,7 @@ msgstr "بس. اطلبي الحين."
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+#: code:addons/navitta_ops/static/src/common/cases.xml:0
 msgid "min"
 msgstr "د"
 
@@ -8734,12 +9424,6 @@ msgstr "د"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "min to"
 msgstr "د إلى"
-
-#. module: navitta_ops
-#. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
-msgid "min →"
-msgstr "د ←"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -8764,6 +9448,12 @@ msgstr "سلبية"
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "new"
 msgstr "جديدة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.js:0
+msgid "occurrence %s"
+msgstr "المرة %s"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -8865,6 +9555,11 @@ msgid "· Balance"
 msgstr "· الرصيد"
 
 #. module: navitta_ops
+#: model_terms:ir.ui.view,arch_db:navitta_ops.report_daily_summary
+msgid "· Evening"
+msgstr "· مساء"
+
+#. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "· Every day is kept with its events and never deleted"
@@ -8887,12 +9582,6 @@ msgstr "· إجازة"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "· Management: «"
 msgstr "· الإدارة: «"
-
-#. module: navitta_ops
-#. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
-msgid "· Month's grace chances"
-msgstr "· فرص الشهر"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -8963,6 +9652,12 @@ msgstr "· ومعها زيارات العدّاد للمطابقة"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "· 🌙 Evening"
+msgstr "· 🌙 المساء"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "— Choose a branch —"
 msgstr "— اختر الفرع —"
@@ -8992,6 +9687,48 @@ msgid "↩️ Checked out by mistake?"
 msgstr "↩️ انصرفت بالغلط؟"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "⏰ Shift"
+msgstr "⏰ الدوام"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "⏱️ Check-in grace period"
+msgstr "⏱️ مهلة الحضور"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "⏳ Violations awaiting your decision"
+msgstr "⏳ مخالفات تنتظر قرارك"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "① The violation"
+msgstr "① المخالفة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "② Chances (%s per month)"
+msgstr "② الفرص (%s بالشهر)"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "③ Chances used up"
+msgstr "③ خلصت الفرص"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "④ Accepted excuse"
+msgstr "④ عذر مقبول"
+
+#. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.report_daily_summary
 msgid "▲▼ compared with the same day last week"
 msgstr "▲▼ مقارنة بنفس اليوم من الأسبوع الماضي"
@@ -9004,20 +9741,34 @@ msgstr "● حاضرة منذ"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "☀️ Morning"
+msgstr "☀️ الصباح"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+#: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
+msgid "☀️ Morning shift"
+msgstr "☀️ شفت الصباح"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.js:0
 msgid "☕ Break %s min · over by %s min"
 msgstr "☕ استراحة %s د · تجاوز %s د"
 
 #. module: navitta_ops
 #. odoo-javascript
-#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
-msgid "☕ Break ("
-msgstr "☕ استراحة ("
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "☕ Break (%s min)"
+msgstr "☕ استراحة (%s د)"
 
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+#: code:addons/navitta_ops/static/src/common/cases.js:0
 msgid "☕ Break overrun"
 msgstr "☕ تجاوز استراحة"
 
@@ -9026,6 +9777,18 @@ msgstr "☕ تجاوز استراحة"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "☕ Break used"
 msgstr "☕ استُخدمت الاستراحة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "☕ Continue the break (%s min left)"
+msgstr "☕ كمّلي الاستراحة (%s د باقية)"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "☕ Daily break"
+msgstr "☕ الاستراحة اليومية"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -9042,8 +9805,54 @@ msgstr "☕ تجاوز %s د"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid ""
+"☕ You came back from the break after %(a)s · %(b)s min of today's break "
+"remain; you can continue it later"
+msgstr ""
+"☕ رجعتِ من الاستراحة بعد %(a)s · باقي لك %(b)s د من استراحة اليوم، تقدرين "
+"تكمّلينها بعدين"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
 msgid "☕ You exceeded the break by %s min"
 msgstr "☕ تجاوزتِ الاستراحة %s دقيقة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.xml:0
+msgid "⚖️ If rejected:"
+msgstr "⚖️ لو انرفضت:"
+
+#. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/attendance.py:0
+msgid "⚖️ Management decision: rejected, a penalty was issued"
+msgstr "⚖️ قرار الإدارة: مرفوضة وصدرت عقوبة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "⚖️ Penalties issued this month"
+msgstr "⚖️ العقوبات الصادرة هذا الشهر"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "⚖️ Penalty table"
+msgstr "⚖️ جدول المخالفات"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "⚖️ Penalty ·"
+msgstr "⚖️ عقوبة ·"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "⚖️ Your chances and penalties this month"
+msgstr "⚖️ فرصك وعقوباتك هذا الشهر"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -9061,6 +9870,22 @@ msgstr "⚠️ بدون إيصال"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_pin_wizard
+msgid "⚠️ She has no email on file; give her the PIN yourself"
+msgstr "⚠️ ما لها إيميل مسجّل، أعطها الرمز بنفسك"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_pin_wizard
+msgid ""
+"⚠️ The email was not sent (check the outgoing mail server); give her the PIN"
+" yourself"
+msgstr "⚠️ ما انرسل الإيميل (تأكد من خادم البريد الصادر)، أعطها الرمز بنفسك"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "⚠️ Without a receipt, the expense reaches Management with an alert."
 msgstr "⚠️ بدون إيصال، المصروف يوصل الإدارة مع تنبيه."
@@ -9070,6 +9895,43 @@ msgstr "⚠️ بدون إيصال، المصروف يوصل الإدارة مع
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "✅ Bought"
 msgstr "✅ اشترت"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.xml:0
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_form
+msgid "✅ Excuse accepted, not counted"
+msgstr "✅ عذر مقبول، ما تنحسب"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "✍️ I read the penalty, I sign with my PIN"
+msgstr "✍️ قرأت العقوبة، أوقّع برمزي"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "✍️ I read the rules, I sign with my PIN"
+msgstr "✍️ قرأت الأنظمة، أوقّع برمزي"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "✍️ Signed"
+msgstr "✍️ وقّعت"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "✍️ You signed that you read it"
+msgstr "✍️ وقّعتِ إنك قرأتيها"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "✍️ You signed them"
+msgstr "✍️ وقّعتِ عليها"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -9083,6 +9945,12 @@ msgstr "✏️ تعديل التارقت"
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "✏️ Edit target for"
 msgstr "✏️ تعديل تارقت"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "✏️ Edit the table"
+msgstr "✏️ تعديل الجدول"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -9107,6 +9975,12 @@ msgstr "✓ تواصلنا"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "✓ Contacted by"
 msgstr "✓ تواصلت"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "✓ Deducted"
+msgstr "✓ انخصم"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -9158,6 +10032,19 @@ msgstr "❌ ما اشترت"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.xml:0
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_form
+msgid "❌ Rejected (penalty)"
+msgstr "❌ مرفوضة (عقوبة)"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "➕ Add a rule"
+msgstr "➕ إضافة نظام"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "➕ Other"
 msgstr "➕ أخرى"
@@ -9182,6 +10069,12 @@ msgstr "⬇️ تحميل Excel (CSV)"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "⬇️ Excel for payroll"
+msgstr "⬇️ Excel للرواتب"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 msgid "🌙 Day off"
 msgstr "🌙 إجازة"
@@ -9191,6 +10084,19 @@ msgstr "🌙 إجازة"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "🌙 Day off today"
 msgstr "🌙 اليوم إجازتها"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+#: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
+msgid "🌙 Evening shift"
+msgstr "🌙 شفت المساء"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "🌙 Evening shift (%s)"
+msgstr "🌙 شفت المساء (%s)"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -9497,6 +10403,18 @@ msgstr "📊 مقارنة الفروع"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "📊 This month's violations"
+msgstr "📊 مخالفات الشهر"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "📋 Branch rules"
+msgstr "📋 أنظمة الفرع"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "📋 For the next order"
 msgstr "📋 للطلبية الجاية"
 
@@ -9517,6 +10435,19 @@ msgstr "📏 المقاس مخلص"
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "📏🎨 Size or color sold out"
 msgstr "📏🎨 مقاس أو لون مخلص"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "📜 Branch rules"
+msgstr "📜 أنظمة الفرع"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "📜 Rules and violations"
+msgstr "📜 الأنظمة والمخالفات"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -9569,9 +10500,29 @@ msgstr "📦 المستلزمات المستخدمة اليوم"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_pin_wizard
+msgid "📧 It will reach her email shortly"
+msgstr "📧 بيوصل لإيميلها بعد شوي"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "📧 Latest email notifications to employees"
 msgstr "📧 آخر إشعارات الموظفات بالإيميل"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_pin_wizard
+msgid "📧 Sent to her email now ✓"
+msgstr "📧 انرسل لإيميلها الحين ✓"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "📬 Latest alerts"
+msgstr "📬 آخر التنبيهات"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -9663,6 +10614,18 @@ msgid "🔎 Model search"
 msgstr "🔎 بحث موديل"
 
 #. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/employee.py:0
+msgid "🔐 (The PIN was wiped after sending)"
+msgstr "🔐 (الرمز انمسح بعد الإرسال)"
+
+#. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/employee.py:0
+msgid "🔐 Your new PIN"
+msgstr "🔐 رمزك السري الجديد"
+
+#. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 msgid "🔑 New PINs"
@@ -9697,6 +10660,12 @@ msgstr "🔒 العدّاد مقفل حتى تُعدّ العهدة"
 msgid ""
 "🔒 This page is only for uploading the photo and expires after 10 minutes"
 msgstr "🔒 هذي الصفحة لرفع الصورة بس، وتنتهي بعد 10 دقائق"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "🔔 %s new alerts · open"
+msgstr "🔔 %s تنبيه جديد · افتحي"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -9748,6 +10717,25 @@ msgstr "🛍️ القطع"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "🛍️ Items sold"
 msgstr "🛍️ القطع المباعة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.js:0
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_late_case_form
+msgid "🤝 Grace chance"
+msgstr "🤝 فرصة مسامحة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/cases.js:0
+msgid "🤝 Grace chance (%(n)s of %(m)s)"
+msgstr "🤝 فرصة مسامحة (%(n)s من %(m)s)"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "🤝 Grace chances"
+msgstr "🤝 فرص المسامحة"
 
 #. module: navitta_ops
 #. odoo-javascript

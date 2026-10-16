@@ -165,6 +165,19 @@
         <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('group_navitta_admin'))]"/>
     </record>
+    <record id="rule_branch_rule_ack" model="ir.rule">
+        <field name="name">Navitta: own branch rules signatures</field>
+        <field name="model_id" ref="model_navitta_rule_ack"/>
+        <field name="domain_force">[('branch_id', '=', user.navitta_branch_id.id)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_branch'))]"/>
+    </record>
+    <record id="rule_admin_navitta_rule_ack" model="ir.rule">
+        <field name="name">Navitta admin: all (navitta_rule_ack)</field>
+        <field name="model_id" ref="model_navitta_rule_ack"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_admin'))]"/>
+    </record>
+
     <!-- management sees everything (also when an account is in both groups) -->
     <record id="rule_admin_navitta_branch" model="ir.rule">
         <field name="name">Navitta admin: all (navitta_branch)</field>

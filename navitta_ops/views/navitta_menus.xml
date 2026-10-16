@@ -9,6 +9,7 @@
     <menuitem id="menu_admin_sales" name="Sales &amp; target" parent="menu_root" action="action_admin_sales" sequence="3" groups="group_navitta_admin"/>
     <menuitem id="menu_admin_requests" name="Branch requests" parent="menu_root" action="action_admin_requests" sequence="4" groups="group_navitta_admin"/>
     <menuitem id="menu_admin_lost" name="Lost sales" parent="menu_root" action="action_admin_lost" sequence="5" groups="group_navitta_admin"/>
+    <menuitem id="menu_admin_rules" name="Rules and violations" parent="menu_root" action="action_admin_rules" sequence="6" groups="group_navitta_admin"/>
     <menuitem id="menu_admin_day" name="Daily log" parent="menu_root" action="action_admin_day" sequence="6" groups="group_navitta_admin"/>
 
     <menuitem id="menu_records" name="Records" parent="menu_root" sequence="20" groups="group_navitta_admin">
@@ -32,6 +33,7 @@
         <menuitem id="menu_rec_supply" name="Supply moves" action="action_supply_moves" sequence="16"/>
         <menuitem id="menu_rec_lost" name="Lost sales log" action="action_lost_sales" sequence="17"/>
         <menuitem id="menu_rec_notif" name="Email notifications" action="action_notifications" sequence="18"/>
+        <menuitem id="menu_rec_rule_acks" name="Branch rules signatures" action="action_rule_acks" sequence="19"/>
     </menuitem>
 
     <menuitem id="menu_config" name="Settings" parent="menu_root" sequence="30" groups="group_navitta_admin">
@@ -41,6 +43,7 @@
         <menuitem id="menu_cfg_users" name="Branch device accounts" action="action_branch_users" sequence="4"/>
         <menuitem id="menu_cfg_devices" name="Fingerprint devices" action="action_devices" sequence="4"/>
         <menuitem id="menu_cfg_penalty" name="Penalty table" action="action_penalty_tiers" sequence="5"/>
+        <menuitem id="menu_cfg_rules" name="Branch rules" action="action_rules" sequence="5"/>
         <menuitem id="menu_cfg_catalog" name="Models file" action="action_catalog" sequence="6"/>
         <menuitem id="menu_cfg_catalog_import" name="Upload models file" action="action_catalog_import" sequence="7"/>
         <menuitem id="menu_cfg_summary" name="Daily branches summary (PDF)" action="action_summary_wizard" sequence="8"/>

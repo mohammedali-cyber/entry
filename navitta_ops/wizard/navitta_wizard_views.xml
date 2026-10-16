@@ -9,6 +9,11 @@
                     <p>New PIN for <b><field name="employee_id" readonly="1" class="d-inline"/></b></p>
                     <h1 style="font-size:48px;letter-spacing:.3em" dir="ltr"><field name="pin" readonly="1"/></h1>
                     <p class="text-muted">Shown only once. Write it down and give it to the employee privately. The old PIN no longer works.</p>
+                    <field name="mail" invisible="1"/>
+                    <p invisible="mail != 'sent'" class="text-success">📧 Sent to her email now ✓</p>
+                    <p invisible="mail != 'queued'">📧 It will reach her email shortly</p>
+                    <p invisible="mail != 'failed'" class="text-danger">⚠️ The email was not sent (check the outgoing mail server); give her the PIN yourself</p>
+                    <p invisible="mail != 'no_email'" class="text-warning">⚠️ She has no email on file; give her the PIN yourself</p>
                 </div>
                 <footer><button string="Done" special="cancel" class="btn-primary"/></footer>
             </form>

@@ -9,8 +9,12 @@ import {
     mmss, now, pc, setClock, today, weekday, jn, DIR, LANG, vlabel,
 } from "../common/utils";
 import { DailyQuote, EmpBoard, NvModal, PhotoLink, TargetEditor } from "../common/components";
+import { CaseDecide, Dots } from "../common/cases";
 
 const LEAVEADM = { pending: _t("Awaiting your approval"), cover: _t("Awaiting colleague"), cover_no: _t("Colleague declined"), approved: _t("Approved"), rejected: _t("Rejected") };
+// the new PIN's email (sent right away, then wiped)
+const PINMAIL = { sent: ["good", _t("📧 Sent to her email now ✓")], failed: ["bad", _t("⚠️ The email was not sent (check the outgoing mail server); give her the PIN yourself")],
+    queued: ["info", _t("📧 It will reach her email shortly")], no_email: ["warn", _t("⚠️ She has no email on file; give her the PIN yourself")] };
 const NOTIF = { sent: ["good", _t("Sent")], no_email: ["bad", _t("No email")], exception: ["bad", _t("Sending failed")], outgoing: ["info", _t("Waiting to send")] };
 // list separator and "old → new" arrow follow the writing direction
 const SEP = LANG === "ar" ? "\u060c " : ", ";
@@ -26,11 +30,10 @@ const TX = {
     fromPos: _t("From Point of Sale"),
     fromReports: _t("From daily reports"),
     noPendingDecisions: _t("No pending decisions"),
+    morning: _t("Morning shift"),
+    evening: _t("Evening shift"),
     breakOver: _t("☕ Break overrun"),
     lateIn: _t("Late check-in"),
-    durationAccepted: _t("Duration change accepted"),
-    chanceUsed: _t("Grace chance used"),
-    excuseRejected: _t("Excuse rejected and the penalty recorded per the table"),
     leaveApproved: _t("Leave approved and recorded"),
     requestRejected: _t("Request rejected"),
     changeAccepted: _t("Change accepted"),
@@ -64,7 +67,6 @@ const TX = {
     negative: _t("negative"),
     positive: _t("positive"),
     nAwaitDecision: (n) => _t("%s awaiting your decision", n),
-    useChance: (n) => _t("Use a grace chance (%s left)", n),
     daysNoReport: (n) => _t("%s days without a report", n),
     reportGap: (n) => _t("On %s days with a report: the report figures differ from the Point of Sale invoices", n),
     fromTo: (a, b) => _t("From %(from)s to %(to)s", { from: a, to: b }),
@@ -77,7 +79,7 @@ const CMPCOLS = [["target", _t("Target")], ["sales", _t("Sales")], ["achieved", 
     ["avg_invoice", _t("Average invoice")], ["items", _t("Items")], ["returns", _t("Returns")], ["visits", _t("Counter customers")],
     ["conversion", _t("Conversion")], ["counter_gap", _t("Invoices − Bought (counter)")], ["report_gap", _t("Report − System")]];
 const REQKINDS = [["all", _t("All")], ["goods", _t("Out-of-stock request")], ["supply", _t("Supplies")], ["expense", _t("Expenses")]];
-const H = { jn, f0, mmss, clock, longDate, h12, dTxt, days, ago, pc, dmy, weekday, addDays, LOSTL, SUP, EXPICON, RQST, EXST, WD, MONTHS, LEAVEADM, NOTIF,
+const H = { jn, f0, mmss, clock, longDate, h12, dTxt, days, ago, pc, dmy, weekday, addDays, LOSTL, SUP, EXPICON, RQST, EXST, WD, MONTHS, LEAVEADM, NOTIF, PINMAIL,
     TX, CMPCOLS, REQKINDS, SEP, ARROW, vlabel };
 
 // ---------------------------------------------------------------- shared period filter (every tab)
@@ -202,7 +204,7 @@ class AdminBase extends Component {
 // ---------------------------------------------------------------- dashboard
 class Dashboard extends AdminBase {
     static template = "navitta_ops.AdminDashboard";
-    static components = { DailyQuote, EmpBoard, NvModal, PhotoLink };
+    static components = { DailyQuote, EmpBoard, NvModal, PhotoLink, CaseDecide };
     setup() {
         super.setup();
         this.state = useState({ d: null, notes: {}, openT: null, reply: "", setup: null, once: null, busy: false });
@@ -290,9 +292,6 @@ class Dashboard extends AdminBase {
             threads: d.threads.filter((t) => this.inB(this.eB(t.employee_id))),
             emps: d.employees.filter((e) => this.inB(e.branch_id)),
         };
-    }
-    used(emp) {
-        return this.state.d.month_cases.filter((c) => c.employee_id === emp && c.state === "forgiven").length;
     }
     attRow(e) {
         const d = this.state.d;
@@ -649,10 +648,137 @@ class Compare extends AdminBase {
     }
 }
 
+// ---------------------------------------------------------------- rules and violations
+const KIND = { late: () => _t("Late arrival"), break: () => _t("Break overrun") };
+
+class Rules extends AdminBase {
+    static template = "navitta_ops.AdminRules";
+    static components = { CaseDecide, Dots };
+    setup() {
+        super.setup();
+        this.state = useState({ d: null, editT: null, nr: "", edR: {} });
+        onWillStart(() => this.load());
+    }
+    async load() {
+        const d = await api(this.orm, "admin_rules");
+        if (d.error) {
+            return;
+        }
+        setClock(d.settings.tz);
+        d.E = Object.fromEntries(d.employees.map((e) => [e.id, e]));
+        this.state.d = d;
+    }
+    inB(empId) {
+        const e = this.state.d.E[empId];
+        return !this.br || (e && e.branch_id === this.br);
+    }
+    eName(id) {
+        return (this.state.d.E[id] || {}).name || "—";
+    }
+    eBranch(id) {
+        return this.bName((this.state.d.E[id] || {}).branch_id);
+    }
+    kind(c) {
+        return KIND[c.kind] ? KIND[c.kind]() : c.kind;
+    }
+    get v() {
+        const d = this.state.d;
+        const month = d.cases.filter((c) => this.inB(c.employee_id));
+        const emps = d.employees.filter((e) => !this.br || e.branch_id === this.br);
+        return {
+            month, emps, pens: month.filter((c) => c.state === "rejected"),
+            review: d.review.filter((c) => this.inB(c.employee_id)),
+            max: d.settings.chances,
+        };
+    }
+    used(empId) {
+        return this.v.month.filter((c) => c.employee_id === empId && c.state === "forgiven").length;
+    }
+    row(e) {
+        const mine = this.v.month.filter((c) => c.employee_id === e.id && c.state !== "excused" && c.state !== "edited");
+        return {
+            late: mine.filter((c) => c.kind === "late").length, brk: mine.filter((c) => c.kind === "break").length,
+            pens: mine.filter((c) => c.state === "rejected").length,
+        };
+    }
+    ack(e) {
+        return this.state.d.acks[e.id] || {};
+    }
+    // texts used in expressions
+    get resetNote() {
+        return _t("Chances reset to %s at the start of each month", this.state.d.settings.chances);
+    }
+    min(n) {
+        return _t("%s min", n);
+    }
+    perMonth(n) {
+        return _t("%s per month", n);
+    }
+    chancesStep(n) {
+        return _t("② Chances (%s per month)", n);
+    }
+    chancesText(n) {
+        return _t("The first %s violations in a month count as a “chance”, with no penalty.", n);
+    }
+    nAwait(n) {
+        return _t("%s awaiting your decision", n);
+    }
+    occ(n) {
+        return _t("(occurrence %s)", n);
+    }
+    pensSub(c) {
+        return this.kind(c) + " " + this.min(c.minutes);
+    }
+    get noPending() {
+        return _t("No pending decisions");
+    }
+    get rulePh() {
+        return _t("New rule, e.g. No mobile phone while serving a customer");
+    }
+    // penalty table
+    editTiers() {
+        this.state.editT = this.state.d.tiers.map((x) => Object.assign({}, x));
+    }
+    async saveTiers() {
+        if (await this.act("admin_tiers_save", [this.state.editT], _t("Penalty table saved"))) {
+            this.state.editT = null;
+        }
+    }
+    // branch rules
+    async ruleSave(id, body) {
+        if (!(body || "").trim()) {
+            return this.toast(_t("Write the rule"), "warning");
+        }
+        if (await this.act("admin_rule_save", [id || false, body], _t("Saved; the employees sign again"))) {
+            if (id) {
+                delete this.state.edR[id];
+            } else {
+                this.state.nr = "";
+            }
+        }
+    }
+    async ruleDel(r) {
+        if (window.confirm(_t("Delete this rule?") + "\n\n" + r.body)) {
+            await this.act("admin_rule_delete", [r.id], _t("Rule deleted"));
+        }
+    }
+    async settle(c) {
+        await this.act("admin_case_settle", [c.id, !c.settled_at], c.settled_at ? _t("Deduction undone") : _t("Marked as deducted"));
+    }
+    csv() {
+        const v = this.v;
+        downloadCsv(`penalties-${this.state.d.month.slice(0, 7)}.csv`, [
+            [_t("Employee"), _t("Branch"), _t("Date"), _t("Violation"), _t("Minutes"), _t("Penalty"), _t("Occurrence"), _t("Signed"), _t("Deducted")],
+            ...v.pens.map((c) => [this.eName(c.employee_id), this.eBranch(c.employee_id), c.day, this.kind(c), c.minutes, c.penalty,
+                c.penalty_occ, c.ack_at ? "✓" : "", c.settled_at ? "✓" : ""]),
+        ]);
+    }
+}
+
 // ---------------------------------------------------------------- root
 export class AdminApp extends Component {
     static template = "navitta_ops.AdminApp";
-    static components = { Dashboard, Sales, Compare, Requests, Lost, Day, FilterBar };
+    static components = { Dashboard, Sales, Compare, Requests, Lost, Day, Rules, FilterBar };
     static props = { ...standardActionServiceProps };
     setup() {
         this.orm = useService("orm");
@@ -661,7 +787,7 @@ export class AdminApp extends Component {
         this.DIR = DIR;
         this.LANG = LANG;
         this.tabs = [["dashboard", _t("Dashboard")], ["compare", _t("📊 Branch comparison")], ["sales", _t("Sales and targets")], ["requests", _t("📦 Branch requests")],
-            ["lost", _t("💸 Lost sales")], ["day", _t("Daily log")]];
+            ["lost", _t("💸 Lost sales")], ["rules", _t("📜 Rules and violations")], ["day", _t("Daily log")]];
         onWillStart(async () => {
             const d = await api(this.orm, "admin_filters");
             if (!d.error) {
@@ -672,7 +798,7 @@ export class AdminApp extends Component {
         });
     }
     get withDates() {
-        return !["requests", "day"].includes(this.state.tab);
+        return !["requests", "day", "rules"].includes(this.state.tab);
     }
 }
 

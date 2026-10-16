@@ -171,7 +171,7 @@
         <field name="name">navitta.late.case.list</field>
         <field name="model">navitta.late.case</field>
         <field name="arch" type="xml">
-            <list decoration-warning="state == 'review'" decoration-danger="state == 'rejected'" decoration-success="state in ('forgiven', 'edited')">
+            <list decoration-warning="state == 'review'" decoration-danger="state == 'rejected'" decoration-success="state in ('forgiven', 'edited', 'excused')">
                 <field name="day"/>
                 <field name="branch_id"/>
                 <field name="employee_id"/>
@@ -181,6 +181,9 @@
                 <field name="reason"/>
                 <field name="state"/>
                 <field name="penalty"/>
+                <field name="penalty_occ" optional="hide"/>
+                <field name="signed" optional="show"/>
+                <field name="settled" optional="show"/>
             </list>
         </field>
     </record>
@@ -192,9 +195,13 @@
                 <header>
                     <button name="action_accept_edit" type="object" string="Accept duration change" class="btn-primary"
                             invisible="state != 'review' or request != 'edit'"/>
-                    <button name="action_forgive" type="object" string="Use a grace chance" invisible="state != 'review'"/>
-                    <button name="action_reject" type="object" string="Reject and apply penalty" invisible="state != 'review'"
-                            confirm="Reject the excuse and record the penalty according to the table?"/>
+                    <button name="action_reject" type="object" string="❌ Rejected (penalty)" invisible="state != 'review'"
+                            confirm="Reject and record the penalty according to the table?"/>
+                    <button name="action_forgive" type="object" string="🤝 Grace chance" invisible="state != 'review'"/>
+                    <button name="action_excuse" type="object" string="✅ Excuse accepted, not counted" invisible="state != 'review'"
+                            help="Write why the excuse is accepted in the note first"/>
+                    <button name="action_settle" type="object" string="Mark as deducted" invisible="state != 'rejected' or settled"/>
+                    <button name="action_settle" type="object" string="Undo deducted" invisible="state != 'rejected' or not settled"/>
                     <field name="state" widget="statusbar" statusbar_visible="reply,review"/>
                 </header>
                 <sheet>
@@ -215,6 +222,9 @@
                             <field name="reason" readonly="1"/>
                             <field name="penalty" readonly="1" invisible="state != 'rejected'"/>
                             <field name="penalty_occ" readonly="1" invisible="state != 'rejected'"/>
+                            <field name="ack_at" readonly="1" invisible="state != 'rejected'"/>
+                            <field name="settled" invisible="1"/>
+                            <field name="settled_at" readonly="1" invisible="state != 'rejected'"/>
                             <field name="decided_at" readonly="1"/>
                         </group>
                     </group>
@@ -232,7 +242,9 @@
                 <field name="branch_id"/>
                 <filter name="review" string="Awaiting my decision" domain="[('state', '=', 'review')]"/>
                 <filter name="reply" string="Awaiting employee's reason" domain="[('state', '=', 'reply')]"/>
-                <filter name="rejected" string="Rejected" domain="[('state', '=', 'rejected')]"/>
+                <filter name="rejected" string="Penalties" domain="[('state', '=', 'rejected')]"/>
+                <filter name="excused" string="Excuse accepted" domain="[('state', '=', 'excused')]"/>
+                <filter name="unsettled" string="Penalties not deducted yet" domain="[('state', '=', 'rejected'), ('settled_at', '=', False)]"/>
                 <separator/>
                 <filter name="late" string="Late check-in" domain="[('kind', '=', 'late')]"/>
                 <filter name="brk" string="Break overrun" domain="[('kind', '=', 'break')]"/>

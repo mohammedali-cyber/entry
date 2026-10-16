@@ -58,3 +58,7 @@ access_employee_sales_branch,navitta.employee_sales.branch,model_navitta_employe
 access_employee_sales_admin,navitta.employee_sales.admin,model_navitta_employee_sales,group_navitta_admin,1,1,1,1
 access_cash_count_branch,navitta.cash_count.branch,model_navitta_cash_count,group_navitta_branch,1,0,0,0
 access_cash_count_admin,navitta.cash_count.admin,model_navitta_cash_count,group_navitta_admin,1,1,0,1
+access_rule_branch,navitta.rule.branch,model_navitta_rule,group_navitta_branch,1,0,0,0
+access_rule_admin,navitta.rule.admin,model_navitta_rule,group_navitta_admin,1,1,1,1
+access_rule_ack_branch,navitta.rule_ack.branch,model_navitta_rule_ack,group_navitta_branch,1,0,0,0
+access_rule_ack_admin,navitta.rule_ack.admin,model_navitta_rule_ack,group_navitta_admin,1,1,1,1

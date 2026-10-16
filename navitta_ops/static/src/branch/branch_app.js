@@ -7,8 +7,9 @@ import { standardActionServiceProps } from "@web/webclient/actions/action_servic
 import {
     CASEST, COLORS, EXPICON, LEAVEST, LOST, LOSTL, NOBUY, LOSTFULL, OUTOF, QBREAK, QLATE, RQST, EXST, SAT, SIZES, SUP, TRIED, TYPES,
     CTX, addDays, api, clock, dTxt, days, f0, h12, jn, longDate, minuteNow, mmss, now, photoUrl, setClock, sizesOf, swatch, today, ago, icon, dcsText,
-    DIR, LANG, vlabel,
+    DIR, LANG, vlabel, WD,
 } from "../common/utils";
+import { Dots } from "../common/cases";
 import {
     DailyQuote, FaceCam, ModelPicker, ModelSearch, NvModal, PhotoLink, PhotoPicker, PinPad, SignModal, TargetBar,
 } from "../common/components";
@@ -241,9 +242,14 @@ class Counter extends Component {
         return this.state.d.breaks.find((b) => b.employee_id === emp.id && !b.ended_at);
     }
     breakLeft(emp) {
+        // the daily break may be taken in several parts: what's left of all of today's parts together
         const used = this.state.d.breaks.filter((b) => b.employee_id === emp.id)
             .reduce((t, b) => t + ((b.ended_at ? Date.parse(b.ended_at) : now()) - Date.parse(b.started_at)) / 1000, 0);
         return this.state.d.settings.break_max * 60 - used;
+    }
+    lastBreak(emp) {
+        return this.state.d.breaks.filter((b) => b.employee_id === emp.id && b.ended_at)
+            .sort((a, b) => (a.ended_at < b.ended_at ? 1 : -1))[0] || null;
     }
     mine(emp) {
         return this.state.d.visits.filter((v) => v.employee_id === emp.id);
@@ -259,7 +265,11 @@ class Counter extends Component {
             mySales: +(d.emp_sales[emp.id] || 0),
             replyCases: d.cases.filter((c) => c.employee_id === emp.id && c.state === "reply"),
             covers: d.covers.filter((c) => c.cover_employee_id === emp.id),
-            lateBy: minuteNow() - d.settings.shift_start,
+            // her own shift today (morning / evening): lateness and the check-in hint count from it
+            sh: emp.shift, lateBy: minuteNow() - emp.shift.start,
+            lastBrk: this.lastBreak(emp),
+            backRecently: !!this.lastBreak(emp) && now() - Date.parse(this.lastBreak(emp).ended_at) < 15 * 6e4,
+            unread: +(d.unread[emp.id] || 0),
             // closing tasks (server): open visits, the daily report, her closing cash count
             tasks: (d.cash.required && d.cash.tasks[emp.id]) || [],
             needOpen: d.cash.required && !d.cash.open,
@@ -314,6 +324,27 @@ class Counter extends Component {
     caseTitle(c) {
         return c.kind === "break" ? _t("☕ You exceeded the break by %s min", c.minutes) : _t("You were %s min late", c.minutes);
     }
+    shiftLabel(emp) {
+        const sh = emp.shift;
+        if (sh.kind === "am") {
+            return _t("☀️ Morning shift");
+        }
+        // a morning employee on a day without the morning shift
+        return sh.moved ? _t("🌙 Evening shift (%s)", WD[new Date(this.state.d.day + "T00:00:00Z").getUTCDay()]) : _t("🌙 Evening shift");
+    }
+    checkinHint(sh) {
+        return _t("Tap and enter your PIN to check in. Shift %(a)s – %(b)s", { a: h12(sh.start), b: h12(sh.end) });
+    }
+    bellText(n) {
+        return _t("🔔 %s new alerts · open", n);
+    }
+    breakBtn(p) {
+        return p.lastBrk ? _t("☕ Continue the break (%s min left)", Math.floor(p.left / 60)) : _t("☕ Break (%s min)", Math.ceil(p.left / 60));
+    }
+    backText(p) {
+        return _t("☕ You came back from the break after %(a)s · %(b)s min of today's break remain; you can continue it later",
+            { a: mmss((Date.parse(p.lastBrk.ended_at) - Date.parse(p.lastBrk.started_at)) / 1000), b: mmss(p.left) });
+    }
     breakHint(left, max) {
         return left < 0 ? _t("Break time exceeded") : _t("Time left of today's break (%s min)", max);
     }
@@ -356,7 +387,8 @@ class Counter extends Component {
     async breakEnd(b) {
         const r = await this.call("break_end", b.id);
         if (r) {
-            this.toast(r.over ? _t("You exceeded the break by %s min; give the reason in “My alerts”", r.over) : _t("Break ended"), r.over ? "warning" : "success");
+            this.toast(r.over ? _t("You exceeded the break by %s min; give the reason in “My alerts”", r.over)
+                : _t("Break ended, %s min left", mmss(r.left_sec || 0)), r.over ? "warning" : "success");
         }
         await this.load();
     }
@@ -450,6 +482,32 @@ class Counter extends Component {
 }
 
 // ---------------------------------------------------------------- employee inbox (PIN)
+/** «📬 آخر التنبيهات»: every alert and management reply, newest first; new ones are marked until she opens them. */
+class InboxNotes extends Component {
+    static template = "navitta_ops.InboxNotes";
+    static props = { notes: Array };
+    setup() {
+        this.state = useState({ all: false });
+        this.ago = ago;
+    }
+    get nNew() {
+        return this.props.notes.filter((n) => n.new).length;
+    }
+    get shown() {
+        const notes = this.props.notes;
+        return this.state.all ? notes : notes.slice(0, Math.max(5, this.nNew));
+    }
+    get newChip() {
+        return _t("%s new", this.nNew);
+    }
+    tone(n) {
+        // approvals in green, rejections in red (by the text, as on the site)
+        const ok = /^✅|موافقة|تمت الموافقة|اعتُمد|وافقت|approved|accepted/i.test(n.body) || /✅/.test(n.subject);
+        const no = /^✕|مرفوض|رُفض|rejected|declined/i.test(n.body);
+        return ok ? "ok" : no ? "no" : "";
+    }
+}
+
 class InboxCase extends Component {
     static template = "navitta_ops.InboxCase";
     static props = { c: Object, call: Function };
@@ -481,13 +539,13 @@ class InboxCase extends Component {
 
 class Inbox extends Component {
     static template = "navitta_ops.Inbox";
-    static components = { PinPad, InboxCase };
-    static props = { open: { optional: true }, empId: { optional: true } };
+    static components = { PinPad, InboxCase, InboxNotes, Dots };
+    static props = { open: { optional: true }, empId: { optional: true }, onRead: { type: Function, optional: true } };
     setup() {
         this.orm = useService("orm");
         this.notification = useService("notification");
         this.state = useState({
-            emps: [], emp: null, pin: null, box: null, leaveForm: this.props.open === "leave", msgForm: this.props.open === "msg",
+            emps: [], unread: {}, emp: null, pin: null, box: null, leaveForm: this.props.open === "leave", msgForm: this.props.open === "msg",
             lv: { type: "annual", from: "", to: "", why: "", cover: "" }, msg: { topic: "personal", body: "" }, rep: {}, coverNote: {},
         });
         Object.assign(this, H);
@@ -496,6 +554,7 @@ class Inbox extends Component {
             if (!d.error) {
                 setClock(d.settings.tz, d.server_now);
                 this.state.emps = d.employees;
+                this.state.unread = d.unread || {};
                 this.state.emp = d.employees.find((e) => e.id === this.props.empId) || null;
                 const t = addDays(today(), 1);
                 this.state.lv.from = t;
@@ -519,6 +578,11 @@ class Inbox extends Component {
             return r.message;
         }
         this.state.box = r;
+        // opening her alerts marks them read: her badge and the menu badge go away
+        this.state.unread[this.state.emp.id] = 0;
+        if (this.props.onRead) {
+            this.props.onRead();
+        }
         // who covers the branch during a leave: preselected when she has a single colleague
         this.state.lv.cover = r.mates.length === 1 ? String(r.mates[0].id) : "";
         return null;
@@ -554,6 +618,31 @@ class Inbox extends Component {
     }
     get chanceDots() {
         return Array.from({ length: this.state.box.chances.max }, (_, i) => i);
+    }
+    badge(e) {
+        const n = +(this.state.unread[e.id] || 0);
+        return n > 0 && !(this.state.emp && this.state.emp.id === e.id && this.state.box) ? n : 0;
+    }
+    /** «⚖️ فرصك وعقوباتك هذا الشهر»: shown when the chances are used up or she has penalties this month. */
+    get pens() {
+        const month = today().slice(0, 7);
+        return this.state.box.cases.filter((c) => c.state === "rejected" && c.day.startsWith(month));
+    }
+    get showPens() {
+        const ch = this.state.box.chances;
+        return ch.used >= ch.max || this.pens.length > 0;
+    }
+    penLine(c) {
+        return (c.kind === "break" ? _t("Break overrun of %s minutes", c.minutes) : _t("Late by %s minutes", c.minutes)) + " · " + _t("Occurrence %s", c.penalty_occ);
+    }
+    get resetText() {
+        return _t("Your chances reset to %s next month.", this.state.box.chances.max);
+    }
+    signPenalty(c) {
+        this.call("case_ack", [c.id], _t("Signature recorded"));
+    }
+    signRules() {
+        this.call("rules_ack", [], _t("Signature recorded"));
     }
     get monthCases() {
         const month = today().slice(0, 7);
@@ -808,7 +897,7 @@ export class BranchApp extends Component {
     static components = { Counter, Inbox, Requests, Report, ModelSearch };
     static props = { ...standardActionServiceProps };
     setup() {
-        this.state = useState({ tab: "counter", inboxOpen: "", inboxEmp: null, reqTab: "", branch: "", key: 1, branches: null, bid: 0 });
+        this.state = useState({ tab: "counter", inboxOpen: "", inboxEmp: null, reqTab: "", branch: "", key: 1, branches: null, bid: 0, unread: 0 });
         this.orm = useService("orm");
         this.DIR = DIR;
         this.LANG = LANG;
@@ -821,6 +910,7 @@ export class BranchApp extends Component {
             if (a.device) {
                 CTX.branch = 0;
                 this.state.branch = a.branch.name;
+                await this.loadUnread();
                 return;
             }
             // management: works on the branch picked here (remembered on this browser)
@@ -835,7 +925,20 @@ export class BranchApp extends Component {
                 this.pick(saved);
             }
         });
-        onWillUnmount(() => (CTX.branch = 0));
+        // the «My alerts» badge: new alerts of all the branch's employees (counts only), every minute
+        onMounted(() => (this.unreadTimer = setInterval(() => this.loadUnread(), 60000)));
+        onWillUnmount(() => {
+            clearInterval(this.unreadTimer);
+            CTX.branch = 0;
+        });
+    }
+    async loadUnread() {
+        if (this.error || (this.state.branches && !this.state.bid)) {
+            this.state.unread = 0;
+            return;
+        }
+        const r = await api(this.orm, "branch_unread");
+        this.state.unread = r.error ? 0 : Object.values(r.unread).reduce((t, n) => t + n, 0);
     }
     get title() {
         return this.state.branch || _t("Branch device");
@@ -852,10 +955,12 @@ export class BranchApp extends Component {
             // private mode: the pick is just not remembered
         }
         this.state.key++;
+        this.loadUnread();
     }
     go(tab, opts = {}) {
         Object.assign(this.state, { tab, inboxOpen: opts.open || "", inboxEmp: opts.emp || null, reqTab: opts.reqTab || "" });
         this.state.key++;
+        this.loadUnread();
     }
 }
 

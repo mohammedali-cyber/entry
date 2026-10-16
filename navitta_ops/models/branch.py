@@ -19,6 +19,10 @@ class NavittaBranch(models.Model):
     user_ids = fields.One2many("res.users", "navitta_branch_id", string="Branch device accounts")
     device_ids = fields.One2many("navitta.device", "branch_id", string="Fingerprint devices")
 
+    two_shifts = fields.Boolean("Has a morning shift",
+                                help="The branch works a morning and an evening shift. Each employee then has her own shift "
+                                     "(morning or evening); otherwise everyone works the evening shift.")
+
     cash_opening_balance = fields.Float("Cash box opening balance", digits=(12, 2))
     cash_opening_date = fields.Date("As of", help="The balance after this date is computed automatically from cash sales, bank deposits and approved expenses")
 
@@ -34,6 +38,22 @@ class NavittaBranch(models.Model):
     stock_bags = fields.Integer("Bags in stock", compute="_compute_stock")
 
     _sql_constraints = [("code_uniq", "unique(code)", "The branch code is already used")]
+
+    def write(self, vals):
+        res = super().write(vals)
+        if "two_shifts" in vals and not vals["two_shifts"]:
+            # evening only: every employee of the branch is on the evening shift
+            self.env["navitta.employee"].sudo().with_context(active_test=False).search(
+                [("branch_id", "in", self.ids), ("shift", "=", "am")]).write({"shift": "pm"})
+        return res
+
+    def _shift_end_today(self, day=None):
+        """Latest shift end (minutes) of the branch's active employees on `day` (for "time left in the shift")."""
+        self.ensure_one()
+        from .common import app_today, hours_to_min
+        day = day or app_today(self.env)
+        emps = self.env["navitta.employee"].sudo().search([("branch_id", "=", self.id), ("active", "=", True)])
+        return max([e._shift(day)["end"] for e in emps] or [hours_to_min(self.company_id.navitta_shift_end)])
 
     # ------------------------------------------------------------------ cash register system (overridden by navitta_ops_pos)
     def _has_system(self):

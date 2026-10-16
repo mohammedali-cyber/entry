@@ -12,7 +12,9 @@ from . import request
 from . import catalog
 from . import device
 from . import cash
+from . import rules
 from . import ir_ui_menu
 from . import api_branch
 from . import api_admin
+from . import api_rules
 from . import report_summary

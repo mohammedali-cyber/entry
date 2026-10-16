@@ -11,6 +11,7 @@
                 <field name="device_user_id" optional="show"/>
                 <field name="email"/>
                 <field name="weekly_off"/>
+                <field name="shift"/>
                 <field name="has_pin" widget="boolean"/>
                 <button name="action_new_pin" type="object" string="New PIN" icon="fa-key"
                         confirm="The current PIN will be cancelled and a new PIN will be created and shown only once. Continue?"/>
@@ -41,6 +42,8 @@
                             <field name="branch_id"/>
                             <field name="slot" string="Order on screen"/>
                             <field name="weekly_off"/>
+                            <field name="branch_two_shifts" invisible="1"/>
+                            <field name="shift" readonly="not branch_two_shifts"/>
                             <field name="active" invisible="1"/>
                         </group>
                         <group string="Punch">
@@ -88,6 +91,7 @@
                 <field name="to_email"/>
                 <field name="subject"/>
                 <field name="state"/>
+                <field name="read_at" optional="hide"/>
                 <field name="failure_reason" optional="hide"/>
             </list>
         </field>
@@ -98,9 +102,10 @@
         <field name="arch" type="xml">
             <form create="0" edit="0">
                 <sheet>
-                    <group><field name="create_date" string="Time"/><field name="employee_id"/><field name="to_email"/><field name="state"/><field name="failure_reason"/></group>
+                    <group><field name="create_date" string="Time"/><field name="employee_id"/><field name="to_email"/><field name="state"/>
+                        <field name="read_at" invisible="not employee_id"/><field name="secret" invisible="not secret"/><field name="failure_reason"/></group>
                     <h3><field name="subject"/></h3>
-                    <field name="body"/>
+                    <field name="body_text"/>
                 </sheet>
             </form>
         </field>

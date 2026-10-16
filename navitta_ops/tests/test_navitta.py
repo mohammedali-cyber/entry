@@ -614,6 +614,244 @@ class NavittaCase(TransactionCase):
         n = self.env["navitta.notification"]._notify_employee(self.shima, "x", "y")
         self.assertEqual((n.state, n.mail_id.id), ("no_email", False))
 
+    # ------------------------------------------------------------------ 26.3: morning and evening shifts
+    def test_shifts(self):
+        """Lateness counts from her own shift: morning (9:30) in a branch with a morning shift, evening otherwise;
+        on Sun/Mon/Fri morning employees work the evening shift. The late cron follows each one's shift window."""
+        ahs = self.env.ref("navitta_ops.branch_ahs")
+        buth, marwa = self.env.ref("navitta_ops.emp_ahs_1"), self.env.ref("navitta_ops.emp_ahs_2")
+        self.assertTrue(ahs.two_shifts)                       # Al-Ahsa has two shifts (site default)
+        self.assertEqual(self.company._navitta_no_am(), {0, 1, 5})
+        buth.write({"shift": "am"})
+        buth._set_pin("2468")
+        with self.assertRaises(ValidationError):              # no morning shift in Dawadmi
+            self.reem.shift = "am"
+        self.assertEqual(buth._shift(DAY), {"kind": "am", "start": 570, "end": 960, "moved": False})
+        sunday = date(2026, 10, 11)
+        self.assertEqual(buth._shift(sunday), {"kind": "pm", "start": 930, "end": 1410, "moved": True})
+        self.assertEqual(marwa._shift(DAY)["kind"], "pm")
+        Case = self.env["navitta.late.case"]
+        with freeze_time(utc(9, 33)):
+            self.assertEqual(Case._cron_late_check(), 0)      # inside her grace
+        with freeze_time(utc(9, 50)):
+            self.assertEqual(Case._cron_late_check(), 1)      # only the morning employee; evening hasn't started
+        late = Case.search([("employee_id", "=", buth.id)])
+        self.assertEqual((late.minutes, late.check_in), (20, False))
+        self.assertIn("9:30 AM", self.env["navitta.notification"].search([("employee_id", "=", buth.id)], limit=1).body)
+        boss_ahs = self.admin().with_context(navitta_branch=ahs.id)
+        with freeze_time(utc(10, 0)):
+            self.assertEqual(boss_ahs.check_in(buth.id, "2468")["late"], 30)
+            st = boss_ahs.branch_state()
+            sh = {e["id"]: e["shift"] for e in st["employees"]}
+            self.assertEqual((sh[buth.id]["kind"], sh[buth.id]["start"], sh[marwa.id]["kind"]), ("am", 570, "pm"))
+            self.assertEqual((st["settings"]["am_start"], st["settings"]["am_end"], st["settings"]["no_am_days"]), (570, 960, [0, 1, 5]))
+            self.assertEqual(boss_ahs.target_bar()["shift_end"], 1410)       # the branch closes with the evening shift
+        msg = self.env["navitta.notification"].search([("employee_id", "=", buth.id), ("subject", "=", "Alert: late arrival")])
+        self.assertIn("after your shift start (9:30 AM)", msg.body)
+        self.assertEqual(Case.search([("employee_id", "=", buth.id)]).minutes, 30)
+        with freeze_time(utc(15, 40)):
+            self.assertEqual(Case._cron_late_check(), 9)      # the evening employees (she has her case already)
+        with freeze_time(utc(16, 30)):
+            self.assertEqual(Case._cron_late_check(), 0)
+        # fingerprint device: the same rule (her morning shift), and on Sunday her evening shift
+        Att = self.env["navitta.attendance"]
+        friday = date(2026, 10, 16)                           # no morning shift on Fridays
+        _a, lt = Att._register_in(buth, fields.Datetime.to_datetime(utc(15, 45, friday)), "device")
+        self.assertEqual(lt, 15)
+        # the admin dashboard and the nightly PDF show both shifts and each employee's shift
+        with freeze_time(utc(18, 0)):
+            emp = {e["id"]: e for e in self.admin().admin_dashboard(1)["employees"]}
+            self.assertEqual(emp[buth.id]["shift"]["kind"], "am")
+            data = self.env["navitta.api"]._summary_data(DAY)
+            self.assertEqual((data["am_shift"], data["shift"]), ("9:30 AM – 4:00 PM", "3:30 PM – 11:30 PM"))
+        # evening only again: her shift is forced back to evening
+        ahs.two_shifts = False
+        self.assertEqual(buth.shift, "pm")
+        # settings: days without a morning shift and the branches with one
+        cfg = self.env["res.config.settings"].create({"navitta_no_am_5": False, "navitta_no_am_6": True,
+                                                       "navitta_two_shift_branch_ids": [(6, 0, [self.qsm.id])]})
+        cfg.execute()
+        self.assertEqual(self.company._navitta_no_am(), {0, 1, 6})
+        self.assertEqual(self.env["navitta.branch"].search([("two_shifts", "=", True)]), self.qsm)
+
+    # ------------------------------------------------------------------ 26.3: violations (3-way decision, sign, deduct)
+    def test_violation_decisions(self):
+        Case = self.env["navitta.late.case"]
+        mk = lambda d, m=10, kind="late": Case.create({"employee_id": self.reem.id, "day": d, "kind": kind, "minutes": m,
+                                                         "state": "review", "reason": "زحمة"})
+        a = self.admin()
+        old = mk(date(2026, 9, 20))                           # a penalty last month doesn't count in October
+        self.assertTrue(a.admin_decide_case(old.id, "penalty")["ok"])
+        cases = [mk(date(2026, 10, i)) for i in range(1, 8)]
+        pv = a.admin_case_preview(cases[0].id)
+        self.assertEqual((pv["used"], pv["max"], pv["penalty"]["occ"], pv["penalty"]["text"]), (0, 3, 1, "إنذار كتابي"))
+        # an excuse needs a reason and counts as neither a chance nor a penalty
+        self.assertEqual(a.admin_decide_case(cases[0].id, "excuse")["error"], "reason_required")
+        self.assertTrue(a.admin_decide_case(cases[0].id, "excuse", "موعد مستشفى بورقة")["ok"])
+        self.assertEqual(cases[0].state, "excused")
+        for c in cases[1:4]:
+            self.assertTrue(a.admin_decide_case(c.id, "chance")["ok"])
+        self.assertEqual(a.admin_decide_case(cases[4].id, "chance")["error"], "no_chances")
+        self.assertEqual(a.admin_case_preview(cases[4].id)["used"], 3)
+        self.assertTrue(a.admin_decide_case(cases[4].id, "penalty", "بدون عذر")["ok"])
+        cases[5].minutes = 25
+        self.assertTrue(a.admin_decide_case(cases[5].id, "penalty")["ok"])
+        self.assertEqual((cases[4].state, cases[4].penalty, cases[4].penalty_occ), ("rejected", "إنذار كتابي", 1))
+        self.assertEqual((cases[5].penalty, cases[5].penalty_occ), ("حسم 15% من أجر اليوم", 2))   # 16–30 min, occurrence 2
+        self.assertEqual(a.admin_case_preview(cases[6].id)["penalty"]["occ"], 3)
+        n = self.env["navitta.notification"].search([("employee_id", "=", self.reem.id)], limit=1)
+        self.assertIn("a penalty was issued", n.subject)
+        self.assertIn("sign that you read it", n.body)
+        # the review list of the dashboard and the rules screen carries the preview
+        with freeze_time(utc(18, 0)):
+            d = a.admin_dashboard(30)
+            rv = [c for c in d["cases"] if c["id"] == cases[6].id][0]
+            self.assertEqual(rv["preview"]["penalty"]["occ"], 3)
+            r = a.admin_rules()
+            self.assertEqual([c["id"] for c in r["review"]], [cases[6].id])
+            self.assertEqual(len([c for c in r["cases"] if c["state"] == "rejected"]), 2)    # October only
+            self.assertEqual(len(r["tiers"]), 4)
+            # she signs her penalty with her PIN (only her own, once)
+            box = self.api().inbox(self.reem.id, "2468")
+            self.assertEqual({c["id"] for c in box["cases"] if c["state"] == "rejected" and c["day"] >= "2026-10-01" and not c["ack_at"]},
+                             {cases[4].id, cases[5].id})
+            self.assertEqual(self.api().case_ack(self.shima.id, "2468", cases[4].id)["error"], "not_found")
+            self.assertEqual(self.api().case_ack(self.reem.id, "0000", cases[4].id)["error"], "wrong_pin")
+            self.assertTrue(self.api().case_ack(self.reem.id, "2468", cases[4].id)["ok"])
+            self.assertEqual(self.api().case_ack(self.reem.id, "2468", cases[4].id)["error"], "not_found")
+            self.assertEqual(self.api().case_ack(self.reem.id, "2468", cases[1].id)["error"], "not_found")   # not a penalty
+        self.assertTrue(cases[4].ack_at)
+        # management marks it deducted for payroll (and can undo)
+        self.assertTrue(a.admin_case_settle(cases[4].id, True)["ok"])
+        self.assertTrue(cases[4].settled_at)
+        self.assertTrue(a.admin_case_settle(cases[4].id, False)["ok"])
+        self.assertFalse(cases[4].settled_at)
+        self.assertEqual(a.admin_case_settle(cases[1].id, True)["error"], "not_found")
+        # penalty table edited on the screen
+        t = r["tiers"][0]
+        self.assertEqual(a.admin_tiers_save([dict(t, p1="")])["error"], "tier_required")
+        self.assertTrue(a.admin_tiers_save([dict(t, p1="تنبيه شفهي")])["ok"])
+        self.assertEqual(self.env["navitta.penalty.tier"]._tier_for(5).p1, "تنبيه شفهي")
+        with self.assertRaises(AccessError):
+            self.api().admin_case_settle(cases[4].id, True)
+        with self.assertRaises(AccessError):
+            self.api().admin_rules()
+
+    # ------------------------------------------------------------------ 26.3: branch rules signed in «تنبيهاتي»
+    def test_branch_rules(self):
+        a = self.admin()
+        with freeze_time(utc(12, 0)):
+            box = self.api().inbox(self.reem.id, "2468")
+            self.assertEqual((box["rules"], box["rules_signed"]), ([], True))
+            self.assertEqual(a.admin_rule_save(False, "  ")["error"], "rule_required")
+            rid = a.admin_rule_save(False, "الجوال ممنوع وقت خدمة العميلة")["id"]
+            a.admin_rule_save(False, "الالتزام بالزي")
+            box = self.api().inbox(self.reem.id, "2468")
+            self.assertEqual([r["body"] for r in box["rules"]], ["الجوال ممنوع وقت خدمة العميلة", "الالتزام بالزي"])
+            self.assertFalse(box["rules_signed"])
+        with freeze_time(utc(12, 5)):
+            self.assertEqual(self.api().rules_ack(self.reem.id, "0000")["error"], "wrong_pin")
+            self.assertTrue(self.api().rules_ack(self.reem.id, "2468")["ok"])
+            self.assertTrue(self.api(self.dev_qsm).rules_ack(self.hubour.id, "2468")["ok"])
+            self.assertTrue(self.api().inbox(self.reem.id, "2468")["rules_signed"])
+            acks = a.admin_rules()["acks"]
+            self.assertEqual((acks[self.reem.id]["current"], acks[self.shima.id]["current"]), (True, False))
+        # a branch device sees only its own branch's signatures
+        self.assertEqual(self.env["navitta.rule.ack"].with_user(self.dev).search([]).employee_id, self.reem)
+        with freeze_time(utc(13, 0)):                         # a rule changed: everyone signs again
+            self.assertTrue(a.admin_rule_save(rid, "الجوال ممنوع نهائيًا وقت خدمة العميلة")["ok"])
+            self.assertFalse(self.api().inbox(self.reem.id, "2468")["rules_signed"])
+            self.assertFalse(a.admin_rules()["acks"][self.reem.id]["current"])
+            self.assertTrue(a.admin_rule_delete(rid)["ok"])
+            self.assertEqual(len(a.admin_rules()["rules"]), 1)
+
+    # ------------------------------------------------------------------ 26.3: «تنبيهاتي» feed and unread badges
+    def test_inbox_notes_and_unread(self):
+        with freeze_time(utc(16, 0)):
+            self.api().check_in(self.reem.id, "2468")          # a late-arrival alert
+        self.reem._notify("تحديث طلبك", "✅ وافقت الإدارة")
+        old = self.env["navitta.notification"]._notify_employee(self.reem, "قديم", "x")
+        old.flush_recordset()
+        self.env.cr.execute("UPDATE navitta_notification SET create_date = create_date - interval '40 days' WHERE id = %s", [old.id])
+        old.invalidate_recordset()
+        self.reem._new_pin()                                    # the PIN email is secret: never in the feed or the counts
+        self.reem._set_pin("2468")
+        self.env["navitta.notification"].flush_model()
+        with freeze_time(utc(16, 5)):
+            un = self.api().branch_unread()["unread"]
+            self.assertEqual((un.get(self.reem.id), un.get(self.shima.id)), (2, None))
+            self.assertEqual(self.api().branch_state()["unread"][self.reem.id], 2)
+            self.assertEqual(self.api(self.dev_qsm).branch_unread()["unread"], {})        # other branch: nothing
+            box = self.api().inbox(self.reem.id, "2468")
+            self.assertEqual(len(box["notes"]), 3)
+            self.assertTrue(all(n["new"] for n in box["notes"]))
+            self.assertNotIn("🔐 Your new PIN", [n["subject"] for n in box["notes"]])
+            self.assertEqual(self.api().branch_unread()["unread"].get(self.reem.id), None)   # opening the box read them
+            self.assertFalse(any(n["new"] for n in self.api().inbox(self.reem.id, "2468")["notes"]))
+            # «راتب أو سلفة» is no longer a topic
+            self.assertNotIn("salary", [t[0] for t in box["topics"]])
+            self.assertTrue(self.api().send_message(self.reem.id, "2468", "salary", "سؤال")["ok"])
+        self.assertEqual(self.env["navitta.thread"].search([("employee_id", "=", self.reem.id)], limit=1).topic, "other")
+
+    # ------------------------------------------------------------------ 26.3: the daily break in several parts
+    def test_split_break(self):
+        Brk = self.env["navitta.break"]
+        with freeze_time(utc(15, 20)):
+            self.api().check_in(self.reem.id, "2468")
+        with freeze_time(utc(17, 0)):
+            self.assertTrue(self.api().break_start(self.reem.id)["ok"])
+        with freeze_time(utc(17, 10)):
+            r = self.api().break_end(Brk.search([("employee_id", "=", self.reem.id), ("ended_at", "=", False)]).id)
+            self.assertEqual((r["over"], r["left_sec"]), (0, 20 * 60))
+        with freeze_time(utc(19, 0)):
+            self.assertTrue(self.api().break_start(self.reem.id)["ok"])      # continue the break later
+        with freeze_time(utc(19, 15)):
+            r = self.api().break_end(Brk.search([("employee_id", "=", self.reem.id), ("ended_at", "=", False)]).id)
+            self.assertEqual((r["over"], r["left_sec"]), (0, 5 * 60))
+            self.assertFalse(self.env["navitta.late.case"].search([("employee_id", "=", self.reem.id)]))
+        with freeze_time(utc(21, 0)):
+            self.assertTrue(self.api().break_start(self.reem.id)["ok"])
+        with freeze_time(utc(21, 10)):
+            r = self.api().break_end(Brk.search([("employee_id", "=", self.reem.id), ("ended_at", "=", False)]).id)
+            self.assertEqual((r["over"], r["left_sec"]), (5, 0))
+            self.assertEqual(self.api().break_start(self.reem.id)["error"], "break_used")
+        case = self.env["navitta.late.case"].search([("employee_id", "=", self.reem.id), ("kind", "=", "break")])
+        self.assertEqual((case.minutes, case.break_used), (5, 35))          # the overrun on the day's total
+
+    # ------------------------------------------------------------------ 26.3: a new PIN is emailed, then wiped
+    def test_pin_email(self):
+        Notif = self.env["navitta.notification"]
+        self.company.email = False                              # no sender address: sending fails, she gets it from management
+        self.assertEqual(self.reem._new_pin()[1], "failed")
+        self.company.email = "info@navitta.example"
+        pin, mail = self.reem._new_pin()
+        self.assertEqual(mail, "sent")
+        self.assertIsNone(self.reem._check_pin(pin))
+        n = Notif.search([("employee_id", "=", self.reem.id), ("secret", "=", True)], limit=1)
+        self.assertEqual(n.subject, "🔐 Your new PIN")
+        self.assertEqual(n.body, Notif.WIPED)                  # the PIN is not kept after sending
+        self.assertNotIn(pin, n.body_text)
+        self.assertEqual(n.body_text, "🔐 (The PIN was wiped after sending)")
+        self.assertFalse(n.mail_id)                             # the email itself was removed from the queue
+        self.assertEqual(n.state, "sent")
+        # without an email: only the screen shows it
+        pin2, mail2 = self.shima._new_pin()
+        self.assertEqual(mail2, "no_email")
+        self.assertFalse(Notif.search([("employee_id", "=", self.shima.id)]))
+        # the backend button shows it once with the mail status
+        act = self.reem.action_new_pin()
+        wiz = self.env["navitta.pin.wizard"].browse(act["res_id"])
+        self.assertEqual((len(wiz.pin), wiz.mail), (4, "sent"))
+        # a PIN email that waits in the queue is wiped when the queue sends it
+        q = Notif._send("x@example.com", "🔐 Your new PIN", "1234", employee=self.reem, secret=True)
+        self.assertEqual(q.body, "1234")
+        q.mail_id.send()
+        self.assertEqual(q.body, Notif.WIPED)
+        # first-time setup: the generated PINs are emailed too
+        self.env.ref("navitta_ops.emp_qsm_2").sudo().email = "shadia@example.com"
+        rows = {r["name"]: r["mail"] for r in self.admin().admin_setup_pins()["rows"]}
+        self.assertEqual((rows["شادية"], rows["بثينة"]), ("sent", "no_email"))
+
 
 @tagged("post_install", "-at_install", "navitta")
 class NavittaHttp(HttpCase):

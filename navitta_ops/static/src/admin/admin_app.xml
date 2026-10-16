@@ -19,6 +19,7 @@
                 <Sales t-if="state.tab === 'sales'" f="f"/>
                 <Requests t-if="state.tab === 'requests'" f="f"/>
                 <Lost t-if="state.tab === 'lost'" f="f"/>
+                <Rules t-if="state.tab === 'rules'" f="f"/>
                 <Day t-if="state.tab === 'day'" f="f"/>
             </div>
         </div>
@@ -134,11 +135,12 @@
                 <p t-if="!state.once.rows.length" class="empty">Nothing new, everything was already set up.</p>
                 <div t-else="" class="tscroll">
                     <table class="nv-tbl once-tbl">
-                        <thead t-if="state.once.kind === 'pins'"><tr><th>Branch</th><th>Employee</th><th>PIN</th></tr></thead>
+                        <thead t-if="state.once.kind === 'pins'"><tr><th>Branch</th><th>Employee</th><th>PIN</th><th>Email</th></tr></thead>
                         <thead t-else=""><tr><th>Branch</th><th>Login</th><th>Password</th></tr></thead>
                         <tbody>
                             <t t-foreach="state.once.rows" t-as="r" t-key="r_index">
-                                <tr t-if="state.once.kind === 'pins'"><td t-esc="r.branch"/><td t-esc="r.name"/><td class="code" t-esc="r.pin"/></tr>
+                                <tr t-if="state.once.kind === 'pins'"><td t-esc="r.branch"/><td t-esc="r.name"/><td class="code" t-esc="r.pin"/>
+                                    <td><span t-att-class="'chip ' + (PINMAIL[r.mail] || PINMAIL.queued)[0]" t-esc="(PINMAIL[r.mail] || PINMAIL.queued)[1]"/></td></tr>
                                 <tr t-else=""><td t-esc="r.branch"/><td class="code" style="font-size:15px;letter-spacing:0" t-esc="r.login"/><td class="code" t-esc="r.password"/></tr>
                             </t>
                         </tbody>
@@ -171,19 +173,7 @@
                         <span t-att-class="'chip ' + (w.review.length ? 'warn' : 'good')" t-esc="w.review.length ? TX.nAwaitDecision(w.review.length) : TX.noPendingDecisions"/></div>
                     <div class="reqs">
                         <t t-foreach="w.review" t-as="c" t-key="c.id">
-                            <t t-set="u" t-value="used(c.employee_id)"/>
-                            <div class="req pending"><div class="req-main"><span class="chip warn">Awaiting your decision</span><div style="min-width:0">
-                                <div class="what"><b t-esc="eName(c.employee_id)"/> · <t t-esc="bName(eB(c.employee_id))"/> · <t t-esc="longDate(c.day)"/> · <span class="chip neutral" t-esc="c.kind === 'break' ? TX.breakOver : TX.lateIn"/></div>
-                                <div class="meta num"><t t-esc="TX.caseLine(c)"/> · Month's grace chances <t t-esc="u"/>/<t t-esc="d.settings.chances"/></div>
-                                <div class="meta">Reason: <t t-esc="c.reason"/></div>
-                                <div t-if="c.request === 'edit'" class="meta num"><span class="chip info">Duration change request</span> <t t-esc="c.break_used"/> min → <b><t t-esc="c.requested_minutes"/> min</b></div>
-                            </div></div>
-                                <div class="req-act">
-                                    <input class="ctl" placeholder="Note to the employee (optional)" t-model="state.notes[c.id]"/>
-                                    <button t-if="c.request === 'edit'" type="button" class="nv-btn primary" t-on-click="() => this.act('admin_decide_case', [c.id, 'edit', this.note(c.id)], TX.durationAccepted)">Accept duration change</button>
-                                    <button type="button" class="nv-btn" t-att-disabled="u &gt;= d.settings.chances" t-on-click="() => this.act('admin_decide_case', [c.id, 'forgive', this.note(c.id)], TX.chanceUsed)" t-esc="TX.useChance(Math.max(0, d.settings.chances - u - 1))"/>
-                                    <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_case', [c.id, 'reject', this.note(c.id)], TX.excuseRejected)">Reject and apply penalty</button>
-                                </div></div>
+                            <CaseDecide c="c" name="eName(c.employee_id)" branch="bName(eB(c.employee_id))" onDone="() => this.load()"/>
                         </t>
                         <div t-if="!w.review.length" class="empty">No excuses awaiting your decision</div>
                     </div>
@@ -217,10 +207,10 @@
                 </div></div>
 
                 <div class="nv-card c12">
-                    <div class="nv-card-h"><div><h2>Today's attendance by punch</h2><p class="sub">Shift <t t-esc="h12(d.settings.shift_start)"/> to <t t-esc="h12(d.settings.shift_end)"/></p></div></div>
+                    <div class="nv-card-h"><div><h2>Today's attendance by punch</h2><p class="sub">☀️ Morning <t t-esc="h12(d.settings.am_start)"/> to <t t-esc="h12(d.settings.am_end)"/> · 🌙 Evening <t t-esc="h12(d.settings.shift_start)"/> to <t t-esc="h12(d.settings.shift_end)"/></p></div></div>
                     <div class="tscroll"><table class="nv-tbl"><thead><tr><th>Branch</th><th>Employee</th><th>Check-in</th><th>Check-out</th><th>Break</th><th>Status</th></tr></thead><tbody>
                         <t t-foreach="w.emps" t-as="e" t-key="e.id"><t t-set="ar" t-value="attRow(e)"/>
-                            <tr><td t-esc="bName(e.branch_id)"/><td><b t-esc="e.name"/></td><td class="n"><t t-call="navitta_ops.PunchCell"><t t-set="a" t-value="ar.a"/><t t-set="k" t-value="'in'"/></t></td>
+                            <tr><td t-esc="bName(e.branch_id)"/><td><b t-esc="e.name"/> <span class="shift-i" t-att-title="e.shift.kind === 'am' ? TX.morning : TX.evening" t-att-aria-label="e.shift.kind === 'am' ? TX.morning : TX.evening" t-esc="e.shift.kind === 'am' ? '☀️' : '🌙'"/></td><td class="n"><t t-call="navitta_ops.PunchCell"><t t-set="a" t-value="ar.a"/><t t-set="k" t-value="'in'"/></t></td>
                                 <td class="n"><t t-call="navitta_ops.PunchCell"><t t-set="a" t-value="ar.a"/><t t-set="k" t-value="'out'"/></t></td>
                                 <td><span t-if="ar.onB" class="chip info">☕ On break</span><span t-elif="ar.bm" class="num">☕ <t t-esc="ar.bm"/> min <span t-if="ar.bm &gt; d.settings.break_max" class="chip warn">Over by <t t-esc="ar.bm - d.settings.break_max"/> min</span></span><t t-else="">—</t></td>
                                 <td><span t-att-class="'chip ' + ar.st[0]" t-esc="ar.st[1]"/></td></tr>
@@ -593,4 +583,114 @@
             </div>
         </t>
     </t>
+
+    <!-- ============================================================ rules and violations -->
+    <t t-name="navitta_ops.AdminRules">
+        <div t-if="!state.d" class="empty">Loading…</div>
+        <t t-else="">
+            <t t-set="d" t-value="state.d"/>
+            <t t-set="st" t-value="d.settings"/>
+            <t t-set="w" t-value="this.v"/>
+            <div class="filters"><span class="range-note" t-esc="resetNote"/></div>
+            <div class="grid">
+                <div class="nv-card c12">
+                    <h2>📜 Rules and violations</h2>
+                    <div class="kv4">
+                        <div><span>⏰ Shift</span><b class="num">☀️ <t t-esc="h12(st.am_start)"/> – <t t-esc="h12(st.am_end)"/><br/>🌙 <t t-esc="h12(st.shift_start)"/> – <t t-esc="h12(st.shift_end)"/></b></div>
+                        <div><span>⏱️ Check-in grace period</span><b class="num" t-esc="min(st.grace)"/></div>
+                        <div><span>☕ Daily break</span><b class="num" t-esc="min(st.break_max)"/></div>
+                        <div><span>🤝 Grace chances</span><b class="num" t-esc="perMonth(w.max)"/></div>
+                    </div>
+                    <div class="flow4">
+                        <div><b>① The violation</b>A late arrival or a break overrun; the employee writes the reason.</div>
+                        <div><b t-esc="chancesStep(w.max)"/><t t-esc="chancesText(w.max)"/></div>
+                        <div class="pen"><b>③ Chances used up</b>After that the penalty table starts at “occurrence 1”: the column is the violation's number after the chances, the row is the length of the lateness.</div>
+                        <div><b>④ Accepted excuse</b>If the reason is acceptable, accept it: it counts as neither a chance nor a penalty.</div>
+                    </div>
+                    <p class="sub">The shift, grace period, break and chances are changed in Settings.</p>
+                </div>
+
+                <div class="nv-card c12">
+                    <div class="nv-card-h"><h2>⏳ Violations awaiting your decision</h2>
+                        <span t-att-class="'chip ' + (w.review.length ? 'warn' : 'good')" t-esc="w.review.length ? nAwait(w.review.length) : noPending"/></div>
+                    <div class="reqs">
+                        <t t-foreach="w.review" t-as="c" t-key="c.id">
+                            <CaseDecide c="c" name="eName(c.employee_id)" branch="eBranch(c.employee_id)" onDone="() => this.load()"/>
+                        </t>
+                        <div t-if="!w.review.length" class="empty">No excuses awaiting your decision</div>
+                    </div>
+                </div>
+
+                <div class="nv-card c12">
+                    <div class="nv-card-h"><h2>⚖️ Penalty table</h2>
+                        <span t-if="state.editT" class="vrow"><button type="button" class="nv-btn primary" t-on-click="() => this.saveTiers()">Save</button>
+                            <button type="button" class="nv-btn" t-on-click="() => state.editT = null">Cancel</button></span>
+                        <button t-else="" type="button" class="nv-btn" t-on-click="() => this.editTiers()">✏️ Edit the table</button></div>
+                    <p class="sub">Row = length of the lateness · Column = the violation's number after the chances are used up, in the same month</p>
+                    <div class="tscroll"><table class="nv-tbl ptab"><thead><tr><th>Lateness</th><th>Occurrence 1</th><th>Occurrence 2</th><th>Occurrence 3</th><th>Occurrence 4 or more</th></tr></thead><tbody>
+                        <t t-if="state.editT">
+                            <tr t-foreach="state.editT" t-as="x" t-key="x.id">
+                                <td><textarea class="ctl" rows="2" t-model="x.label" aria-label="Lateness"/></td>
+                                <td><textarea class="ctl" rows="2" t-model="x.p1" aria-label="Occurrence 1"/></td>
+                                <td><textarea class="ctl" rows="2" t-model="x.p2" aria-label="Occurrence 2"/></td>
+                                <td><textarea class="ctl" rows="2" t-model="x.p3" aria-label="Occurrence 3"/></td>
+                                <td><textarea class="ctl" rows="2" t-model="x.p4" aria-label="Occurrence 4 or more"/></td>
+                            </tr>
+                        </t>
+                        <t t-else="">
+                            <tr t-foreach="d.tiers" t-as="x" t-key="x.id"><td><b t-esc="x.label"/></td><td t-esc="x.p1"/><td t-esc="x.p2"/><td t-esc="x.p3"/><td t-esc="x.p4"/></tr>
+                        </t>
+                    </tbody></table></div>
+                </div>
+
+                <div class="nv-card c6">
+                    <h2>📋 Branch rules</h2>
+                    <p class="sub">Shown to the employees in “My alerts”; each one signs with her PIN that she read them. Any change asks them to sign again.</p>
+                    <div t-foreach="d.rules" t-as="r" t-key="r.id" class="rl">
+                        <input t-if="state.edR[r.id] !== undefined" class="ctl" t-model="state.edR[r.id]" style="flex:1" aria-label="Rule"/>
+                        <span t-else="" t-esc="r.body"/>
+                        <span class="vrow" style="gap:6px;flex-wrap:nowrap">
+                            <button t-if="state.edR[r.id] !== undefined" type="button" class="nv-btn primary" t-on-click="() => this.ruleSave(r.id, state.edR[r.id])">Save</button>
+                            <button t-else="" type="button" class="del" aria-label="Edit" t-on-click="() => state.edR[r.id] = r.body">✏️</button>
+                            <button type="button" class="del" aria-label="Delete" t-on-click="() => this.ruleDel(r)">🗑️</button>
+                        </span>
+                    </div>
+                    <div class="vrow"><input class="ctl" t-model="state.nr" t-att-placeholder="rulePh" t-att-aria-label="rulePh" style="flex:1 1 220px"/>
+                        <button type="button" class="nv-btn primary" t-on-click="() => this.ruleSave(false, state.nr)">➕ Add a rule</button></div>
+                    <div t-if="d.rules.length" class="acks">✍️
+                        <t t-foreach="w.emps" t-as="e" t-key="e.id"><span t-att-class="'chip ' + (ack(e).current ? 'good' : 'warn')"><t t-esc="e.name"/> <t t-esc="ack(e).current ? '✓' : '⏳'"/></span></t>
+                    </div>
+                </div>
+
+                <div class="nv-card c6">
+                    <h2>📊 This month's violations</h2>
+                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>Employee</th><th>Branch</th><th>Late arrivals</th><th>Break overrun</th><th>Chances</th><th>Penalties</th></tr></thead><tbody>
+                        <t t-foreach="w.emps" t-as="e" t-key="e.id"><t t-set="x" t-value="row(e)"/>
+                            <tr><td><b t-esc="e.name"/></td><td t-esc="bName(e.branch_id)"/><td class="n" t-esc="x.late"/><td class="n" t-esc="x.brk"/>
+                                <td><Dots used="used(e.id)" max="w.max"/></td><td class="n" t-esc="x.pens or '—'"/></tr>
+                        </t>
+                    </tbody></table></div>
+                </div>
+
+                <div class="nv-card c12">
+                    <div class="nv-card-h"><h2>⚖️ Penalties issued this month</h2>
+                        <button t-if="w.pens.length" type="button" class="nv-btn" t-on-click="() => this.csv()">⬇️ Excel for payroll</button></div>
+                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>Employee</th><th>Date</th><th>Violation</th><th>Penalty</th><th>Signed</th><th>Deduction</th></tr></thead><tbody>
+                        <tr t-foreach="w.pens" t-as="c" t-key="c.id">
+                            <td><b t-esc="eName(c.employee_id)"/><div class="m" t-esc="eBranch(c.employee_id)"/></td>
+                            <td class="num" t-esc="longDate(c.day)"/>
+                            <td t-esc="pensSub(c)"/>
+                            <td><t t-esc="c.penalty"/> <span class="m" t-esc="occ(c.penalty_occ)"/></td>
+                            <td><span t-if="c.ack_at" class="chip good">✍️ Signed</span><span t-else="" class="chip warn" title="Not signed yet">⏳</span></td>
+                            <td><button type="button" t-att-class="'nv-btn' + (c.settled_at ? '' : ' primary')" t-on-click="() => this.settle(c)">
+                                <t t-if="c.settled_at">✓ Deducted</t><t t-else="">Mark as deducted</t></button></td>
+                        </tr>
+                        <tr t-if="!w.pens.length"><td colspan="6" class="empty">No penalties this month</td></tr>
+                    </tbody></table></div>
+                    <p class="sub">At the end of the month, download the file and give it to the accountant for payroll.</p>
+                </div>
+            </div>
+        </t>
+    </t>
+
 </templates>

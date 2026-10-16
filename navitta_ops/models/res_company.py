@@ -13,8 +13,13 @@ class ResCompany(models.Model):
     _inherit = "res.company"
 
     navitta_tz = fields.Selection(_tz_get, string="Branches time zone", default="Asia/Riyadh", required=True)
-    navitta_shift_start = fields.Float("Shift start", default=15.5)
-    navitta_shift_end = fields.Float("Shift end", default=23.5)
+    # the evening shift (every branch); the morning shift only in branches that have one (navitta.branch.two_shifts)
+    navitta_shift_start = fields.Float("Evening shift start", default=15.5)
+    navitta_shift_end = fields.Float("Evening shift end", default=23.5)
+    navitta_am_start = fields.Float("Morning shift start", default=9.5)
+    navitta_am_end = fields.Float("Morning shift end", default=16.0)
+    navitta_no_am_days = fields.Char("Days without a morning shift", default="0,1,5",
+                                     help="Weekdays (0 = Sunday … 6 = Saturday) when morning employees work the evening shift")
     navitta_grace = fields.Integer("Check-in grace (minutes)", default=5)
     navitta_break_max = fields.Integer("Daily break (minutes)", default=30)
     navitta_chances = fields.Integer("Grace chances per month", default=3)
@@ -30,13 +35,19 @@ class ResCompany(models.Model):
                                         help="The first employee counts the cash float after check-in before opening the counter, and no employee "
                                              "can check out before closing her visits, sending the daily report and counting the closing cash")
 
-    @api.constrains("navitta_shift_start", "navitta_shift_end", "navitta_grace", "navitta_break_max", "navitta_chances")
+    @api.constrains("navitta_shift_start", "navitta_shift_end", "navitta_am_start", "navitta_am_end", "navitta_grace",
+                    "navitta_break_max", "navitta_chances")
     def _check_navitta_rules(self):
         for c in self:
-            if not (0 <= c.navitta_shift_start < c.navitta_shift_end <= 24):
+            if not (0 <= c.navitta_shift_start < c.navitta_shift_end <= 24) or not (0 <= c.navitta_am_start < c.navitta_am_end <= 24):
                 raise ValidationError(_("The shift start must be before its end"))
             if min(c.navitta_grace, c.navitta_break_max, c.navitta_chances) < 0:
                 raise ValidationError(_("Values cannot be negative"))
+
+    def _navitta_no_am(self):
+        """Weekdays without a morning shift (0 = Sunday … 6 = Saturday)."""
+        self.ensure_one()
+        return {int(x) for x in (self.navitta_no_am_days or "").split(",") if x.strip().isdigit() and 0 <= int(x) <= 6}
 
     def _navitta_lang(self):
         """Language for texts generated in the background (crons, fingerprint device, phone page) for staff:

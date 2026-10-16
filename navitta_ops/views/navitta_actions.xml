@@ -25,6 +25,11 @@
         <field name="tag">navitta_admin_app</field>
         <field name="params" eval="{'tab': 'lost'}"/>
     </record>
+    <record id="action_admin_rules" model="ir.actions.client">
+        <field name="name">Rules and violations</field>
+        <field name="tag">navitta_admin_app</field>
+        <field name="params" eval="{'tab': 'rules'}"/>
+    </record>
     <record id="action_admin_day" model="ir.actions.client">
         <field name="name">Daily log</field>
         <field name="tag">navitta_admin_app</field>
