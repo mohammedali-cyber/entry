@@ -2,15 +2,16 @@
 <templates xml:space="preserve">
 
     <t t-name="navitta_ops.BranchApp">
-        <div class="o_navitta o_action" t-att-dir="DIR" t-att-lang="LANG">
+        <div class="o_navitta o_action" t-att-class="{'nv-dark': theme.theme === 'dark'}" t-att-dir="DIR" t-att-lang="LANG">
             <div class="wrap">
                 <header class="top">
                     <div class="brand"><span class="nv-mark">NAVITTA</span><h1 t-esc="title"/></div>
+                    <div class="hdr-tools"><TourBtn/><ThemeToggle/></div>
                     <nav class="topnav">
-                        <a href="#" t-att-class="state.tab === 'counter' ? 'on' : ''" t-on-click.prevent="() => this.go('counter')">Visit counter</a>
-                        <a href="#" t-att-class="state.tab === 'inbox' ? 'on' : ''" t-on-click.prevent="() => this.go('inbox')">My alerts<span t-if="state.unread" class="nb num" t-esc="state.unread"/></a>
-                        <a href="#" t-att-class="state.tab === 'requests' ? 'on' : ''" t-on-click.prevent="() => this.go('requests')">📦 Branch requests</a>
-                        <a href="#" t-att-class="state.tab === 'report' ? 'on' : ''" t-on-click.prevent="() => this.go('report')">Daily report</a>
+                        <a href="#" data-help="b-counter" t-att-class="state.tab === 'counter' ? 'on' : ''" t-on-click.prevent="() => this.go('counter')">Visit counter<Bulb id="'b-counter'"/></a>
+                        <a href="#" data-help="b-inbox" t-att-class="state.tab === 'inbox' ? 'on' : ''" t-on-click.prevent="() => this.go('inbox')">My alerts<span t-if="state.unread" class="nb num" t-esc="state.unread"/><Bulb id="'b-inbox'"/></a>
+                        <a href="#" data-help="b-requests" t-att-class="state.tab === 'requests' ? 'on' : ''" t-on-click.prevent="() => this.go('requests')">📦 Branch requests<Bulb id="'b-requests'"/></a>
+                        <a href="#" data-help="b-report" t-att-class="state.tab === 'report' ? 'on' : ''" t-on-click.prevent="() => this.go('report')">Daily report<Bulb id="'b-report'"/></a>
                         <a t-if="!state.branches" href="/web/session/logout" class="logout">Sign out</a>
                     </nav>
                 </header>
@@ -41,6 +42,7 @@
                     <Report t-if="state.tab === 'report'" t-key="state.key"/>
                 </t>
             </div>
+            <HelpLayer t-if="state.ready" role="'branch'" name="greeting" login="state.login"/>
         </div>
     </t>
 
@@ -55,7 +57,7 @@
             <div class="counter-top">
                 <span class="chip neutral num" t-esc="longDate(d.day)"/>
                 <span class="range-note">Today: <t t-esc="d.visits.filter((v) => v.saved).length"/> customers · Keyboard: an employee's number (1, 2, 3…) starts a visit</span>
-                <button type="button" class="ms-btn" t-on-click="() => state.search = true">🔎 Find a model</button>
+                <button type="button" class="ms-btn" data-help="b-search" t-on-click="() => state.search = true">🔎 Find a model<Bulb id="'b-search'"/></button>
             </div>
             <ModelSearch t-if="state.search" onClose="() => state.search = false"/>
             <UndoOut t-if="state.undo" emp="state.undo" onClose="() => state.undo = null" onDone="() => this.undone()"/>
@@ -88,7 +90,8 @@
                 <t t-foreach="d.employees" t-as="emp" t-key="emp.id">
                     <t t-set="p" t-value="pane(emp)"/>
                     <t t-set="num" t-value="emp_index + 1"/>
-                    <div class="pane">
+                    <div class="pane" t-att-data-help="emp_index === 0 ? 'b-emp' : undefined">
+                        <Bulb t-if="emp_index === 0" id="'b-emp'"/>
                         <div class="pane-h">
                             <div style="min-width:0;flex:1">
                                 <div class="slot">Employee <t t-esc="num"/> · <t t-esc="shiftLabel(emp)"/></div>

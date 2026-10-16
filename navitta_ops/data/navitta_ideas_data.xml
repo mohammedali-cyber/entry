@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- the site's first idea (0007): management edits, marks or deletes it on the Ideas page -->
+    <record id="idea_forgot_pin" model="navitta.idea">
+        <field name="title">Forgot my PIN: a verification code by email</field>
+        <field name="details">The employee taps “Forgot your PIN?” on the branch device, receives a verification code by email that is valid for 10 minutes, and chooses her new PIN herself.</field>
+        <field name="version">later</field>
+    </record>
+</odoo>

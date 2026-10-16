@@ -2,18 +2,19 @@
 <templates xml:space="preserve">
 
     <t t-name="navitta_ops.AdminApp">
-        <div class="o_navitta o_action" t-att-dir="DIR" t-att-lang="LANG">
+        <div class="o_navitta o_action" t-att-class="{'nv-dark': theme.theme === 'dark'}" t-att-dir="DIR" t-att-lang="LANG">
             <div class="wrap">
                 <header class="top">
                     <div class="brand"><span class="nv-mark">NAVITTA</span><h1>Branch management</h1></div>
+                    <div class="hdr-tools"><TourBtn/><ThemeToggle/></div>
                     <nav class="topnav">
                         <t t-foreach="tabs" t-as="t" t-key="t[0]">
-                            <a href="#" t-att-class="state.tab === t[0] ? 'on' : ''" t-on-click.prevent="() => state.tab = t[0]" t-esc="t[1]"/>
+                            <a href="#" t-att-class="state.tab === t[0] ? 'on' : ''" t-att-data-help="t[2] or undefined" t-on-click.prevent="() => state.tab = t[0]"><t t-esc="t[1]"/><Bulb t-if="t[2]" id="t[2]"/></a>
                         </t>
                     </nav>
                 </header>
                 <div class="sheen"/>
-                <FilterBar f="f" branches="state.branches" dates="withDates"/>
+                <FilterBar t-if="withFilter" f="f" branches="state.branches" dates="withDates"/>
                 <Dashboard t-if="state.tab === 'dashboard'" f="f"/>
                 <Compare t-if="state.tab === 'compare'" f="f"/>
                 <Sales t-if="state.tab === 'sales'" f="f"/>
@@ -21,7 +22,10 @@
                 <Lost t-if="state.tab === 'lost'" f="f"/>
                 <Rules t-if="state.tab === 'rules'" f="f"/>
                 <Day t-if="state.tab === 'day'" f="f"/>
+                <AdminSettings t-if="state.tab === 'settings'" f="f"/>
+                <Ideas t-if="state.tab === 'ideas'"/>
             </div>
+            <HelpLayer role="'admin'" name="mgmt" login="state.login"/>
         </div>
     </t>
 
@@ -192,6 +196,7 @@
                             <div t-if="r.state === 'pending'" class="req-act"><input class="ctl" placeholder="Note (optional)" t-model="state.notes[r.id]"/>
                                 <button type="button" class="nv-btn primary" t-on-click="() => this.act('admin_decide_leave', [r.id, true, this.note(r.id)], TX.leaveApproved)">Approve</button>
                                 <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_leave', [r.id, false, this.note(r.id)], TX.requestRejected)">Reject</button></div>
+                            <DelBtn small="true" kind="'leave_requests'" id="r.id" what="lreqWhat(r)" onDone="() => this.load()"/>
                         </div>
                         <div t-if="!w.lreq.length" class="empty">No requests</div>
                     </div>
@@ -203,7 +208,8 @@
                         <div class="req-dur num"><span class="old" t-esc="mmss(r.old_sec)"/> <t t-esc="ARROW"/> <b t-esc="mmss(r.new_sec)"/></div><div class="meta">Reason: <t t-esc="r.reason"/></div></div></div>
                         <div class="req-act"><input class="ctl" placeholder="Reply (optional)" t-model="state.notes[r.id]"/>
                             <button type="button" class="nv-btn primary" t-on-click="() => this.act('admin_decide_visit_edit', [r.id, true, this.note(r.id)], TX.changeAccepted)">Accept</button>
-                            <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_visit_edit', [r.id, false, this.note(r.id)], TX.changeRejected)">Reject</button></div></div>
+                            <button type="button" class="nv-btn" t-on-click="() => this.act('admin_decide_visit_edit', [r.id, false, this.note(r.id)], TX.changeRejected)">Reject</button></div>
+                        <DelBtn small="true" kind="'visit_edit_requests'" id="r.id" what="ereqWhat(r)" onDone="() => this.load()"/></div>
                 </div></div>
 
                 <div class="nv-card c12">
@@ -240,11 +246,13 @@
                             </button>
                             <div t-if="state.openT === th.id" class="thr-b">
                                 <div class="thread"><t t-foreach="th.messages" t-as="m" t-key="m.id">
-                                    <div t-att-class="'bub ' + (m.sender === 'admin' ? 'mine' : 'theirs')"><div t-esc="m.body"/><span><t t-esc="m.sender === 'admin' ? TX.management : eName(th.employee_id)"/> · <t t-esc="ago(m.created_at)"/></span></div>
+                                    <div t-att-class="'bub ' + (m.sender === 'admin' ? 'mine' : 'theirs')"><div t-esc="m.body"/><span><t t-esc="m.sender === 'admin' ? TX.management : eName(th.employee_id)"/> · <t t-esc="ago(m.created_at)"/>
+                                        <DelBtn small="true" kind="'messages'" id="m.id" what="msgWhat(th, m)" onDone="() => this.load()"/></span></div>
                                 </t></div>
                                 <div class="vrow"><textarea class="ctl" rows="2" style="flex:1 1 220px" t-model="state.reply" placeholder="Write your reply"/>
                                     <button type="button" class="nv-btn primary" t-on-click="() => this.sendReply(th)">Send reply</button>
-                                    <button type="button" class="nv-btn" t-on-click="() => this.toggleThread(th)" t-esc="th.state === 'open' ? TX.resolveClose : TX.reopen"/></div>
+                                    <button type="button" class="nv-btn" t-on-click="() => this.toggleThread(th)" t-esc="th.state === 'open' ? TX.resolveClose : TX.reopen"/>
+                                    <DelBtn kind="'threads'" id="th.id" what="threadWhat(th)" onDone="() => this.load()"/></div>
                             </div>
                         </div>
                         <div t-if="!w.threads.length" class="empty">No messages</div>
@@ -257,7 +265,7 @@
                         <div t-foreach="d.notifications" t-as="n" t-key="n.id" class="nv-alert">
                             <span t-att-class="'chip ' + NOTIF[n.state][0]" t-esc="NOTIF[n.state][1]"/>
                             <div style="min-width:0"><div class="what"><b t-esc="n.subject"/></div><div class="meta">To <t t-esc="n.employee_id ? eName(n.employee_id) : TX.management"/><t t-if="n.to_email"> · <t t-esc="n.to_email"/></t><t t-if="n.error"> · <t t-esc="n.error"/></t></div></div>
-                            <span class="when" t-esc="ago(n.created_at)"/>
+                            <span class="when"><t t-esc="ago(n.created_at)"/> <DelBtn small="true" kind="'notifications'" id="n.id" what="n.subject" onDone="() => this.load()"/></span>
                         </div>
                         <div t-if="!d.notifications.length" class="empty">No notifications yet</div>
                     </div>
@@ -394,7 +402,8 @@
                                 <t t-set="dc" t-value="diffCell(x)"/><td t-att-class="'n ' + dc.cls" t-att-title="dc.title" t-esc="dc.text"/>
                                 <td class="n" t-esc="x.has ? f0(x.tax) : '—'"/><td class="n"><b t-if="x.has" t-esc="f0(x.sales - x.tax)"/><t t-else="">—</t></td>
                                 <t t-if="br"><td><t t-esc="x.closed_by or '—'"/> <span t-if="x.edited" class="chip info">✏️ Edited</span></td>
-                                    <td><button type="button" class="del" t-on-click="() => state.dayEdit = {day: x.day}">✏️ Edit</button></td></t></tr>
+                                    <td class="act"><button type="button" class="del" t-on-click="() => state.dayEdit = {day: x.day}">✏️ Edit</button>
+                                        <DelBtn t-if="x.id" small="true" kind="'daily_sales'" id="x.id" what="dayWhat(x)" onDone="() => this.load()"/></td></t></tr>
                         </t>
                         <tr t-if="!dayRows.length"><td colspan="18" class="empty" t-esc="rg.custom ? TX.noDataPeriod : TX.noDataMonth"/></tr>
                     </tbody></table></div></div>
@@ -425,7 +434,7 @@
             </div>
             <div class="grid">
                 <ShipBuilder t-if="w.showReq" branches="d.branches" reqs="d.requests" start="br" eta="d.eta" waiting="d.waiting" onDone="() => this.load()"/>
-                <ShipLog t-if="w.showReq" ships="w.ships" bName="bNameFn"/>
+                <ShipLog t-if="w.showReq" ships="w.ships" bName="bNameFn" onDone="() => this.load()"/>
                 <div t-if="w.showReq" class="nv-card c12"><h2>Requests needing your follow-up</h2><div class="reqs">
                     <div t-foreach="w.live" t-as="r" t-key="r.id" t-att-class="'req' + (r.state === 'pending' ? ' pending' : '')">
                         <div class="req-main"><span t-att-class="'chip ' + RQST[r.state][0]"><t t-esc="r.kind === 'goods' ? TX.outOfStock : TX.supplies"/> · <t t-esc="RQST[r.state][1]"/></span>
@@ -434,12 +443,13 @@
                                     <t t-if="r.contact_name"> · 🙋‍♀️ <t t-esc="r.contact_name"/></t><t t-if="r.contact_phone"> · <a t-att-href="'tel:' + r.contact_phone" dir="ltr" class="num">📱 <t t-esc="r.contact_phone"/></a></t>
                                     <t t-if="r.in_shipment"> · <span class="chip info">🚚 In the shipment on its way</span></t><t t-if="r.note"> · <t t-esc="r.note"/></t>
                                     <t t-if="r.kind === 'supply' and r.supply !== 'other'"> · Balance <t t-esc="bal(r.branch_id, r.supply)"/></t>
-                                    <PhotoLink t-if="r.photo_id" id="r.photo_id" label="TX.itemPhoto"/></div></div></div>
+                                    </div></div><FileThumb t-if="r.photo_id" id="r.photo_id" label="TX.itemPhoto"/></div>
                         <div class="req-act">
                             <input class="ctl" placeholder="Note (optional)" t-model="state.notes[r.id]"/>
                             <button t-if="r.state === 'pending'" type="button" class="nv-btn primary" t-on-click="() => this.act('admin_request_set', [r.id, 'approved', this.note(r.id)], TX.approved)">Approve</button>
                             <button t-if="r.state !== 'shipped'" type="button" class="nv-btn" t-on-click="() => this.act('admin_request_set', [r.id, 'shipped', this.note(r.id)], TX.shippedDone)">🚚 Shipped</button>
                             <button type="button" class="nv-btn" t-on-click="() => this.act('admin_request_set', [r.id, 'rejected', this.note(r.id)], TX.requestRejected)">Reject</button>
+                            <DelBtn small="true" kind="'branch_requests'" id="r.id" what="reqWhat(r)" onDone="() => this.load()"/>
                         </div>
                     </div>
                     <div t-if="!w.live.length" class="empty">No open requests</div>
@@ -447,7 +457,7 @@
 
                 <div t-if="w.showDef" class="nv-card c12"><h2>🩹 Defective items <span t-if="w.defOpen.length" class="chip warn" t-esc="TX.defectsWaiting(w.defOpen.length)"/></h2><div class="reqs">
                     <div t-foreach="w.defOpen.concat(w.defDone)" t-as="x" t-key="x.id" t-att-class="'req' + (x.state === 'pending' ? ' pending' : '')">
-                        <div class="req-main"><PhotoLink t-if="x.photo_id" id="x.photo_id" label="TX.defectPhoto"/>
+                        <div class="req-main"><FileThumb t-if="x.photo_id" id="x.photo_id" label="TX.defectPhoto"/>
                             <div><div class="what"><b class="num" t-esc="defWhat(x)"/> · <t t-esc="bName(x.branch_id)"/></div>
                                 <div class="meta"><t t-esc="x.defect_label"/> · <t t-esc="x.source_label"/><t t-if="x.details"> · <t t-esc="x.details"/></t></div>
                                 <div class="meta"><t t-esc="x.employee or '—'"/> · <t t-esc="longDate(x.day)"/></div>
@@ -457,6 +467,7 @@
                             <button type="button" class="nv-btn primary" t-on-click="() => this.decideDefect(x, true)">✅ Approve</button>
                             <button type="button" class="nv-btn" t-on-click="() => this.decideDefect(x, false)">✕ Reject</button>
                         </div>
+                        <DelBtn t-else="" small="true" kind="'defects'" id="x.id" what="defWhatFull(x)" onDone="() => this.load()"/>
                     </div>
                     <div t-if="!w.defOpen.length and !w.defDone.length" class="empty">No defective items</div>
                 </div></div>
@@ -466,11 +477,13 @@
                         <div class="req-main"><span class="chip info"><t t-esc="EXPICON[x.category] or '📦'"/> <t t-esc="x.category_label"/></span>
                             <div><div class="what"><b class="num"><t t-esc="f0(x.amount)"/> SAR</b> · <t t-esc="bName(x.branch_id)"/></div>
                                 <div class="meta"><t t-esc="x.employee or '—'"/> · <t t-esc="longDate(x.day)"/> · <t t-esc="x.details"/> ·
-                                    <PhotoLink t-if="x.receipt_id" id="x.receipt_id"/><span t-else="" class="chip warn">⚠️ No receipt</span></div></div></div>
+                                    <span t-if="!x.receipt_id" class="chip warn">⚠️ No receipt</span></div></div>
+                            <FileThumb t-if="x.receipt_id" id="x.receipt_id" label="TX.view"/></div>
                         <div class="req-act">
                             <input class="ctl" placeholder="Note (optional)" t-model="state.notes[x.id]"/>
                             <button type="button" class="nv-btn primary" t-on-click="() => this.act('admin_expense_decide', [x.id, true, this.note(x.id)], TX.expenseApproved)">Validate</button>
                             <button type="button" class="nv-btn" t-on-click="() => this.act('admin_expense_decide', [x.id, false, this.note(x.id)], TX.expenseRejected)">Reject</button>
+                            <DelBtn small="true" kind="'expenses'" id="x.id" what="expWhat(x)" onDone="() => this.load()"/>
                         </div>
                     </div>
                     <div t-if="!w.pendX.length" class="empty">No expenses awaiting you</div>
@@ -486,9 +499,10 @@
                             <td class="n"><b><t t-esc="f0(bx.total)"/> SAR</b><button t-if="bx.mine.length" type="button" t-att-class="'more' + (state.open === b.id ? ' on' : '')" t-on-click="() => state.open = (state.open === b.id ? null : b.id)" t-esc="state.open === b.id ? TX.hide : TX.more"/></td></tr>
                         <tr t-if="state.open === b.id" class="exp-open"><td colspan="6"><div class="ex-wrap">
                             <div><b style="display:block;margin-bottom:8px">💸 Expenses of <t t-esc="b.name"/> · this month</b>
-                                <div class="tscroll"><table class="nv-tbl dt"><thead><tr><th>Date</th><th>Type</th><th>Details</th><th>Employee</th><th>Amount</th><th>Status</th><th>Receipt</th></tr></thead><tbody>
+                                <div class="tscroll"><table class="nv-tbl dt"><thead><tr><th>Date</th><th>Type</th><th>Details</th><th>Employee</th><th>Amount</th><th>Status</th><th>Receipt</th><th/></tr></thead><tbody>
                                     <tr t-foreach="bx.mine" t-as="x" t-key="x.id"><td class="num" t-esc="x.day.slice(5)"/><td><t t-esc="EXPICON[x.category] or '📦'"/> <t t-esc="x.category_label"/></td><td style="white-space:normal" t-esc="x.details"/><td t-esc="x.employee"/>
-                                        <td class="n"><b t-esc="f0(x.amount)"/></td><td><span t-att-class="'chip ' + EXST[x.state][0]" t-esc="EXST[x.state][1]"/></td><td><PhotoLink t-if="x.receipt_id" id="x.receipt_id" label="TX.view"/><t t-else="">—</t></td></tr>
+                                        <td class="n"><b t-esc="f0(x.amount)"/></td><td><span t-att-class="'chip ' + EXST[x.state][0]" t-esc="EXST[x.state][1]"/></td><td><FileThumb t-if="x.receipt_id" id="x.receipt_id"/><t t-else="">—</t></td>
+                                        <td><DelBtn small="true" kind="'expenses'" id="x.id" what="expWhat(x)" onDone="() => this.load()"/></td></tr>
                                 </tbody></table></div>
                                 <p class="note">Total excluding rejected: <t t-esc="f0(bx.total)"/> SAR</p></div>
                             <div class="cat"><b>By type</b>
@@ -503,7 +517,8 @@
 
                 <div t-if="w.showReq and w.done.length" class="nv-card c12"><h2>Latest completed requests</h2><div class="reqs">
                     <div t-foreach="w.done" t-as="r" t-key="r.id" class="req"><div class="req-main"><span t-att-class="'chip ' + RQST[r.state][0]" t-esc="RQST[r.state][1]"/>
-                        <div><div class="what"><b class="num" t-esc="r.what"/> · <t t-esc="bName(r.branch_id)"/></div><div class="meta"><t t-esc="r.employee or '—'"/> · <t t-esc="longDate(r.created_at)"/><t t-if="r.received_by"> · Received by <t t-esc="r.received_by"/></t><t t-if="r.admin_note"> · «<t t-esc="r.admin_note"/>»</t></div></div></div></div>
+                        <div><div class="what"><b class="num" t-esc="r.what"/> · <t t-esc="bName(r.branch_id)"/></div><div class="meta"><t t-esc="r.employee or '—'"/> · <t t-esc="longDate(r.created_at)"/><t t-if="r.received_by"> · Received by <t t-esc="r.received_by"/></t><t t-if="r.admin_note"> · «<t t-esc="r.admin_note"/>»</t></div></div></div>
+                        <DelBtn small="true" kind="'branch_requests'" id="r.id" what="reqWhat(r)" onDone="() => this.load()"/></div>
                 </div></div>
             </div>
         </t>
@@ -557,11 +572,12 @@
 
                 <div class="nv-card c12">
                     <div class="nv-card-h"><h2>All lost sales</h2><button t-if="w.rows.length" type="button" class="nv-btn" t-on-click="() => this.dlAll(w)">⬇️ Download Excel</button></div>
-                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>Date</th><th>Branch</th><th>Employee</th><th>Reason</th><th>Requested</th><th>Price</th></tr></thead><tbody>
+                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>Date</th><th>Branch</th><th>Employee</th><th>Reason</th><th>Requested</th><th>Price</th><th/></tr></thead><tbody>
                         <tr t-foreach="w.rows.slice(0, 100)" t-as="r" t-key="r.id"><td class="num" t-esc="longDate(r.day)"/><td t-esc="bName(r.branch_id)"/><td t-esc="r.employee or '—'"/><td t-esc="LOSTL[r.reason] or r.reason"/>
                             <td class="num"><t t-esc="jn([r.item_no and '🏷️ ' + r.item_no, r.model, vlabel(r.color), r.size], ' · ') or '—'"/><div t-if="r.note" class="m" t-esc="r.note"/></td>
-                            <td class="n" t-esc="r.price ? f0(r.price) : '—'"/></tr>
-                        <tr t-if="!w.rows.length"><td colspan="6" class="empty">No lost sales in this period</td></tr>
+                            <td class="n" t-esc="r.price ? f0(r.price) : '—'"/>
+                            <td><DelBtn small="true" kind="'lost_sales'" id="r.id" what="lostWhat(r)" onDone="() => this.load()"/></td></tr>
+                        <tr t-if="!w.rows.length"><td colspan="7" class="empty">No lost sales in this period</td></tr>
                     </tbody></table></div>
                     <p t-if="w.rows.length &gt; 100" class="hint">Showing the latest 100. Download the file for all the data.</p>
                 </div>
@@ -574,17 +590,20 @@
         <div t-if="!state.d" class="empty">Loading…</div>
         <t t-else="">
             <t t-set="d" t-value="state.d"/>
-            <div class="filters">
+            <DayCalendar t-key="state.cal" branchId="br or 0" day="state.day" onPick="(v) => this.pickDay(v)"/>
+            <div id="day-det" class="dcal-det">
+                <h2 t-esc="longDate(state.day)"/>
                 <div class="seg"><button type="button" t-on-click="() => this.setDay(addDays(state.day, -1))">← Previous</button>
-                    <input type="date" class="ctl num" t-att-value="state.day" t-att-max="d.today" t-on-change="(e) => this.setDay(e.target.value)"/>
+                    <input type="date" class="ctl num" t-att-value="state.day" t-att-max="d.today" t-on-change="(e) => this.setDay(e.target.value)" aria-label="Day"/>
                     <button type="button" t-att-disabled="state.day &gt;= d.today" t-on-click="() => this.setDay(addDays(state.day, 1))">Next →</button></div>
-                <span class="range-note"><t t-esc="longDate(state.day)"/> · Every day is kept with its events and never deleted</span>
+                <span class="range-note">Every day is kept with its events; 🗑️ deletes a record with the delete password</span>
             </div>
             <div class="grid">
                 <t t-foreach="shownBranches" t-as="b" t-key="b.id">
                     <t t-set="k" t-value="block(b)"/>
                     <div class="nv-card c12">
                         <div class="nv-card-h"><h2 t-esc="b.name"/><div class="vrow"><span t-if="k.r" class="chip good">Report by <t t-esc="k.r.employee_name"/></span><span t-else="" class="chip warn">No report sent</span>
+                            <DelBtn t-if="k.r" small="true" kind="'daily_reports'" id="k.r.id" what="reportWhat(k.r, b)" onDone="() => this.reload()"/>
                             <span t-if="k.mk.edited" class="chip info">✏️ Edited</span>
                             <button t-if="k.mk.changed" type="button" class="chg" t-on-click="() => state.changes = {day: state.day, branchId: b.id}">⚠️ Changed after closing (<t t-esc="k.mk.changed"/>)</button></div></div>
                         <div class="kpis mini">
@@ -595,15 +614,21 @@
                             <div class="kpi"><span class="lbl">Average visit</span><span class="val num" t-esc="k.avg"/></div>
                             <div class="kpi"><span class="lbl">Satisfaction</span><span class="val num" t-esc="k.r ? k.r.sat + ' / 5' : '—'"/></div>
                         </div>
-                        <div class="tscroll"><table class="nv-tbl"><thead><tr><th>Employee</th><th>Check-in</th><th>Check-out</th><th>Break</th><th>Status</th></tr></thead><tbody>
-                            <tr t-foreach="k.rows" t-as="x" t-key="x.e.id"><td><b t-esc="x.e.name"/></td><td class="n" t-esc="x.a ? clock(x.a.check_in) : '—'"/><td class="n" t-esc="x.a and x.a.check_out ? clock(x.a.check_out) : '—'"/>
-                                <td class="n" t-esc="x.bm ? x.bm + ' ' + TX.min : '—'"/><td><span t-att-class="'chip ' + x.st[0]" t-esc="x.st[1]"/></td></tr>
+                        <div class="tscroll"><table class="nv-tbl"><thead><tr><th>Employee</th><th>Check-in</th><th>Check-out</th><th>Break</th><th>Status</th><th/></tr></thead><tbody>
+                            <tr t-foreach="k.rows" t-as="x" t-key="x.e.id"><td><b t-esc="x.e.name"/></td>
+                                <td class="n"><t t-esc="x.a ? clock(x.a.check_in) : '—'"/> <FileThumb t-if="x.a and x.a.in_photo_id" id="x.a.in_photo_id" label="TX.photo"/></td>
+                                <td class="n"><t t-esc="x.a and x.a.check_out ? clock(x.a.check_out) : '—'"/> <FileThumb t-if="x.a and x.a.out_photo_id" id="x.a.out_photo_id" label="TX.photo"/></td>
+                                <td class="n"><t t-esc="x.bm ? x.bm + ' ' + TX.min : '—'"/>
+                                    <div t-foreach="x.brks" t-as="y" t-key="y.id" class="brk-r"><span class="num" t-esc="brkLine(y)"/>
+                                        <DelBtn small="true" kind="'breaks'" id="y.id" what="brkWhat(x, y)" onDone="() => this.reload()"/></div></td>
+                                <td><span t-att-class="'chip ' + x.st[0]" t-esc="x.st[1]"/></td>
+                                <td><DelBtn t-if="x.a" small="true" kind="'attendance'" id="x.a.id" what="attWhat(x, b)" onDone="() => this.reload()"/></td></tr>
                         </tbody></table></div>
                         <t t-if="k.r">
                             <h3>📸 End-of-shift photos</h3>
                             <div class="eod">
-                                <span class="ph"><t t-if="k.r.photo_card"><PhotoLink id="k.r.photo_card" label="TX.settlement"/></t><span t-else="" class="chip bad">⚠️ No settlement photo</span></span>
-                                <span class="ph"><t t-if="k.r.photo_inv"><PhotoLink id="k.r.photo_inv" label="TX.invoicesPhoto"/></t><span t-else="" class="chip bad">⚠️ No invoices photo</span></span>
+                                <span class="ph"><FileThumb t-if="k.r.photo_card" id="k.r.photo_card" label="TX.settlement"/><span t-else="" class="chip bad">⚠️ No settlement photo</span></span>
+                                <span class="ph"><FileThumb t-if="k.r.photo_inv" id="k.r.photo_inv" label="TX.invoicesPhoto"/><span t-else="" class="chip bad">⚠️ No invoices photo</span></span>
                                 <span class="num">💳 Card <b t-esc="f0(k.r.card)"/> · 💵 Cash <b t-esc="f0(k.r.cash)"/><t t-if="k.chk"> · Point of Sale <t t-esc="f0(k.chk.sys_card)"/> / <t t-esc="f0(k.chk.sys_cash)"/></t></span>
                                 <span t-if="k.r.cash_note" class="chip warn">💵 <t t-esc="k.r.cash_note"/></span>
                                 <span t-if="k.r.card_note" class="chip warn">💳 <t t-esc="k.r.card_note"/></span>
@@ -611,14 +636,15 @@
                             </div>
                         </t>
                         <h3>💰 Float</h3>
-                        <div class="tscroll"><table class="nv-tbl"><thead><tr><th/><th>Amount</th><th>Counted by</th><th>Confirmed by</th><th>Status</th><th>Photo</th></tr></thead><tbody>
+                        <div class="tscroll"><table class="nv-tbl"><thead><tr><th/><th>Amount</th><th>Counted by</th><th>Confirmed by</th><th>Status</th><th>Photo</th><th/></tr></thead><tbody>
                             <tr t-foreach="k.floats" t-as="x" t-key="x.k"><t t-set="fs" t-value="floatState(x.f)"/>
                                 <td t-esc="x.label"/>
                                 <td class="n"><b t-if="x.f"><t t-esc="f0(x.f.amount)"/> / <t t-esc="f0(x.f.expected)"/></b><t t-else="">—</t></td>
                                 <td t-esc="floatWho(x.f, 'counted')"/>
                                 <td t-esc="floatWho(x.f, 'confirmed')"/>
                                 <td><span t-att-class="'chip ' + fs[0]" t-esc="fs[1]"/></td>
-                                <td><PhotoLink t-if="x.f and x.f.photo_id" id="x.f.photo_id" label="'📷'"/><t t-else="">—</t></td></tr>
+                                <td><FileThumb t-if="x.f and x.f.photo_id" id="x.f.photo_id" label="'📷'"/><t t-else="">—</t></td>
+                                <td><DelBtn t-if="x.f" small="true" kind="'floats'" id="x.f.id" what="floatWhat(x, b)" onDone="() => this.reload()"/></td></tr>
                         </tbody></table></div>
                         <t t-if="k.T and k.T.tasks.length">
                             <h3>📋 Tasks <span class="range-note num" t-esc="tasksDone(k.T)"/></h3>
@@ -628,15 +654,16 @@
                                          t-att-class="'tk-i' + (x.done_at ? ' d' : '') + (!x.done_at and past(k.T, p[0]) ? ' miss' : '')">
                                         <div class="tk-b"><span class="bx" t-esc="x.done_at ? '✓' : ''"/><span class="tx"><span class="tt" t-esc="taskLine(x)"/><span class="tg" t-esc="groupOf(x)"/>
                                             <span t-if="x.done_at" class="mt" t-esc="doneLine(x)"/><span t-elif="past(k.T, p[0])" class="mt bad">✕ Missed</span></span></div>
-                                        <PhotoLink t-if="x.photo_id" id="x.photo_id" label="'📷'"/>
-                                        <button t-if="x.done_id" type="button" class="linkbtn reopen" title="Reopen" t-on-click="() => this.reopen(x, b)">↩️ Reopen</button>
+                                        <FileThumb t-if="x.photo_id" id="x.photo_id" label="'📷'"/>
+                                        <DelBtn t-if="x.done_id" small="true" kind="'task_done'" id="x.done_id" what="taskWhat(x, b)" onDone="() => this.reload()"/>
                                     </div>
                                 </div>
                             </div>
                         </t>
                         <h3>Key events</h3>
                         <div class="nv-alerts">
-                            <div t-foreach="k.ev" t-as="e" t-key="e_index" class="nv-alert"><span t-att-class="'chip ' + e[0]" t-esc="e[0] === 'bad' ? TX.important : e[0] === 'warn' ? TX.alert : TX.event"/><div class="what" t-esc="e[1]"/><span/></div>
+                            <div t-foreach="k.ev" t-as="e" t-key="e_index" class="nv-alert"><span t-att-class="'chip ' + e[0]" t-esc="e[0] === 'bad' ? TX.important : e[0] === 'warn' ? TX.alert : TX.event"/><div class="what" t-esc="e[1]"/>
+                                <span><DelBtn t-if="e[2]" small="true" kind="'late_cases'" id="e[2]" what="e[1]" onDone="() => this.reload()"/></span></div>
                             <div t-if="!k.ev.length" class="empty">No events recorded</div>
                         </div>
                         <div t-if="k.r and (k.r.improve or k.r.suggest or k.r.phrase)" class="rep">
@@ -719,7 +746,7 @@
                         <span class="vrow" style="gap:6px;flex-wrap:nowrap">
                             <button t-if="state.edR[r.id] !== undefined" type="button" class="nv-btn primary" t-on-click="() => this.ruleSave(r.id, state.edR[r.id])">Save</button>
                             <button t-else="" type="button" class="del" aria-label="Edit" t-on-click="() => state.edR[r.id] = r.body">✏️</button>
-                            <button type="button" class="del" aria-label="Delete" t-on-click="() => this.ruleDel(r)">🗑️</button>
+                            <DelBtn small="true" kind="'rules'" id="r.id" what="r.body" onDone="() => this.load()"/>
                         </span>
                     </div>
                     <div class="vrow"><input class="ctl" t-model="state.nr" t-att-placeholder="rulePh" t-att-aria-label="rulePh" style="flex:1 1 220px"/>
@@ -742,7 +769,7 @@
                 <div class="nv-card c12">
                     <div class="nv-card-h"><h2>⚖️ Penalties issued this month</h2>
                         <button t-if="w.pens.length" type="button" class="nv-btn" t-on-click="() => this.csv()">⬇️ Excel for payroll</button></div>
-                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>Employee</th><th>Date</th><th>Violation</th><th>Penalty</th><th>Signed</th><th>Deduction</th></tr></thead><tbody>
+                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>Employee</th><th>Date</th><th>Violation</th><th>Penalty</th><th>Signed</th><th>Deduction</th><th/></tr></thead><tbody>
                         <tr t-foreach="w.pens" t-as="c" t-key="c.id">
                             <td><b t-esc="eName(c.employee_id)"/><div class="m" t-esc="eBranch(c.employee_id)"/></td>
                             <td class="num" t-esc="longDate(c.day)"/>
@@ -751,8 +778,9 @@
                             <td><span t-if="c.ack_at" class="chip good">✍️ Signed</span><span t-else="" class="chip warn" title="Not signed yet">⏳</span></td>
                             <td><button type="button" t-att-class="'nv-btn' + (c.settled_at ? '' : ' primary')" t-on-click="() => this.settle(c)">
                                 <t t-if="c.settled_at">✓ Deducted</t><t t-else="">Mark as deducted</t></button></td>
+                            <td><DelBtn small="true" kind="'late_cases'" id="c.id" what="penWhat(c)" onDone="() => this.load()"/></td>
                         </tr>
-                        <tr t-if="!w.pens.length"><td colspan="6" class="empty">No penalties this month</td></tr>
+                        <tr t-if="!w.pens.length"><td colspan="7" class="empty">No penalties this month</td></tr>
                     </tbody></table></div>
                     <p class="sub">At the end of the month, download the file and give it to the accountant for payroll.</p>
                 </div>

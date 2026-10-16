@@ -81,11 +81,3 @@ class NavittaApiRules(models.AbstractModel):
             r = Rule.create({"body": body, "sequence": (last.sequence or 0) + 1})
         return {"ok": True, "id": r.id}
 
-    @api.model
-    def admin_rule_delete(self, rule_id):
-        self._admin()
-        r = self.env["navitta.rule"].sudo().browse(int(rule_id or 0)).exists()
-        if not r:
-            return self._err("not_found")
-        r.unlink()
-        return {"ok": True}

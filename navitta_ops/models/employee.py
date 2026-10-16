@@ -268,13 +268,26 @@ class NavittaNotification(models.Model):
         return bool(self.secret and self.body == self.WIPED)
 
     @api.model
-    def _send(self, to_email, subject, body, employee=None, attachments=None, secret=False):
+    def _teaser(self, subject):
+        """(subject, body) of the email of an employee alert: only that there is something new, as on the site; she reads
+        the details in «تنبيهاتي» on the branch device (written in the company's language)."""
+        env = self.with_context(lang=self.env.company._navitta_lang()).env
+        return (env._("📬 You have a new alert: %s", subject),
+                env._("Hello 👋\nYou have a new alert:\n\n📬 %s\n\nOpen “My alerts” on the branch device with your PIN to see the details.", subject))
+
+    @api.model
+    def _send(self, to_email, subject, body, employee=None, attachments=None, secret=False, full=True):
+        """`full=False`: the email only says there is a new alert (employee alerts); the alert itself keeps the whole text."""
         vals = {"employee_id": employee and employee.id, "to_email": to_email, "subject": subject, "body": body, "secret": secret}
         if to_email:
             company = self.env.company
+            mail_subject, mail_body, Html = subject, body, self
+            if not full and not secret:
+                mail_subject, mail_body = self._teaser(subject)
+                Html = self.with_context(lang=company._navitta_lang())
             mail = self.env["mail.mail"].sudo().create({
-                "subject": subject,
-                "body_html": self._html(body),
+                "subject": mail_subject,
+                "body_html": Html._html(mail_body),
                 "email_to": to_email,
                 "email_from": company.email_formatted or company.partner_id.email_formatted,
                 # a PIN email is deleted from the mail queue once sent (only the wiped notification stays)
@@ -302,9 +315,11 @@ class NavittaNotification(models.Model):
             n.body_text = n._body_text()
 
     @api.model
-    def _notify_employee(self, employee, subject, body):
+    def _notify_employee(self, employee, subject, body, full=False):
+        """An alert to an employee (shown in «تنبيهاتي»). Its email is a short teaser unless `full` (e.g. the shipment
+        email carries its full text, as on the site)."""
         employee = employee.sudo()
-        return self._send(employee.email, subject, body, employee=employee)
+        return self._send(employee.email, subject, body, employee=employee, full=full)
 
     @api.model
     def _notify_admin(self, subject, body):

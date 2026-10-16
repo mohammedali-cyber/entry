@@ -35,4 +35,14 @@
         <field name="tag">navitta_admin_app</field>
         <field name="params" eval="{'tab': 'day'}"/>
     </record>
+    <record id="action_admin_ideas" model="ir.actions.client">
+        <field name="name">Ideas</field>
+        <field name="tag">navitta_admin_app</field>
+        <field name="params" eval="{'tab': 'ideas'}"/>
+    </record>
+    <record id="action_admin_settings" model="ir.actions.client">
+        <field name="name">Management settings</field>
+        <field name="tag">navitta_admin_app</field>
+        <field name="params" eval="{'tab': 'settings'}"/>
+    </record>
 </odoo>

@@ -2,6 +2,7 @@
 import { Component, onMounted, onWillStart, onWillUnmount, useExternalListener, useState } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { registry } from "@web/core/registry";
+import { withNavittaTerms } from "../common/terms";
 import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 import {
@@ -9,6 +10,7 @@ import {
     CTX, addDays, api, clock, dTxt, days, f0, h12, jn, longDate, minuteNow, mmss, now, photoUrl, setClock, sizesOf, swatch, today, ago, icon, dcsText,
     DIR, LANG, vlabel, WD,
 } from "../common/utils";
+import { Bulb, HelpLayer, ThemeToggle, TourBtn, useTheme } from "../common/help";
 import { Dots } from "../common/cases";
 import { FloatCard, FloatEnd, TasksCard, endLeft } from "../common/tasks";
 import { IncomingShipments } from "../common/shipments";
@@ -119,7 +121,7 @@ class UndoOut extends Component {
 // ---------------------------------------------------------------- counter
 class Counter extends Component {
     static template = "navitta_ops.Counter";
-    static components = { DailyQuote, TargetBar, ModelSearch, NvModal, PinPad, FaceCam, Outcome, EditReq, UndoOut, FloatCard, TasksCard };
+    static components = { DailyQuote, TargetBar, ModelSearch, NvModal, PinPad, FaceCam, Outcome, EditReq, UndoOut, FloatCard, TasksCard, Bulb };
     static props = { goto: Function };
     setup() {
         this.orm = useService("orm");
@@ -891,10 +893,12 @@ class Report extends Component {
 // ---------------------------------------------------------------- root
 export class BranchApp extends Component {
     static template = "navitta_ops.BranchApp";
-    static components = { Counter, Inbox, Requests, Report, ModelSearch };
+    static components = { Counter, Inbox, Requests, Report, ModelSearch, Bulb, HelpLayer, TourBtn, ThemeToggle };
     static props = { ...standardActionServiceProps };
     setup() {
-        this.state = useState({ tab: "counter", inboxOpen: "", inboxEmp: null, reqTab: "", branch: "", key: 1, branches: null, bid: 0, unread: 0 });
+        this.state = useState({ tab: "counter", inboxOpen: "", inboxEmp: null, reqTab: "", branch: "", key: 1, branches: null, bid: 0, unread: 0,
+            login: "", ready: false });
+        this.theme = useTheme();
         this.orm = useService("orm");
         this.DIR = DIR;
         this.LANG = LANG;
@@ -904,6 +908,8 @@ export class BranchApp extends Component {
                 this.error = a.message;
                 return;
             }
+            this.state.login = a.login || "";
+            this.state.ready = true;
             if (a.device) {
                 CTX.branch = 0;
                 this.state.branch = a.branch.name;
@@ -940,6 +946,10 @@ export class BranchApp extends Component {
     get title() {
         return this.state.branch || _t("Branch device");
     }
+    /** The tour's welcome: «The {branch} girls» (site). */
+    get greeting() {
+        return this.state.branch ? _t("The %s girls", this.state.branch) : _t("Branch device");
+    }
     pick(id) {
         id = +id || 0;
         const b = (this.state.branches || []).find((x) => x.id === id);
@@ -961,4 +971,4 @@ export class BranchApp extends Component {
     }
 }
 
-registry.category("actions").add("navitta_branch_app", BranchApp);
+registry.category("actions").add("navitta_branch_app", withNavittaTerms(BranchApp));

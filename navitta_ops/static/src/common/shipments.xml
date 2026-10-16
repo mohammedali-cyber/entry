@@ -156,8 +156,10 @@
                             <t t-if="s.cash > 0"> · 💵 <t t-esc="TX.sar(f0(s.cash))"/></t></div>
                             <div class="meta"><t t-esc="TX.shippedOn(longDate(s.shipped_day))"/> · <t t-esc="dates(s)"/><t t-if="s.received_by"> · <t t-esc="s.received_by"/></t>
                                 <t t-if="s.issue_note"> · ⚠️ «<t t-esc="s.issue_note"/>»</t>
-                                <t t-if="s.received_photo_id"> · <PhotoLink id="s.received_photo_id" label="TX.photo"/></t></div>
-                            <div t-if="s.missing.length" class="meta">⚠️ Missing: <span class="num" t-esc="s.missing.join(' · ')"/></div></div></div>
+                                </div>
+                            <div t-if="s.missing.length" class="meta">⚠️ Missing: <span class="num" t-esc="s.missing.join(' · ')"/></div></div>
+                        <FileThumb t-if="s.received_photo_id" id="s.received_photo_id" label="TX.photo"/></div>
+                    <DelBtn t-if="props.onDone" small="true" kind="'shipments'" id="s.id" what="props.bName(s.branch_id) + ' · ' + TX.pieces(pieces(s)) + ' · ' + TX.shippedOn(longDate(s.shipped_day))" onDone="() => props.onDone()"/>
                 </div>
                 <div t-if="!props.ships.length" class="empty">No shipments yet</div>
             </div>

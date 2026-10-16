@@ -21,16 +21,18 @@
     <!-- ============================================================ today's float (counter) -->
     <t t-name="navitta_ops.FloatCard">
         <t t-if="show">
-            <div t-if="f and f.state !== 'pending'" t-att-class="'fl-bar ' + (f.state === 'ok' ? 'ok' : 'bad')">
+            <div t-if="f and f.state !== 'pending'" t-att-class="'fl-bar ' + (f.state === 'ok' ? 'ok' : 'bad')" data-help="b-float">
+                <Bulb id="'b-float'"/>
                 <b>💰 Today's float</b>
                 <span class="num" t-esc="doneLine"/>
                 <span><t t-esc="counted"/><t t-esc="confirmedLine"/></span>
                 <span t-if="f.note">· <t t-esc="f.note"/></span>
-                <PhotoLink t-if="f.photo_id" id="f.photo_id" label="'📷'"/>
+                <FileThumb t-if="f.photo_id" id="f.photo_id" label="'📷'"/>
             </div>
-            <div t-elif="f" class="nv-card fl">
+            <div t-elif="f" class="nv-card fl" data-help="b-float">
+                <Bulb id="'b-float'"/>
                 <div class="nv-card-h"><div><h2>💰 Today's float</h2><p class="sub" t-esc="pendingSub"/></div>
-                    <PhotoLink t-if="f.photo_id" id="f.photo_id" label="'📷'"/></div>
+                    <FileThumb t-if="f.photo_id" id="f.photo_id" label="'📷'"/></div>
                 <div t-foreach="mates" t-as="m" t-key="m.id" class="fl-ok">
                     <p><b t-esc="lookText(m)"/></p>
                     <textarea t-if="state.short === m.id" class="ctl" rows="2" placeholder="What's missing? How much did you find?" t-model="state.snote"/>
@@ -43,7 +45,8 @@
                     </div>
                 </div>
             </div>
-            <div t-else="" class="nv-card fl">
+            <div t-else="" class="nv-card fl" data-help="b-float">
+                <Bulb id="'b-float'"/>
                 <div class="nv-card-h"><div><h2 class="num" t-esc="title"/><p class="sub" t-esc="sub"/></div></div>
                 <div class="fl-g">
                     <div><b class="fl-s">① Count the money</b><Denoms c="state.c" expected="exp"/>
@@ -83,7 +86,8 @@
 
     <!-- ============================================================ today's tasks (counter) -->
     <t t-name="navitta_ops.TasksCard">
-        <div t-if="visible" t-att-class="'nv-card tk' + (open and openLeft ? ' ping' : '')">
+        <div t-if="visible" t-att-class="'nv-card tk' + (open and openLeft ? ' ping' : '')" data-help="b-tasks">
+            <Bulb id="'b-tasks'"/>
             <div t-if="open and openLeft &gt; 0 and !expanded" class="tk-alert">🔔 <b t-esc="alertText[0]"/> <t t-esc="alertText[1]"/></div>
             <div class="tk-bar">
                 <span>📋 <b>Today's tasks</b></span>
@@ -109,7 +113,7 @@
                                             <span t-if="x.done_at" class="mt" t-esc="doneLine(x)"/>
                                             <span t-if="s === 'past' and !x.done_at" class="mt bad">✕ Missed</span></span>
                                     </button>
-                                    <PhotoLink t-if="x.photo_id" id="x.photo_id" label="'📷'"/>
+                                    <FileThumb t-if="x.photo_id" id="x.photo_id" label="'📷'"/>
                                 </div>
                             </div>
                             <div t-if="s === 'locked'" class="tk-l" t-esc="lockedText(ph)"/>

@@ -4,7 +4,8 @@ import { Component, useState } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
 import { api, clock, f0, h12, minuteNow } from "./utils";
-import { NvModal, PhotoLink, PhotoPicker, PinPad, SignModal } from "./components";
+import { FileThumb, NvModal, PhotoPicker, PinPad, SignModal } from "./components";
+import { Bulb } from "./help";
 
 export const DENOMS = [100, 50, 10, 5, 1];
 export const floatTotal = (c) => DENOMS.reduce((s, d) => s + d * (+c[d] || 0), 0);
@@ -53,7 +54,7 @@ export class Denoms extends Component {
 /** Today's float on the counter: whoever counts it photographs it in the drawer and signs; her colleague confirms it. */
 export class FloatCard extends Component {
     static template = "navitta_ops.FloatCard";
-    static components = { Denoms, NvModal, PhotoLink, PhotoPicker, PinPad };
+    static components = { Denoms, NvModal, FileThumb, PhotoPicker, PinPad, Bulb };
     static props = { fl: Object, emps: Array, att: Array, onChange: Function };
     setup() {
         this.orm = useService("orm");
@@ -203,7 +204,7 @@ export class FloatEnd extends Component {
 /** Today's tasks on the counter: three periods, each opens at its time; each employee signs hers with her PIN. */
 export class TasksCard extends Component {
     static template = "navitta_ops.TasksCard";
-    static components = { NvModal, PhotoLink, PhotoPicker, SignModal };
+    static components = { NvModal, FileThumb, PhotoPicker, SignModal, Bulb };
     static props = { t: Object, emps: Array, att: Array, onChange: Function, tick: { optional: true } };
     setup() {
         this.orm = useService("orm");

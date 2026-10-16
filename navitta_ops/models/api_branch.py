@@ -94,6 +94,12 @@ ERRORS = {
     "contact_required": _lt("Customer request: write her name and mobile number"),
     "too_many": _lt("Too many items in one list, send them in two lists"),
     "no_ship_columns": _lt("Couldn't find the columns at the top of the file: item number or barcode, color, size and quantity"),
+    # delete with the delete password, shifts and ideas (26.3)
+    "no_delete_pw": _lt("Set the delete password in Settings first"),
+    "in_use": _lt("Can't be deleted because it is linked to other data"),
+    "bad_shift": _lt("Unknown shift"),
+    "no_am_branch": _lt("This employee's branch has no morning shift. Enable it for the branch under “Shift times” first"),
+    "idea_required": _lt("Write the idea"),
 }
 
 
@@ -137,13 +143,19 @@ class NavittaApi(models.AbstractModel):
         raise AccessError(_("This screen is for branch devices only. Link the device account to a branch in the settings."))
 
     @api.model
+    def _login_stamp(self):
+        """The user's latest sign-in (the screens show the guided tour once after each sign-in)."""
+        return iso(self.env.user.sudo().login_date) or ""
+
+    @api.model
     def branch_access(self):
         """How the branch screen opens: a device account gets its branch; management gets the branch list to pick from."""
         if self._is_device():
             b = self.env.user.navitta_branch_id
-            return {"device": True, "branch": {"id": b.id, "name": b.name}}
+            return {"device": True, "branch": {"id": b.id, "name": b.name}, "login": self._login_stamp()}
         if self.env.user.has_group("navitta_ops.group_navitta_admin"):
-            return {"device": False, "branches": [{"id": b.id, "name": b.name} for b in self.env["navitta.branch"].sudo().search([])]}
+            return {"device": False, "branches": [{"id": b.id, "name": b.name} for b in self.env["navitta.branch"].sudo().search([])],
+                    "login": self._login_stamp()}
         return self._err("forbidden")
 
     @api.model
@@ -215,7 +227,7 @@ class NavittaApi(models.AbstractModel):
         att = self.env["navitta.attendance"].sudo().search([("employee_id", "in", employees.ids), ("day", "=", day)])
         brk = self.env["navitta.break"].sudo().search([("employee_id", "in", employees.ids), ("day", "=", day)])
         return (
-            [{"employee_id": a.employee_id.id, "check_in": iso(a.check_in), "check_out": iso(a.check_out),
+            [{"id": a.id, "employee_id": a.employee_id.id, "check_in": iso(a.check_in), "check_out": iso(a.check_out),
               "in_source": a.in_source, "out_source": a.out_source or False,
               "in_photo_id": a.in_photo_id.id or False, "out_photo_id": a.out_photo_id.id or False} for a in att],
             [{"id": b.id, "employee_id": b.employee_id.id, "started_at": iso(b.started_at), "ended_at": iso(b.ended_at)} for b in brk],

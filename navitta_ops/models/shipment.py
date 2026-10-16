@@ -189,7 +189,8 @@ class NavittaShipment(models.Model):
                                "4. If everything arrived tap “Received”; if something is missing tap “Something's missing”.")
         Notif = env["navitta.notification"]
         for e in s.branch_id.employee_ids.filtered("active"):
-            Notif._notify_employee(e, env._("🚚 A new shipment is on its way to your branch"), env._("Hello %s 👋", e.name) + "\n" + body)
+            Notif._notify_employee(e, env._("🚚 A new shipment is on its way to your branch"), env._("Hello %s 👋", e.name) + "\n" + body,
+                                   full=True)
 
     # ------------------------------------------------------------------ receiving (branch device)
     def _receive(self, employee, missing=None, note=None, photo=None):

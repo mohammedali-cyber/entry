@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="navitta_ops.DayCalendar">
+        <t t-set="cv" t-value="this.v"/>
+        <div class="dcal">
+            <div class="dcal-top">
+                <div class="seg"><button type="button" aria-label="Previous month" t-on-click="() => this.go(-1)" t-esc="prevArrow"/>
+                    <b t-esc="label"/>
+                    <button type="button" aria-label="Next month" t-att-disabled="!canNext" t-on-click="() => this.go(1)" t-esc="nextArrow"/></div>
+                <span class="range-note">Tap any day to open its details</span>
+            </div>
+            <div class="dcal-k">
+                <div><span>Month sales</span><b class="num"><t t-esc="f0(cv.mS)"/> SAR</b></div>
+                <div><span>Month target</span><b class="num"><t t-esc="f0(cv.mT)"/> SAR</b></div>
+                <div><span>Achievement up to yesterday</span><b class="num"><bdi dir="ltr" t-esc="cv.pct"/></b></div>
+                <div><span>Days that hit the target</span><b class="num" t-esc="hitText(cv)"/></div>
+                <div><span>Alerts</span><b class="num" t-esc="alertsText(cv)"/></div>
+            </div>
+            <div class="dcal-g" role="grid" t-att-aria-busy="state.d ? 'false' : 'true'">
+                <div t-foreach="[0, 1, 2, 3, 4, 5, 6]" t-as="w" t-key="w" class="dcal-wd" t-esc="WD[w]"/>
+                <div t-foreach="cv.blanks" t-as="b" t-key="'e' + b"/>
+                <t t-foreach="cv.days" t-as="c" t-key="c.day">
+                    <button type="button" t-att-class="c.cls" t-att-disabled="c.fut" t-att-aria-pressed="c.day === props.day ? 'true' : 'false'" t-on-click="() => props.onPick(c.day)">
+                        <span class="dh"><span class="dn num"><t t-esc="c.n"/><em t-if="c.isT">Today</em></span><span t-if="c.pctText" t-att-class="'dp num ' + c.k"><bdi dir="ltr" t-esc="c.pctText"/></span></span>
+                        <t t-if="c.fut"><span class="dt num" t-esc="c.target"/></t>
+                        <t t-else="">
+                            <span class="ds num"><t t-esc="c.sales"/><small t-if="c.x and c.x.has"> SAR</small></span>
+                            <span t-if="c.bar" class="dbar"><i t-att-class="c.k" t-att-style="c.bar"/></span>
+                            <span t-if="c.target" class="dt num" t-esc="c.target"/>
+                            <span class="dic"><span t-foreach="c.marks" t-as="mk" t-key="mk_index" t-att-class="mk[0]" t-att-title="mk[2] or undefined"><bdi t-esc="mk[1]"/></span></span>
+                            <span class="ddot"><i t-if="c.dotLate" class="w"/><i t-if="c.dotBad"/></span>
+                        </t>
+                    </button>
+                </t>
+            </div>
+            <div class="dcal-lg"><span><i class="g"/>Hit the target</span><span><i class="w"/>80–99%</span><span><i class="b"/>Under 80%</span>
+                <span>📝 Report</span><span>⏰ Lateness</span><span>⚠️ Cash/card difference</span><span>💰 Float short</span><span>↩️ Refund</span><span>✎ Changed after closing</span></div>
+        </div>
+    </t>
+
+</templates>

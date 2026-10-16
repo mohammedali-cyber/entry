@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="navitta_ops.Bulb">
+        <span role="button" tabindex="0" class="hbulb" t-att-aria-label="label" t-att-title="label"
+              t-on-click.stop.prevent="open" t-on-keydown="key">💡</span>
+    </t>
+
+    <t t-name="navitta_ops.HelpTip">
+        <t t-set="b" t-value="box"/>
+        <div t-att-class="'htip ' + b.pos" t-att-style="b.style" role="dialog" t-att-aria-label="h.title">
+            <div t-if="props.step" class="hst num" t-esc="stepText"/>
+            <h3><t t-esc="h.icon"/> <t t-esc="h.title"/></h3>
+            <div class="hq">What is it for?</div><div t-esc="h.what"/>
+            <div class="hq">How do I use it?</div>
+            <ol><li t-foreach="h.how" t-as="x" t-key="x_index" t-esc="x"/></ol>
+            <div class="hact">
+                <t t-if="props.step">
+                    <span class="hdots"><i t-foreach="dots" t-as="i" t-key="i" t-att-class="i === props.step[0] - 1 ? 'on' : ''"/></span>
+                    <span><button type="button" class="hb2" t-on-click="() => props.onSkip()">Skip</button> <button type="button" class="hb1" t-on-click="() => props.onNext()" t-esc="nextText"/></span>
+                </t>
+                <t t-else="">
+                    <span class="hst">💡 Help is always in the bulb</span>
+                    <button type="button" class="hb1" t-on-click="() => props.onClose()">Got it</button>
+                </t>
+            </div>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.HelpLayer">
+        <div t-if="s.tip" class="hlayer" t-on-click.self="() => s.tip = null">
+            <HelpTip id="s.tip.id" rect="s.tip.rect" onClose="() => s.tip = null"/>
+        </div>
+        <div t-if="s.phase === 'hi'" class="hwel" role="dialog" aria-modal="true">
+            <div class="hbox">
+                <div class="hbig" aria-hidden="true">👋💡</div>
+                <h2 t-esc="hello"/>
+                <div class="hmotto">👀🧠 <t t-esc="motto"/></div>
+                <p t-esc="intro"/>
+                <button type="button" class="hb1 wide" t-on-click="() => this.run()" t-esc="startText"/>
+                <button type="button" class="hb2" t-on-click="() => this.end()">Skip, I know it</button>
+                <label class="hnever"><input type="checkbox" t-model="s.never"/> <t t-esc="neverText"/></label>
+            </div>
+        </div>
+        <div t-if="s.phase === 'run' and s.rect" class="hlayer tour">
+            <div class="hhole" t-att-style="hole(s.rect)"/>
+            <HelpTip id="s.steps[s.i]" rect="s.rect" step="[s.i + 1, s.steps.length]" onSkip="() => this.end()" onNext="() => this.next()"/>
+        </div>
+    </t>
+
+    <t t-name="navitta_ops.TourBtn">
+        <button type="button" class="htour" t-on-click="play">💡 Help</button>
+    </t>
+
+    <t t-name="navitta_ops.ThemeToggle">
+        <span class="th-t" role="group" aria-label="Appearance">
+            <button type="button" t-att-aria-pressed="t.theme === 'light' ? 'true' : 'false'" t-on-click="() => this.pick('light')">☀️ Light</button>
+            <button type="button" t-att-aria-pressed="t.theme === 'dark' ? 'true' : 'false'" t-on-click="() => this.pick('dark')">🌙 Dark</button>
+        </span>
+    </t>
+
+</templates>

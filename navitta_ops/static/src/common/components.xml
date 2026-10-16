@@ -67,6 +67,21 @@
         </NvModal>
     </t>
 
+    <t t-name="navitta_ops.FileThumb">
+        <button type="button" class="fthumb" t-att-aria-label="props.label or TX.photo" t-att-title="props.label or TX.photo" t-on-click.stop="() => state.open = true">
+            <img t-if="!state.broken" t-att-src="thumb" alt="" loading="lazy" t-on-error="() => state.broken = true"/>
+            <span t-else="" class="ph">📷</span>
+            <i t-if="props.label" t-esc="props.label"/>
+        </button>
+        <NvModal t-if="state.open" onClose="() => state.open = false">
+            <div class="qrm">
+                <b t-if="props.label" t-esc="props.label"/>
+                <img class="big" t-att-src="url" t-att-alt="props.label or TX.photo"/>
+                <button type="button" class="nv-btn" t-on-click="() => state.open = false">Close</button>
+            </div>
+        </NvModal>
+    </t>
+
     <t t-name="navitta_ops.PhotoPicker">
         <div class="pick">
             <span class="pick-t" t-esc="props.label"/>
@@ -113,7 +128,8 @@
     </t>
 
     <t t-name="navitta_ops.TargetBar">
-        <div t-if="state.d" class="tgt">
+        <div t-if="state.d" class="tgt" data-help="b-target">
+            <Bulb id="'b-target'"/>
             <t t-set="tv" t-value="this.v"/>
             <button type="button" class="tgt-edit" t-on-click="() => state.edit = true">✏️ Edit target</button>
             <div>

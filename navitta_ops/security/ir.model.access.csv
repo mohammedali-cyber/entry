@@ -76,3 +76,5 @@ access_shipment_line_branch,navitta.shipment_line.branch,model_navitta_shipment_
 access_shipment_line_admin,navitta.shipment_line.admin,model_navitta_shipment_line,group_navitta_admin,1,1,0,1
 access_defect_branch,navitta.defect.branch,model_navitta_defect,group_navitta_branch,1,0,0,0
 access_defect_admin,navitta.defect.admin,model_navitta_defect,group_navitta_admin,1,1,0,1
+access_delete_log_admin,navitta.delete_log.admin,model_navitta_delete_log,group_navitta_admin,1,0,0,0
+access_idea_admin,navitta.idea.admin,model_navitta_idea,group_navitta_admin,1,1,1,0

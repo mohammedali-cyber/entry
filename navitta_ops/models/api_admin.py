@@ -63,7 +63,8 @@ class NavittaApiAdmin(models.AbstractModel):
     @api.model
     def admin_filters(self):
         self._admin()
-        return {"branches": self._branches(), "settings": self._settings(), "day": fields.Date.to_string(app_today(self.env))}
+        return {"branches": self._branches(), "settings": self._settings(), "day": fields.Date.to_string(app_today(self.env)),
+                "login": self._login_stamp()}
 
     # ------------------------------------------------------------------ first-time setup
     @api.model
@@ -312,7 +313,7 @@ class NavittaApiAdmin(models.AbstractModel):
         daily = []
         for r in self.env["navitta.daily.sales"].sudo().search(dom, order="day, branch_id"):
             mk = marks.get((r.branch_id.id, r.day)) or {}
-            daily.append({"day": fields.Date.to_string(r.day), "branch_id": r.branch_id.id, "target": r.target,
+            daily.append({"id": r.id, "day": fields.Date.to_string(r.day), "branch_id": r.branch_id.id, "target": r.target,
                           "sales": r.sales if r.has_sales else None, "invoices": r.invoices, "items": r.items, "returns": r.returns,
                           "returns_amount": r.returns_amount, "tax": r.vat_amount, "cash": r.cash, "card": r.card,
                           "closed_by": r.closed_by or "", "system": r._is_system(), "source": r.source or False,
@@ -473,7 +474,7 @@ class NavittaApiAdmin(models.AbstractModel):
         return {
             "day": fields.Date.to_string(d), "today": fields.Date.to_string(app_today(self.env)), "branches": self._branches(),
             "employees": self._employees(), "off": {e.id: e._is_off(d) for e in emps},
-            "reports": [dict(self._report_dict(r), branch_id=r.branch_id.id, check=self._cash_check(r, sales.get(r.branch_id.id)),
+            "reports": [dict(self._report_dict(r), id=r.id, branch_id=r.branch_id.id, check=self._cash_check(r, sales.get(r.branch_id.id)),
                              events=[{"level": lv, "title": t, "text": x} for lv, t, x in r._events()],
                              exch_labels=[{"reason": sel_label(self.env, "navitta.daily.report.exchange", "reason", x.reason), "detail": x.detail,
                                            "soldBy": x.sold_by, "by": x.exchanged_by} for x in r.exchange_ids]) for r in reps],

@@ -11,6 +11,7 @@
     <menuitem id="menu_admin_lost" name="Lost sales" parent="menu_root" action="action_admin_lost" sequence="5" groups="group_navitta_admin"/>
     <menuitem id="menu_admin_rules" name="Rules and violations" parent="menu_root" action="action_admin_rules" sequence="6" groups="group_navitta_admin"/>
     <menuitem id="menu_admin_day" name="Daily log" parent="menu_root" action="action_admin_day" sequence="6" groups="group_navitta_admin"/>
+    <menuitem id="menu_admin_ideas" name="Ideas" parent="menu_root" action="action_admin_ideas" sequence="7" groups="group_navitta_admin"/>
 
     <menuitem id="menu_records" name="Records" parent="menu_root" sequence="20" groups="group_navitta_admin">
         <menuitem id="menu_rec_late" name="Lateness &amp; penalties" action="action_late_cases" sequence="1"/>
@@ -40,10 +41,12 @@
         <menuitem id="menu_rec_lost" name="Lost sales log" action="action_lost_sales" sequence="17"/>
         <menuitem id="menu_rec_notif" name="Email notifications" action="action_notifications" sequence="18"/>
         <menuitem id="menu_rec_rule_acks" name="Branch rules signatures" action="action_rule_acks" sequence="19"/>
+        <menuitem id="menu_rec_delete_log" name="Delete log" action="action_delete_log" sequence="20"/>
     </menuitem>
 
     <menuitem id="menu_config" name="Settings" parent="menu_root" sequence="30" groups="group_navitta_admin">
         <menuitem id="menu_cfg_settings" name="General settings" action="action_navitta_settings" sequence="1"/>
+        <menuitem id="menu_cfg_admin_settings" name="Shifts and delete password" action="action_admin_settings" sequence="1"/>
         <menuitem id="menu_cfg_branches" name="Branches" action="action_branches" sequence="2"/>
         <menuitem id="menu_cfg_employees" name="Employees &amp; PINs" action="action_employees" sequence="3"/>
         <menuitem id="menu_cfg_users" name="Branch device accounts" action="action_branch_users" sequence="4"/>

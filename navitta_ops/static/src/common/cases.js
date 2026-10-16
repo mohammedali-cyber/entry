@@ -4,6 +4,7 @@ import { Component, useState } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
 import { DIR, api, clock, longDate } from "./utils";
+import { DelBtn } from "./del";
 
 /** Chances as dots: filled = used; all red when they are used up. */
 export class Dots extends Component {
@@ -22,7 +23,7 @@ export class Dots extends Component {
  *  c.preview = {used, max, penalty: {text, tier, occ}} comes from the server. */
 export class CaseDecide extends Component {
     static template = "navitta_ops.CaseDecide";
-    static components = { Dots };
+    static components = { Dots, DelBtn };
     static props = { c: Object, name: String, branch: String, onDone: Function };
     setup() {
         this.orm = useService("orm");

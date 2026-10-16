@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="navitta_ops.DelBtn">
+        <button type="button" t-att-class="'delx' + (props.small ? ' sm' : '')" t-att-aria-label="TX.del" t-att-title="TX.del"
+                t-on-click.stop="() => state.open = true">🗑️<t t-if="!props.small"> Delete</t></button>
+        <NvModal t-if="state.open" onClose="() => this.close()">
+            <div class="dbox">
+                <div class="bi" aria-hidden="true">🗑️</div>
+                <h2>Confirm delete</h2>
+                <div t-if="props.what" class="what" t-esc="props.what"/>
+                <div class="warn">⚠️ Deleting can't be undone. It is kept in the “Delete log” with a copy of the data.</div>
+                <input class="ctl" t-model="state.why" t-on-input="() => state.err = ''" placeholder="Reason for deleting *" aria-label="Reason for deleting"/>
+                <input class="ctl" type="password" dir="ltr" autocomplete="off" t-model="state.pw" t-on-input="() => state.err = ''" t-on-keydown="onKey"
+                       t-att-placeholder="TX.pwPh" aria-label="Delete password"/>
+                <span class="hint err" role="alert" t-esc="state.err"/>
+                <div class="vrow" style="justify-content:center">
+                    <button type="button" class="nv-btn red" t-att-disabled="state.busy" t-on-click="() => this.go()">🗑️ Delete permanently</button>
+                    <button type="button" class="nv-btn" t-on-click="() => this.close()">Cancel</button>
+                </div>
+            </div>
+        </NvModal>
+    </t>
+
+</templates>

@@ -160,16 +160,6 @@ class NavittaApiTasks(models.AbstractModel):
 
     # ------------------------------------------------------------------ management
     @api.model
-    def admin_task_reopen(self, done_id):
-        """Management re-opens a task marked done by mistake (it shows as not done again)."""
-        self._admin()
-        d = self.env["navitta.task.done"].sudo().browse(int(done_id or 0)).exists()
-        if not d:
-            return self._err("not_found")
-        d.unlink()
-        return {"ok": True}
-
-    @api.model
     def _day_floats_tasks(self, day):
         """For the day log: {branch_id: {"float": {...}, "tasks": {...}}}."""
         return {b.id: {"float": self._float_state(b, day), "tasks": self._tasks_state(b, day)}

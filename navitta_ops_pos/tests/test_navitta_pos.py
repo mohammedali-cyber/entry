@@ -320,3 +320,36 @@ class NavittaPosCase(TransactionCase):
         self.assertFalse(cfg.navitta_employee_id)
         self.assertEqual(cfg.basic_employee_ids, shima_hr)
         self.assertEqual(self.cfg_qsm.navitta_employee_id.id, False)
+
+    def test_delete_never_touches_pos(self):
+        """26.3 delete with the delete password: deleting a counter visit, a sales day or a daily report removes only
+        Navitta records; the Point of Sale orders, payments and their accounting stay (an order only loses its link to
+        the deleted visit), and the next sync counts the day again from the orders."""
+        self.dwd.action_link_cashiers()
+        reem_hr = self.reem.hr_employee_id
+        self.checked_in(self.reem)
+        api = self.env["navitta.api"].with_user(self.dev)
+        adm = self.env["navitta.api"].with_user(self.boss)
+        self.env.company._navitta_set_delete_password("del-1234")
+        vid = api.visit_start(self.reem.id)["id"]
+        s = self._open(self.cfg_dwd, reem_hr)
+        o = self._order(s, 2, self.cash, reem_hr)
+        self.dwd._system_sync([self.day], force=True)
+        self.assertEqual(o.navitta_visit_id.id, vid)
+        orders, payments = self.env["pos.order"].search_count([]), self.env["pos.payment"].search_count([])
+        moves = self.env["account.move"].search_count([])
+        self.assertTrue(adm.admin_delete("visits", vid, "test visit", "del-1234")["ok"])
+        o.invalidate_recordset()
+        self.assertTrue(o.exists())
+        self.assertFalse(o.navitta_visit_id)
+        row = self.env["navitta.daily.sales"].search([("branch_id", "=", self.dwd.id), ("day", "=", self.day)])
+        self.assertEqual(row.sales, 460)
+        self.assertTrue(adm.admin_delete("daily_sales", row.id, "recount", "del-1234")["ok"])
+        self.assertFalse(row.exists())
+        self.assertEqual((self.env["pos.order"].search_count([]), self.env["pos.payment"].search_count([]),
+                          self.env["account.move"].search_count([])), (orders, payments, moves))
+        self.assertEqual(o.state, "paid")
+        self.dwd._system_sync([self.day], force=True)          # the POS figures come back from the orders
+        row = self.env["navitta.daily.sales"].search([("branch_id", "=", self.dwd.id), ("day", "=", self.day)])
+        self.assertEqual(row.sales, 460)
+        self.assertEqual(adm.admin_delete("pos_orders", o.id, "x", "del-1234")["error"], "forbidden")

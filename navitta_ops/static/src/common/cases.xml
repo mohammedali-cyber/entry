@@ -29,6 +29,7 @@
                 <button type="button" class="nv-btn red" t-att-disabled="state.busy" t-on-click="() => this.act('penalty')">❌ Rejected (penalty)</button>
                 <button type="button" class="nv-btn primary" t-att-disabled="out or state.busy" t-att-title="out ? usedUp : ''" t-on-click="() => this.act('chance')" t-esc="chanceBtn"/>
                 <button type="button" class="nv-btn" t-att-disabled="state.busy" t-on-click="() => this.act('excuse')">✅ Excuse accepted, not counted</button>
+                <DelBtn small="true" kind="'late_cases'" id="c.id" what="props.name + ' · ' + longDate(c.day) + ' · ' + line" onDone="() => props.onDone()"/>
             </div>
         </div>
     </t>

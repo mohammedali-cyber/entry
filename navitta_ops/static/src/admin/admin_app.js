@@ -1,6 +1,7 @@
 /** @odoo-module **/
 import { Component, onMounted, onWillStart, onWillUnmount, useEffect, useState } from "@odoo/owl";
 import { registry } from "@web/core/registry";
+import { withNavittaTerms } from "../common/terms";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
@@ -8,7 +9,12 @@ import {
     DFST, EXPICON, EXST, LOST, LOSTL, MONTHS, OUTOF, RQST, SREASONL, SUP, WD, addDays, ago, api, clock, dTxt, days, dmy, downloadCsv, f0, h12, longDate,
     mmss, now, pc, setClock, today, weekday, jn, DIR, LANG, vlabel,
 } from "../common/utils";
-import { DailyQuote, EmpBoard, NvModal, PhotoLink, TargetEditor } from "../common/components";
+import { DailyQuote, EmpBoard, FileThumb, NvModal, PhotoLink, TargetEditor } from "../common/components";
+import { DelBtn } from "../common/del";
+import { Bulb, HelpLayer, ThemeToggle, TourBtn, useTheme } from "../common/help";
+import { DayCalendar } from "./daycal";
+import { Ideas } from "./ideas";
+import { AdminSettings } from "./settings";
 import { CaseDecide, Dots } from "../common/cases";
 import { groupOf, phases } from "../common/tasks";
 import { DayChanges, DayEdit, TargetFile } from "./sales_tools";
@@ -215,7 +221,7 @@ class AdminBase extends Component {
 // ---------------------------------------------------------------- dashboard
 class Dashboard extends AdminBase {
     static template = "navitta_ops.AdminDashboard";
-    static components = { DailyQuote, EmpBoard, NvModal, PhotoLink, CaseDecide };
+    static components = { DailyQuote, EmpBoard, NvModal, PhotoLink, CaseDecide, DelBtn };
     setup() {
         super.setup();
         this.state = useState({ d: null, notes: {}, openT: null, reply: "", setup: null, once: null, busy: false });
@@ -362,12 +368,25 @@ class Dashboard extends AdminBase {
         await api(this.orm, "admin_thread_toggle", th.id);
         await this.load();
     }
+    // what a 🗑️ deletes (shown in the confirmation)
+    lreqWhat(r) {
+        return `${this.eName(r.employee_id)} · ${_t("Leave: %s", r.type)} · ${longDate(r.from_day)} – ${longDate(r.to_day)}`;
+    }
+    ereqWhat(r) {
+        return `${this.eName(r.employee_id)} · ${_t("Visit %s", clock(r.started_at))} · ${mmss(r.old_sec)} ${ARROW} ${mmss(r.new_sec)}`;
+    }
+    threadWhat(th) {
+        return `${this.eName(th.employee_id)} · ${th.topic} · ${_t("The whole conversation")}`;
+    }
+    msgWhat(th, m) {
+        return `${m.sender === "admin" ? TX.management : this.eName(th.employee_id)}: ${m.body.slice(0, 80)}`;
+    }
 }
 
 // ---------------------------------------------------------------- sales and targets
 class Sales extends AdminBase {
     static template = "navitta_ops.AdminSales";
-    static components = { EmpBoard, TargetEditor, TargetFile, DayEdit, DayChanges };
+    static components = { EmpBoard, TargetEditor, TargetFile, DayEdit, DayChanges, DelBtn };
     setup() {
         super.setup();
         this.state = useState({ d: null, edit: null, editRows: null, dayEdit: null, changes: null });
@@ -411,7 +430,7 @@ class Sales extends AdminBase {
         const byDay = {};
         for (const r of this.state.d.daily) {
             const x = (byDay[r.day] ||= { day: r.day, target: 0, sales: 0, invoices: 0, items: 0, returns: 0, returns_amount: 0, cash: 0, card: 0,
-                tax: 0, has: false, closed_by: r.closed_by, edited: false, changed: 0, checked: false, diff: 0, notes: [] });
+                tax: 0, has: false, closed_by: r.closed_by, edited: false, changed: 0, checked: false, diff: 0, notes: [], id: r.id });
             for (const k of ["target", "sales", "invoices", "items", "returns", "returns_amount", "cash", "card", "tax"]) {
                 x[k] += +(r[k] || 0);
             }
@@ -442,6 +461,9 @@ class Sales extends AdminBase {
         return { cls: "bad-t", text: (x.diff > 0 ? "+" : "−") + f0(Math.abs(x.diff)) + (x.notes.length ? " 💬" : ""),
             title: x.notes.join("\n") || _t("No reason") };
     }
+    dayWhat(x) {
+        return `${this.bName(this.br)} · ${longDate(x.day)} · ${_t("Sales %s SAR", f0(x.sales))} · ${_t("Target %s", f0(x.target))}`;
+    }
     async daySaved() {
         this.state.dayEdit = null;
         await this.load();
@@ -460,7 +482,7 @@ class Sales extends AdminBase {
 // ---------------------------------------------------------------- requests, expenses, supplies
 class Requests extends AdminBase {
     static template = "navitta_ops.AdminRequests";
-    static components = { PhotoLink, ShipBuilder, ShipLog };
+    static components = { PhotoLink, FileThumb, ShipBuilder, ShipLog, DelBtn };
     setup() {
         super.setup();
         this.state = useState({ d: null, kind: "all", notes: {}, open: null });
@@ -535,11 +557,21 @@ class Requests extends AdminBase {
     note(id) {
         return this.state.notes[id] || null;
     }
+    reqWhat(r) {
+        return `${r.what} · ${this.bName(r.branch_id)} · ${r.employee || "—"} · ${longDate(r.created_at)}`;
+    }
+    expWhat(x) {
+        return `${f0(x.amount)} ${TX.sar} · ${x.category_label} · ${this.bName(x.branch_id)} · ${longDate(x.day)}`;
+    }
+    defWhatFull(x) {
+        return `${this.defWhat(x)} · ${this.bName(x.branch_id)} · ${x.defect_label}`;
+    }
 }
 
 // ---------------------------------------------------------------- lost sales
 class Lost extends AdminBase {
     static template = "navitta_ops.AdminLost";
+    static components = { DelBtn };
     setup() {
         super.setup();
         this.state = useState({ d: null });
@@ -595,6 +627,9 @@ class Lost extends AdminBase {
         downloadCsv(`next-order-${this.props.f.from}-${this.props.f.to}.csv`, [[_t("Item no."), _t("Model"), _t("Color"), _t("Size"), _t("Times"), _t("Branches"), _t("Notes")],
             ...v.next.map((x) => [x.item_no, x.model, vlabel(x.color), x.size, x.n, this.brs(x.br), x.notes.join(" | ")])]);
     }
+    lostWhat(r) {
+        return jn([longDate(r.day), this.bName(r.branch_id), r.employee, LOSTL[r.reason] || r.reason, r.item_no, r.model, vlabel(r.color), r.size]);
+    }
     dlAll(v) {
         downloadCsv(`lost-sales-${this.props.f.from}-${this.props.f.to}.csv`, [[_t("Date"), _t("Branch"), _t("Employee"), _t("Reason"), _t("Item no."), _t("Model"), _t("Color"), _t("Size"), _t("Price"), _t("Note")],
             ...v.rows.map((r) => [r.day, this.bName(r.branch_id), r.employee, LOSTL[r.reason] || r.reason, r.item_no, r.model, vlabel(r.color), r.size, r.price, r.note])]);
@@ -604,11 +639,23 @@ class Lost extends AdminBase {
 // ---------------------------------------------------------------- day log
 class Day extends AdminBase {
     static template = "navitta_ops.AdminDay";
-    static components = { PhotoLink, DayChanges };
+    static components = { FileThumb, DayChanges, DayCalendar, DelBtn };
     setup() {
         super.setup();
-        this.state = useState({ d: null, day: today(), changes: null });
+        this.state = useState({ d: null, day: today(), changes: null, cal: 1 });
         onWillStart(() => this.load());
+    }
+    /** A day picked in the calendar: load it and scroll to its details. */
+    async pickDay(v) {
+        await this.setDay(v);
+        const el = document.getElementById("day-det");
+        if (el) {
+            el.scrollIntoView({ block: "start", behavior: "smooth" });
+        }
+    }
+    async reload() {
+        await this.load();
+        this.state.cal++;        // the calendar's marks follow what was deleted
     }
     async load() {
         const d = await api(this.orm, "admin_day", this.state.day);
@@ -640,12 +687,13 @@ class Day extends AdminBase {
             [v.lost_model, vlabel(v.lost_color), v.lost_size && _t("Size %s", v.lost_size)].filter(Boolean).join(" · "))]));
         d.cases.filter((c) => (E[c.employee_id] || {}).branch_id === b.id).forEach((c) => ev.push([c.state === "rejected" ? "bad" : "warn",
             _t("%(kind)s %(name)s %(min)s min", { kind: c.kind === "break" ? _t("Break overrun") : _t("Late arrival"), name: (E[c.employee_id] || {}).name, min: c.minutes })
-            + (c.reason ? " · " + _t("Reason: %s", c.reason) : "") + (c.penalty ? " · " + c.penalty : "")]));
+            + (c.reason ? " · " + _t("Reason: %s", c.reason) : "") + (c.penalty ? " · " + c.penalty : ""), c.id]));
         const rows = emps.map((e) => {
             const a = d.attendance.find((y) => y.employee_id === e.id);
-            const bm = Math.ceil(d.breaks.filter((y) => y.employee_id === e.id && y.ended_at).reduce((t, y) => t + (Date.parse(y.ended_at) - Date.parse(y.started_at)) / 6e4, 0));
+            const brks = d.breaks.filter((y) => y.employee_id === e.id);
+            const bm = Math.ceil(brks.filter((y) => y.ended_at).reduce((t, y) => t + (Date.parse(y.ended_at) - Date.parse(y.started_at)) / 6e4, 0));
             const st = a ? ["good", _t("Attended")] : d.off[e.id] ? ["neutral", _t("🌙 Day off")] : ["bad", _t("Not checked in")];
-            return { e, a, bm, st };
+            return { e, a, bm, st, brks };
         });
         // today's float (start and end of the shift) and today's tasks
         const daily = (d.daily || {})[b.id] || {};
@@ -700,11 +748,24 @@ class Day extends AdminBase {
     doneLine(x) {
         return "✓ " + (x.done_name || "") + " " + clock(x.done_at);
     }
-    async reopen(x, b) {
-        if (!window.confirm(_t("Re-open “%(t)s” at %(b)s? It shows as not done again.", { t: x.title, b: b.name }))) {
-            return;
-        }
-        await this.act("admin_task_reopen", [x.done_id], _t("Task re-opened"));
+    // what a 🗑️ deletes (shown in the confirmation)
+    taskWhat(x, b) {
+        return `${b.name} · ${this.taskLine(x)} · ${this.doneLine(x)} · ${_t("It shows as not done again")}`;
+    }
+    floatWhat(x, b) {
+        return `${b.name} · ${_t("Float")} · ${x.label} · ${f0(x.f.amount)} / ${f0(x.f.expected)} ${TX.sar}`;
+    }
+    reportWhat(r, b) {
+        return `${b.name} · ${_t("Daily report by %s", r.employee_name)} · ${longDate(this.state.day)}`;
+    }
+    attWhat(x, b) {
+        return `${x.e.name} · ${b.name} · ${longDate(this.state.day)} · ${clock(x.a.check_in)}${x.a.check_out ? " – " + clock(x.a.check_out) : ""}`;
+    }
+    brkWhat(x, y) {
+        return `${x.e.name} · ☕ ${clock(y.started_at)} – ${y.ended_at ? clock(y.ended_at) : "…"}`;
+    }
+    brkLine(y) {
+        return `☕ ${clock(y.started_at)}–${y.ended_at ? clock(y.ended_at) : "…"}`;
     }
 }
 
@@ -762,7 +823,7 @@ const KIND = { late: () => _t("Late arrival"), break: () => _t("Break overrun") 
 
 class Rules extends AdminBase {
     static template = "navitta_ops.AdminRules";
-    static components = { CaseDecide, Dots };
+    static components = { CaseDecide, Dots, DelBtn };
     setup() {
         super.setup();
         this.state = useState({ d: null, editT: null, nr: "", edR: {} });
@@ -866,10 +927,8 @@ class Rules extends AdminBase {
             }
         }
     }
-    async ruleDel(r) {
-        if (window.confirm(_t("Delete this rule?") + "\n\n" + r.body)) {
-            await this.act("admin_rule_delete", [r.id], _t("Rule deleted"));
-        }
+    penWhat(c) {
+        return `${this.eName(c.employee_id)} · ${longDate(c.day)} · ${this.pensSub(c)} · ${c.penalty}`;
     }
     async settle(c) {
         await this.act("admin_case_settle", [c.id, !c.settled_at], c.settled_at ? _t("Deduction undone") : _t("Marked as deducted"));
@@ -887,28 +946,36 @@ class Rules extends AdminBase {
 // ---------------------------------------------------------------- root
 export class AdminApp extends Component {
     static template = "navitta_ops.AdminApp";
-    static components = { Dashboard, Sales, Compare, Requests, Lost, Day, Rules, FilterBar };
+    static components = { Dashboard, Sales, Compare, Requests, Lost, Day, Rules, Ideas, AdminSettings, FilterBar, Bulb, HelpLayer, TourBtn, ThemeToggle };
     static props = { ...standardActionServiceProps };
     setup() {
         this.orm = useService("orm");
-        this.state = useState({ tab: (this.props.action.params && this.props.action.params.tab) || "dashboard", branches: [] });
+        this.state = useState({ tab: (this.props.action.params && this.props.action.params.tab) || "dashboard", branches: [], login: "" });
         this.f = useState(loadFilter());
+        this.theme = useTheme();
         this.DIR = DIR;
         this.LANG = LANG;
-        this.tabs = [["dashboard", _t("Dashboard")], ["compare", _t("📊 Branch comparison")], ["sales", _t("Sales and targets")], ["requests", _t("📦 Branch requests")],
-            ["lost", _t("💸 Lost sales")], ["rules", _t("📜 Rules and violations")], ["day", _t("Daily log")]];
+        this.mgmt = _t("Management");
+        // [tab, label, help id of its bulb]
+        this.tabs = [["dashboard", _t("Dashboard"), "a-home"], ["compare", _t("📊 Branch comparison"), ""], ["sales", _t("Sales and targets"), "a-sales"],
+            ["requests", _t("📦 Branch requests"), "a-requests"], ["lost", _t("💸 Lost sales"), "a-lost"], ["day", _t("Daily log"), "a-day"],
+            ["settings", _t("⚙️ Settings"), "a-settings"], ["rules", _t("📜 Rules and violations"), "a-rules"], ["ideas", _t("💡 Ideas"), "a-ideas"]];
         onWillStart(async () => {
             const d = await api(this.orm, "admin_filters");
             if (!d.error) {
                 setClock(d.settings.tz);
+                this.state.login = d.login || "";
                 this.state.branches = d.branches;
                 Object.assign(this.f, loadFilter());       // dates of the presets in the branches' time zone
             }
         });
     }
     get withDates() {
-        return !["requests", "day", "rules"].includes(this.state.tab);
+        return !["requests", "day", "rules", "settings", "ideas"].includes(this.state.tab);
+    }
+    get withFilter() {
+        return this.state.tab !== "ideas";
     }
 }
 
-registry.category("actions").add("navitta_admin_app", AdminApp);
+registry.category("actions").add("navitta_admin_app", withNavittaTerms(AdminApp));

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="navitta_ops.AdminIdeas">
+        <div t-if="!state.d" class="empty">Loading…</div>
+        <t t-else="">
+            <div class="filters">
+                <button type="button" class="nv-btn primary" t-on-click="() => state.open = !state.open">➕ Add an idea</button>
+                <span class="range-note" t-esc="counts"/>
+            </div>
+            <div t-if="state.open" class="nv-card" style="margin-bottom:16px">
+                <h2>💡 New idea</h2>
+                <input class="ctl" t-model="state.f.title" placeholder="The idea *" aria-label="The idea"/>
+                <textarea class="ctl" rows="3" t-model="state.f.details" placeholder="Details (optional)" aria-label="Details (optional)"/>
+                <div class="vrow"><label class="dr">Which release? <select class="ctl" t-model="state.f.version">
+                    <option t-foreach="state.d.versions" t-as="v" t-key="v" t-att-value="v" t-esc="vlabel(v)"/></select></label></div>
+                <div class="vrow">
+                    <label class="nv-btn">📎 Attach a photo (optional)<input type="file" accept="image/*" hidden="1" t-on-change="pickPhoto"/></label>
+                    <span t-if="state.photo" class="chip good">✓ Photo attached <button type="button" class="linkbtn" aria-label="Remove" t-on-click="() => state.photo = null">✕</button></span>
+                </div>
+                <div class="vrow"><button type="button" class="nv-btn primary" t-att-disabled="!state.f.title.trim() or state.busy" t-on-click="() => this.save()">Save</button>
+                    <button type="button" class="nv-btn" t-on-click="() => state.open = false">Cancel</button></div>
+            </div>
+            <div class="grid">
+                <div t-foreach="groups" t-as="g" t-key="g.v" class="nv-card c12">
+                    <div class="nv-card-h"><h2 t-esc="groupTitle(g)"/><span class="range-note" t-esc="groupNote(g)"/></div>
+                    <div class="ideas">
+                        <div t-foreach="g.xs" t-as="x" t-key="x.id" t-att-class="'idea ' + x.state">
+                            <div class="idea-m">
+                                <b t-esc="x.title"/>
+                                <p t-if="x.details" t-esc="x.details"/>
+                                <span class="m" t-esc="meta(x)"/>
+                            </div>
+                            <FileThumb t-if="x.photo" src="photoSrc(x)" label="'📎'"/>
+                            <div class="idea-a">
+                                <div class="seg"><t t-foreach="ST" t-as="s" t-key="s[0]">
+                                    <button type="button" t-att-aria-pressed="x.state === s[0] ? 'true' : 'false'" t-on-click="() => this.upd(x, {state: s[0]})" t-esc="s[1]"/></t></div>
+                                <select class="ctl" aria-label="Release" t-on-change="(e) => this.upd(x, {version: e.target.value})">
+                                    <option t-foreach="versions" t-as="v" t-key="v" t-att-value="v" t-att-selected="x.version === v" t-esc="vlabel(v)"/></select>
+                                <DelBtn small="true" kind="'ideas'" id="x.id" what="x.title" onDone="() => this.load()"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div t-if="!state.d.ideas.length" class="empty c12">No ideas yet. Press “➕ Add an idea”.</div>
+            </div>
+        </t>
+    </t>
+
+</templates>

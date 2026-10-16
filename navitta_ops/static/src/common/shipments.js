@@ -5,7 +5,8 @@ import { Component, onMounted, onWillUpdateProps, useExternalListener, useRef, u
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
 import { SHIPST, SUP, api, f0, jn, longDate, shipState } from "./utils";
-import { NvModal, PhotoLink, PhotoPicker, SignModal } from "./components";
+import { FileThumb, NvModal, PhotoPicker, SignModal } from "./components";
+import { DelBtn } from "./del";
 
 const SUPS = ["roll_invoice", "roll_card", "bags"];
 const sizeKey = (s) => parseFloat(s) || 0;
@@ -336,8 +337,8 @@ export class ShipBuilder extends Component {
 // ---------------------------------------------------------------- management: recent shipments
 export class ShipLog extends Component {
     static template = "navitta_ops.ShipLog";
-    static components = { PhotoLink };
-    static props = { ships: Array, bName: Function };
+    static components = { FileThumb, DelBtn };
+    static props = { ships: Array, bName: Function, onDone: { type: Function, optional: true } };
     setup() {
         Object.assign(this, { TX, SUP, SUPS, SHIPST, shipState, f0, longDate });
     }

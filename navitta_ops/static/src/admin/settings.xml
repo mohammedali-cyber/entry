@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="navitta_ops.AdminSettings">
+        <div t-if="!state.d" class="empty">Loading…</div>
+        <t t-else="">
+            <t t-set="d" t-value="state.d"/>
+            <div class="filters"><button type="button" class="nv-btn" t-on-click="() => this.openSettings()">⚙️ All settings (times, break, chances, emails…)</button></div>
+            <div class="grid">
+                <div class="nv-card c12">
+                    <h2>⏰ Shift times</h2>
+                    <div class="shbox">
+                        <p class="sub">Applies to all branches. Lateness counts from each employee's shift start; choose her shift in the employees table below. <t t-esc="noAmText"/></p>
+                        <p class="num">☀️ Morning shift <b t-esc="h12(d.settings.am_start)"/> – <b t-esc="h12(d.settings.am_end)"/> · 🌙 Evening shift <b t-esc="h12(d.settings.shift_start)"/> – <b t-esc="h12(d.settings.shift_end)"/></p>
+                        <div class="sh-br"><span>Branches with a morning shift:</span>
+                            <label t-foreach="d.branches" t-as="b" t-key="b.id" t-att-class="'chip ' + (b.two_shifts ? 'good' : 'neutral')">
+                                <input type="checkbox" t-att-checked="b.two_shifts" t-on-change="(e) => this.setTwo(b, e.target.checked)"/> <t t-esc="b.name"/></label>
+                        </div>
+                    </div>
+                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>Branch</th><th>Employee</th><th>Shift</th></tr></thead><tbody>
+                        <tr t-foreach="emps" t-as="e" t-key="e.id"><td t-esc="bName(e.branch_id)"/><td><b t-esc="e.name"/></td>
+                            <td><span t-if="!twoShifts(e.branch_id)" class="sh-only">🌙 Evening only</span>
+                                <span t-else="" class="seg shs" role="group" aria-label="Shift">
+                                    <button type="button" t-att-aria-pressed="e.shift.shift === 'am' ? 'true' : 'false'" t-on-click="() => this.setShift(e, 'am')">☀️ Morning</button>
+                                    <button type="button" t-att-aria-pressed="e.shift.shift !== 'am' ? 'true' : 'false'" t-on-click="() => this.setShift(e, 'pm')">🌙 Evening</button>
+                                </span></td></tr>
+                    </tbody></table></div>
+                </div>
+
+                <div class="nv-card c6">
+                    <h2>🗑️ Delete password</h2>
+                    <p class="sub">Required when you delete anything in the management screens. Make it different from the management password typed on the branch devices.</p>
+                    <p><span t-if="d.delete.set" class="chip good">🔒 Set</span><span t-else="" class="chip warn">Not set yet; deleting is locked until you set it</span></p>
+                    <div class="vrow">
+                        <input t-if="d.delete.set" class="ctl" type="password" dir="ltr" autocomplete="off" t-model="state.cur" placeholder="Current password" aria-label="Current password" style="flex:1 1 140px"/>
+                        <input class="ctl" type="password" dir="ltr" autocomplete="new-password" t-model="state.pw" placeholder="New password" aria-label="New password" style="flex:1 1 140px"/>
+                        <button type="button" class="nv-btn primary" t-att-disabled="state.busy" t-on-click="() => this.savePw()">Save</button>
+                    </div>
+                    <details t-if="d.delete.log.length" class="dlog-d"><summary class="linkbtn" t-esc="logTitle(d.delete.log.length)"/>
+                        <div class="dlog">
+                            <div t-foreach="d.delete.log" t-as="x" t-key="x.id"><span class="num" t-esc="ago(x.at)"/> · <b t-esc="x.label"/> · <t t-esc="x.summary"/> · «<t t-esc="x.reason"/>»<span t-if="x.by" class="m"> · <t t-esc="x.by"/></span></div>
+                        </div>
+                    </details>
+                </div>
+
+                <div class="nv-card c6">
+                    <h2>🏖️ Current and upcoming leaves</h2>
+                    <div class="reqs">
+                        <div t-foreach="d.leaves.filter((l) => !br or (d.E[l.employee_id] or {}).branch_id === br)" t-as="l" t-key="l.id" class="req">
+                            <div class="req-main"><span t-att-class="'chip ' + (l.from_day &lt;= d.day ? 'warn' : 'neutral')"><t t-if="l.from_day &lt;= d.day">🏖️ Now</t><t t-else="">Upcoming</t></span>
+                                <div><div class="what"><b t-esc="eName(l.employee_id)"/> · <t t-esc="l.type_label"/></div>
+                                    <div class="meta num" t-esc="leaveDates(l)"/>
+                                    <div t-if="l.cover_employee_id" class="meta">Covering: <t t-esc="eName(l.cover_employee_id)"/></div></div></div>
+                            <DelBtn small="true" kind="'leaves'" id="l.id" what="leaveWhat(l)" onDone="() => this.load()"/>
+                        </div>
+                        <div t-if="!d.leaves.length" class="empty">No current or upcoming leaves</div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </t>
+
+</templates>

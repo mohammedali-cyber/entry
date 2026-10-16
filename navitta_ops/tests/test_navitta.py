@@ -129,7 +129,9 @@ class NavittaCase(TransactionCase):
         admin_only = {"navitta.leave.request", "navitta.thread", "navitta.message", "navitta.notification",
                       "navitta.device", "navitta.device.punch", "navitta.upload.token",
                       # 26.3: a day's corrections and changes after closing are management-only, as on the site
-                      "navitta.sales.edit.log", "navitta.sales.change.log"}
+                      "navitta.sales.edit.log", "navitta.sales.change.log",
+                      # the delete log and the ideas backlog are management-only, as on the site
+                      "navitta.delete.log", "navitta.idea"}
         models = [m for m in self.env if m.startswith("navitta.") and not self.env[m]._abstract and not self.env[m]._transient]
         for m in models:
             with self.subTest(model=m):
@@ -423,10 +425,14 @@ class NavittaCase(TransactionCase):
             row = [x for x in T1["tasks"] if x["task_id"] == uniform.id and x["for_emp"] == self.reem.id][0]
             self.assertEqual((row["done_name"], bool(row["done_id"])), ("ريم", True))
             self.assertEqual(len(T1["tasks"]), 19)     # 13 tasks: «both» ×2 employees, 5 «sections» ×2
+            # re-opening goes through the delete password and the delete log (26.3)
+            self.company._navitta_set_delete_password("del-1234")
             with self.assertRaises(AccessError):
-                self.api().admin_task_reopen(row["done_id"])
-            self.assertTrue(self.admin().admin_task_reopen(row["done_id"])["ok"])
-            self.assertEqual(self.admin().admin_task_reopen(row["done_id"])["error"], "not_found")
+                self.api().admin_delete("task_done", row["done_id"], "by mistake", "del-1234")
+            self.assertEqual(self.admin().admin_delete("task_done", row["done_id"], "by mistake", "nope")["error"], "wrong_pw")
+            self.assertTrue(self.admin().admin_delete("task_done", row["done_id"], "by mistake", "del-1234")["ok"])
+            self.assertEqual(self.admin().admin_delete("task_done", row["done_id"], "by mistake", "del-1234")["error"], "not_found")
+            self.assertEqual(self.env["navitta.delete.log"].search([], limit=1).kind, "task_done")
             row = [x for x in self.api().tasks_state()["tasks"] if x["task_id"] == uniform.id and x["for_emp"] == self.reem.id][0]
             self.assertFalse(row["done_at"])
             self.assertEqual(self.api().task_done(self.reem.id, "2468", uniform.id, self.reem.slot)["error"], "task_missed")
@@ -1210,7 +1216,8 @@ class NavittaCase(TransactionCase):
             self.assertTrue(a.admin_rule_save(rid, "الجوال ممنوع نهائيًا وقت خدمة العميلة")["ok"])
             self.assertFalse(self.api().inbox(self.reem.id, "2468")["rules_signed"])
             self.assertFalse(a.admin_rules()["acks"][self.reem.id]["current"])
-            self.assertTrue(a.admin_rule_delete(rid)["ok"])
+            self.company._navitta_set_delete_password("del-1234")
+            self.assertTrue(a.admin_delete("rules", rid, "old rule", "del-1234")["ok"])
             self.assertEqual(len(a.admin_rules()["rules"]), 1)
 
     # ------------------------------------------------------------------ 26.3: «تنبيهاتي» feed and unread badges
@@ -1567,6 +1574,223 @@ class NavittaCase(TransactionCase):
         self.assertEqual(y.state, "approved")
         self.assertEqual(self.env["navitta.notification"].search([("employee_id", "=", self.shima.id)], limit=1).body, "✅ Approved: 12345678 · SANDY · BLACK · 38")
         self.assertEqual([d["state"] for d in a.admin_requests()["defects"]], ["approved", "rejected"])
+
+
+    # ------------------------------------------------------------------ 26.3: delete with the delete password and the delete log
+    def test_delete_password_set_change_lockout(self):
+        """A separate delete password: at least 4 characters, the current one is needed to change it, and wrong attempts
+        lock it like the management password (5 wrong = 5 minutes); management is emailed from the 10th."""
+        a, c = self.admin(), self.company
+        self.assertFalse(a.admin_settings()["delete"]["set"])
+        with self.assertRaises(AccessError):
+            self.api().admin_set_delete_pw("abcd")
+        self.assertEqual(a.admin_delete("leaves", 1, "x", "abcd")["error"], "no_delete_pw")
+        self.assertEqual(a.admin_set_delete_pw("abc")["error"], "pw_short")
+        self.assertTrue(a.admin_set_delete_pw("abcd")["ok"])
+        self.assertTrue(a.admin_settings()["delete"]["set"])
+        self.assertNotIn("abcd", self.env["ir.config_parameter"].sudo().get_param(c._navitta_del_pw_key()))   # hashed
+        self.assertFalse(c._navitta_verify_admin_password("abcd"))       # not the management password
+        self.assertEqual(a.admin_set_delete_pw("wxyz")["error"], "wrong_pw")                 # changing needs the current one
+        self.assertEqual(a.admin_set_delete_pw("wxyz", "nope")["error"], "wrong_pw")
+        self.assertTrue(a.admin_set_delete_pw("wxyz", "abcd")["ok"])
+        leave = self.env["navitta.leave"].create({"employee_id": self.reem.id, "from_day": DAY, "to_day": DAY})
+        with freeze_time(utc(12, 0)):
+            self.assertEqual(a.admin_delete("leaves", leave.id, "", "wxyz")["error"], "reason_required")
+            for _i in range(4):
+                self.assertEqual(a.admin_delete("leaves", leave.id, "x", "bad")["error"], "wrong_pw")
+            self.assertEqual(a.admin_delete("leaves", leave.id, "x", "bad")["error"], "wrong_pw")       # 5th: locked now
+            self.assertEqual(a.admin_delete("leaves", leave.id, "x", "wxyz")["error"], "locked")
+            self.assertEqual(a.admin_set_delete_pw("1234", "wxyz")["error"], "locked")
+        with freeze_time(utc(12, 6)):
+            for _i in range(5):
+                a.admin_delete("leaves", leave.id, "x", "bad")
+            self.assertTrue(self.env["navitta.notification"].search([("subject", "=", "Wrong delete password attempts")]))
+        with freeze_time(utc(12, 12)):
+            self.assertTrue(a.admin_delete("leaves", leave.id, "covered by mistake", "wxyz")["ok"])
+            self.assertEqual(c.sudo().navitta_del_pw_fail_count, 0)
+        self.assertFalse(leave.exists())
+        self.assertEqual(a.admin_delete("pos_orders", 1, "x", "wxyz")["error"], "forbidden")   # only the known kinds
+
+    def test_delete_every_kind_with_log(self):
+        """Every record type the site deletes, mapped to its Navitta model: the record goes, its dependent Navitta
+        records stay consistent, and the delete log keeps who, when, the kind, a summary, the reason and a copy."""
+        a = self.admin()
+        self.company._navitta_set_delete_password("del-1234")
+        S, b, e = self.env, self.dwd, self.reem
+        with freeze_time(utc(15, 20)):
+            self.assertTrue(self.api().check_in(e.id, "2468")["ok"])
+            vid = self.api().visit_start(e.id)["id"]
+            self.api().visit_end(vid)
+        att = S["navitta.attendance"].search([("employee_id", "=", e.id)])
+        brk = S["navitta.break"].create({"employee_id": e.id, "day": DAY, "started_at": fields.Datetime.now()})
+        case = S["navitta.late.case"].create({"employee_id": e.id, "day": DAY, "kind": "late", "minutes": 10})
+        visit = S["navitta.visit"].browse(vid)
+        ereq = S["navitta.visit.edit.request"].create({"visit_id": vid, "employee_id": e.id, "old_sec": 60, "new_sec": 30, "reason": "x"})
+        lost = S["navitta.lost.sale"].create({"branch_id": b.id, "employee_id": e.id, "day": DAY, "reason": "size_na", "model": "SANDY"})
+        req = S["navitta.branch.request"].create({"branch_id": b.id, "kind": "goods", "model": "SANDY", "qty": 1})
+        lost2 = S["navitta.lost.sale"].create({"branch_id": b.id, "day": DAY, "reason": "size_na", "model": "SANDY", "request_id": req.id})
+        exp = S["navitta.expense"].create({"branch_id": b.id, "day": DAY, "amount": 20, "category": "cleaning", "details": "x"})
+        defect = S["navitta.defect"].create({"branch_id": b.id, "model": "SANDY", "defect": "heel", "source": "display", "photo_id": self.photo()})
+        ship = S["navitta.shipment"].create({"branch_id": b.id, "bags": 1, "line_ids": [(0, 0, {"model": "SANDY", "qty": 1})]})
+        leave = S["navitta.leave"].create({"employee_id": e.id, "from_day": DAY, "to_day": DAY})
+        lreq = S["navitta.leave.request"].create({"employee_id": e.id, "type": "annual", "state": "pending", "from_day": DAY, "to_day": DAY, "reason": "x"})
+        thread = S["navitta.thread"].create({"employee_id": e.id, "topic": "work", "message_ids": [(0, 0, {"sender": "emp", "body": "1"}),
+                                                                                                    (0, 0, {"sender": "admin", "body": "2"})]})
+        msg = thread.message_ids[:1]
+        notif = S["navitta.notification"]._notify_employee(e, "x", "y")
+        fl = S["navitta.float"].create({"branch_id": b.id, "day": DAY, "kind": "start", "expected": 1000, "amount": 1000, "state": "ok"})
+        done = S["navitta.task.done"].create({"branch_id": b.id, "day": DAY, "task_id": self.tasks[1].id, "part": 1})
+        rule = S["navitta.rule"].create({"body": "x"})
+        idea = S["navitta.idea"].create({"title": "x"})
+        sales = S["navitta.daily.sales"]._row(b, DAY - timedelta(days=1))
+        sales.write({"sales": 500, "target": 600})
+        cases = [("attendance", att), ("breaks", brk), ("late_cases", case), ("visit_edit_requests", ereq), ("lost_sales", lost),
+                 ("branch_requests", req), ("expenses", exp), ("defects", defect), ("shipments", ship), ("leaves", leave),
+                 ("leave_requests", lreq), ("messages", msg), ("threads", thread), ("notifications", notif), ("floats", fl),
+                 ("task_done", done), ("rules", rule), ("ideas", idea), ("visits", visit), ("daily_sales", sales)]
+        Log = S["navitta.delete.log"]
+        lines = ship.line_ids
+        for kind, rec in cases:
+            with self.subTest(kind=kind):
+                rid, model = rec.id, rec._name
+                self.assertTrue(a.admin_delete(kind, rid, "reason " + kind, "del-1234")["ok"])
+                self.assertFalse(S[model].with_context(active_test=False).browse(rid).exists())
+                log = Log.search([], limit=1)
+                self.assertEqual((log.kind, log.res_model, log.res_id, log.reason, log.user_id), (kind, model, rid, "reason " + kind, self.boss))
+                self.assertEqual(log.data["id"], rid)
+                self.assertTrue(log.summary)
+        self.assertFalse(lines.exists())                     # the shipment's lines go with it
+        self.assertFalse(lost2.request_id)                   # a lost sale linked to a deleted request stays, unlinked
+        self.assertEqual(Log.search_count([]), len(cases))
+        # the delete log is management-only and read-only, even for management
+        self.assertFalse(Log.with_user(self.dev).has_access("read"))
+        self.assertFalse(Log.with_user(self.boss).has_access("write"))
+        self.assertFalse(Log.with_user(self.boss).has_access("unlink"))
+        st = a.admin_settings()["delete"]
+        self.assertEqual(len(st["log"]), 15)
+        self.assertEqual(st["log"][0]["label"], "Sales day")
+
+    def test_delete_daily_report_cleans_the_day(self):
+        """Deleting a daily report takes back what it wrote into the day: the report's sales (when they came from it),
+        its employee lines, the supplies used, who closed the day and the deposit. Deleting a sales day takes its
+        employee sales with it."""
+        a, S = self.admin(), self.env
+        self.company._navitta_set_delete_password("del-1234")
+        self.end_float()
+        with freeze_time(utc(23, 0)):
+            r = self.api().report_save(self.rep(sales=900, invoices=4, cash=500, card=400, deposit=100, used={"bags": 2},
+                                                emp=[{"employee_id": self.reem.id, "amount": 900, "invoices": 4}]))
+            self.assertTrue(r["ok"], r)
+        row = S["navitta.daily.sales"].search([("branch_id", "=", self.dwd.id), ("day", "=", DAY)])
+        self.assertEqual((row.sales, row.source, row.closed_by, row.deposit), (900, "report", "ريم", 100))
+        dom = [("branch_id", "=", self.dwd.id), ("day", "=", DAY)]
+        self.assertEqual(S["navitta.employee.sales"].search_count(dom), 1)
+        self.assertEqual(S["navitta.supply.move"].search_count(dom + [("kind", "=", "used")]), 1)
+        rep = S["navitta.daily.report"].search(dom)
+        lines = rep.employee_line_ids
+        with freeze_time(utc(23, 10)):
+            self.assertTrue(a.admin_delete("daily_reports", rep.id, "sent twice", "del-1234")["ok"])
+        self.assertFalse(rep.exists() or lines.exists())
+        self.assertEqual((row.sales, row.has_sales, row.closed_by, row.deposit), (0, False, False, 0))
+        self.assertEqual(S["navitta.employee.sales"].search_count(dom), 0)
+        self.assertEqual(S["navitta.supply.move"].search_count(dom + [("kind", "=", "used")]), 0)
+        self.assertFalse(S["navitta.sales.change.log"].search(dom))          # not a «change after closing»
+        S["navitta.employee.sales"].create({"branch_id": self.dwd.id, "day": DAY, "amount": 5})
+        self.assertTrue(a.admin_delete("daily_sales", row.id, "wrong day", "del-1234")["ok"])
+        self.assertEqual(S["navitta.employee.sales"].search_count(dom), 0)
+        self.assertFalse(row.exists())
+
+    # ------------------------------------------------------------------ 26.3: shift toggles in the management settings
+    def test_admin_shift_toggles(self):
+        a = self.admin()
+        with self.assertRaises(AccessError):
+            self.api().admin_set_shift(self.reem.id, "am")
+        self.assertEqual(a.admin_set_shift(self.reem.id, "night")["error"], "bad_shift")
+        self.assertEqual(a.admin_set_shift(self.reem.id, "am")["error"], "no_am_branch")
+        self.assertTrue(a.admin_set_two_shifts(self.dwd.id, True)["ok"])
+        self.assertTrue(a.admin_set_shift(self.reem.id, "am")["ok"])
+        self.assertEqual(self.reem.shift, "am")
+        st = a.admin_settings()
+        self.assertTrue([x for x in st["branches"] if x["id"] == self.dwd.id][0]["two_shifts"])
+        self.assertEqual([x for x in st["employees"] if x["id"] == self.reem.id][0]["shift"]["shift"], "am")
+        self.assertTrue(a.admin_set_two_shifts(self.dwd.id, False)["ok"])        # evening only: everyone back to evening
+        self.assertEqual(self.reem.shift, "pm")
+
+    # ------------------------------------------------------------------ 26.3: the day log's month calendar
+    def test_day_calendar(self):
+        """Per day: sales vs target, reports sent, lateness (not excused / edited), the counted cash + card minus the
+        Point of Sale's, floats short, refunds and changes after closing; one branch or all."""
+        S, a = self.env, self.admin()
+        y = DAY - timedelta(days=1)
+        S["navitta.daily.sales"]._row(self.dwd, y).write({"target": 1000, "sales": 850, "returns_amount": 30})
+        S["navitta.daily.sales"]._row(self.qsm, y).write({"target": 500, "sales": 600})
+        S["navitta.daily.sales"]._row(self.dwd, DAY + timedelta(days=3)).write({"target": 700})
+        S["navitta.daily.report"].create({"branch_id": self.dwd.id, "day": y, "employee_name": "ريم", "sales": 850})
+        S["navitta.late.case"].create({"employee_id": self.reem.id, "day": y, "kind": "late", "minutes": 9})
+        S["navitta.late.case"].create({"employee_id": self.shima.id, "day": y, "kind": "late", "minutes": 9, "state": "excused"})
+        S["navitta.late.case"].create({"employee_id": self.hubour.id, "day": y, "kind": "break", "minutes": 4})
+        S["navitta.float"].create({"branch_id": self.dwd.id, "day": y, "kind": "start", "expected": 1000, "amount": 900, "state": "short"})
+        S["navitta.sales.change.log"].create({"branch_id": self.dwd.id, "day": y, "field": "sales", "new_value": 1, "source": "pos"})
+        with freeze_time(utc(12, 0)):
+            with self.assertRaises(AccessError):
+                self.api().admin_day_calendar("2026-10-01")
+            d = a.admin_day_calendar("2026-10-01", self.dwd.id)
+            self.assertEqual((d["month"], d["today"], d["branches"]), ("2026-10-01", "2026-10-13", 1))
+            c = d["days"]["2026-10-12"]
+            self.assertEqual((c["sales"], c["target"], c["has"], c["rep"], c["late"], c["float"], c["refund"], c["chg"]),
+                             (850, 1000, True, 1, 1, 1, 30, 1))
+            self.assertEqual(d["days"]["2026-10-16"]["target"], 700)
+            d = a.admin_day_calendar("2026-10-01")
+            c = d["days"]["2026-10-12"]
+            self.assertEqual((d["branches"] >= 2, c["sales"], c["target"], c["late"], c["rep"]), (True, 1450, 1500, 2, 1))
+            self.assertFalse(a.admin_day_calendar("2026-09-01", self.dwd.id)["days"])
+
+    # ------------------------------------------------------------------ 26.3: ideas
+    def test_ideas(self):
+        """Management's backlog of ideas grouped by release: add (title required, details, release, photo), change the
+        status and the release, delete with the delete password. Branch devices can't see it."""
+        a = self.admin()
+        seeded = self.env.ref("navitta_ops.idea_forgot_pin")
+        d = a.admin_ideas()
+        self.assertEqual((d["version"], d["versions"]), ("26.3", ["26.2", "26.3", "26.4", "later"]))
+        self.assertIn(seeded.id, [x["id"] for x in d["ideas"]])
+        with self.assertRaises(AccessError):
+            self.api().admin_ideas()
+        self.assertFalse(self.env["navitta.idea"].with_user(self.dev).has_access("read"))
+        self.assertEqual(a.admin_idea_save(False, {"title": "  "})["error"], "idea_required")
+        self.assertEqual(a.admin_idea_save(False, {"title": "x", "photo": "bm90IGFuIGltYWdl"})["error"], "bad_file")
+        png = base64.b64encode(b"\x89PNG" + b"0" * 200).decode()
+        r = a.admin_idea_save(False, {"title": "Forgot PIN by SMS", "details": "later maybe", "photo": png})
+        idea = self.env["navitta.idea"].browse(r["id"])
+        self.assertEqual((idea.version, idea.state, idea.photo_mime, bool(idea.photo)), ("26.3", "todo", "image/png", True))
+        self.assertTrue(a.admin_idea_save(idea.id, {"state": "done"})["ok"])
+        self.assertTrue(a.admin_idea_save(idea.id, {"version": "26.4"})["ok"])
+        self.assertEqual((idea.state, idea.version), ("done", "26.4"))
+        self.assertEqual(a.admin_idea_save(idea.id, {"state": "maybe"})["error"], "not_found")
+        self.company._navitta_set_delete_password("del-1234")
+        self.assertTrue(a.admin_delete("ideas", idea.id, "done elsewhere", "del-1234")["ok"])
+        self.assertFalse(idea.exists())
+
+    # ------------------------------------------------------------------ 26.3: employee emails are a teaser
+    def test_employee_email_teaser(self):
+        """An employee alert's email only says there is a new alert (the details are in «تنبيهاتي»); the alert keeps the
+        full text. The PIN email, the shipment email and management emails carry the full text."""
+        self.reem.email = "reem@example.com"
+        n = self.env["navitta.notification"]._notify_employee(self.reem, "Leave approved", "Your leave on 13/10 is approved.")
+        self.assertEqual((n.subject, n.body), ("Leave approved", "Your leave on 13/10 is approved."))
+        self.assertEqual(n.mail_id.subject, "📬 You have a new alert: Leave approved")
+        self.assertIn("Open “My alerts” on the branch device with your PIN", n.mail_id.body_html)
+        self.assertNotIn("is approved", n.mail_id.body_html)
+        full = self.env["navitta.notification"]._notify_employee(self.reem, "🚚 Shipment", "All the details", full=True)
+        self.assertIn("All the details", full.mail_id.body_html)
+        boss = self.env["navitta.notification"]._notify_admin("Alert", "Management text")
+        self.assertIn("Management text", boss.mail_id.body_html)
+
+    # ------------------------------------------------------------------ 26.3: the guided tour after each sign-in
+    def test_login_stamp_for_the_tour(self):
+        self.env["res.users.log"].with_user(self.dev).sudo().create({})
+        self.assertTrue(self.api().branch_access()["login"])
+        self.assertIn("login", self.admin().admin_filters())
 
 
 @tagged("post_install", "-at_install", "navitta")

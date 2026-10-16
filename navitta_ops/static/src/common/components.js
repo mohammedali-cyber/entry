@@ -6,12 +6,14 @@ import {
     LANG, api, addDays, ago, barcodeUrl, compress, dcsText, f0, hourNow, icon, isBag, jn, longDate, minuteNow, mmss, monthEnd, monthName,
     monthStart, photoUrl, pc, sizesOf, swatch, today,
 } from "./utils";
+import { Bulb } from "./help";
 
 /** Texts used inside template expressions (OWL only translates static text nodes and attributes). */
 const TX = {
     get enterPin() { return _t("Enter your PIN"); },
     ofFour: (n) => _t("%s of 4", n),
     get viewReceipt() { return _t("View receipt"); },
+    get photo() { return _t("Photo"); },
     get uploading() { return _t("Uploading…"); },
     get chooseFile() { return _t("Choose file"); },
     get loading() { return _t("Loading…"); },
@@ -161,6 +163,24 @@ export class PhotoLink extends Component {
     }
 }
 
+/** A small thumbnail of a stored photo; tapping it opens it large with «Close» (site: FileThumb). `src` for photos that
+ * are not branch photos (e.g. an idea's photo). */
+export class FileThumb extends Component {
+    static template = "navitta_ops.FileThumb";
+    TX = TX;
+    static components = { NvModal };
+    static props = { id: { type: Number, optional: true }, src: { type: String, optional: true }, label: { type: String, optional: true } };
+    setup() {
+        this.state = useState({ open: false, broken: false });
+    }
+    get url() {
+        return this.props.src || photoUrl(this.props.id);
+    }
+    get thumb() {
+        return this.props.src ? this.props.src : `/web/image/navitta.photo/${this.props.id}/image/160x160`;
+    }
+}
+
 /** Receipt / item photo: phone via QR code, a file from this device, or the device camera. */
 export class PhotoPicker extends Component {
     static template = "navitta_ops.PhotoPicker";
@@ -263,7 +283,7 @@ export class PhotoPicker extends Component {
 export class TargetBar extends Component {
     static template = "navitta_ops.TargetBar";
     static props = { branchId: { type: Number, optional: true }, branchName: { type: String, optional: true }, admin: { type: Boolean, optional: true } };
-    static components = {};
+    static components = { Bulb };
     setup() {
         this.orm = useService("orm");
         this.state = useState({ d: null, edit: false });
@@ -362,7 +382,7 @@ export class TargetEditor extends Component {
         this.props.onSaved();
     }
 }
-TargetBar.components = { TargetEditor };
+TargetBar.components = { TargetEditor, Bulb };
 
 // daily quotes: employees (feminine, evening shift) and management (morning / evening); [Arabic, English] pairs picked by LANG
 const EMPQ = [
