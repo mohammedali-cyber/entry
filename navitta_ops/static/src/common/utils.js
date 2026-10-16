@@ -94,6 +94,17 @@ export const RQST = lazy({
 export const EXST = lazy({
     pending: () => ["info", _t("Awaiting approval")], approved: () => ["good", _t("Approved ✓")], rejected: () => ["bad", _t("Rejected")],
 });
+// 26.3: shortage reasons (stored key -> label with its icon), defective item answers, shipment states
+export const SREASONL = lazy({
+    customer: () => _t("🙋‍♀️ Customer request"), sold_out: () => _t("📦 Sold out at the branch"), other: () => _t("✏️ Other"),
+});
+export const DFST = lazy({
+    pending: () => ["neutral", _t("⏳ Management hasn't replied yet")], approved: () => ["good", _t("✅ Approved")], rejected: () => ["bad", _t("✕ Rejected")],
+});
+export const SHIPST = lazy({
+    shipped: () => ["warn", _t("On the way")], received: () => ["good", _t("Arrived ✓")], short: () => ["bad", _t("Arrived short")],
+});
+export const shipState = (s) => (s.state === "received" && s.short ? "short" : s.state);
 export const CASEST = lazy({
     reply: () => ["bad", _t("Needs your reply")], review: () => ["warn", _t("Awaiting management decision")],
     forgiven: () => ["good", _t("Counted as a grace chance")], rejected: () => ["bad", _t("A penalty was issued")],

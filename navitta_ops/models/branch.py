@@ -102,6 +102,16 @@ class NavittaBranch(models.Model):
             res[bid]["balance"] -= approved
             res[bid]["month_expenses"] = month
             res[bid]["pending_expenses"] = pending
+        # expense cash that came with a received shipment (unless it didn't arrive), as the site's branch_cash()
+        self.env["navitta.shipment"].flush_model()
+        cr.execute("""
+            SELECT b.id, COALESCE(SUM(s.cash), 0)
+              FROM navitta_branch b
+              JOIN navitta_shipment s ON s.branch_id = b.id AND s.state = 'received' AND NOT COALESCE(s.cash_missing, FALSE)
+                                     AND s.received_day > COALESCE(b.cash_opening_date, '1900-01-01')
+             WHERE b.id IN %s GROUP BY b.id""", [tuple(self.ids)])
+        for bid, v in cr.fetchall():
+            res[bid]["balance"] += v
         return res
 
     def _stock_summary(self):

@@ -121,6 +121,11 @@ class NavittaCase(TransactionCase):
             self.env["navitta.task.alert"].create({"branch_id": b.id, "day": DAY, "phase": "start", "missed": "• x"})
             self.env["navitta.sales.edit.log"].create({"branch_id": b.id, "day": DAY, "field": "sales", "new_value": 1, "reason": "x"})
             self.env["navitta.sales.change.log"].create({"branch_id": b.id, "day": DAY, "field": "sales", "new_value": 1, "source": "pos"})
+            # shipments (with a line) and defective items
+            ship = self.env["navitta.shipment"].create({"branch_id": b.id, "bags": 1, "line_ids": [(0, 0, {"model": "SANDY", "qty": 1})]})
+            self.assertEqual(ship.line_ids.branch_id, b)
+            self.env["navitta.defect"].create({"branch_id": b.id, "model": "SANDY", "defect": "heel", "source": "display",
+                                               "photo_id": self.photo(b)})
         admin_only = {"navitta.leave.request", "navitta.thread", "navitta.message", "navitta.notification",
                       "navitta.device", "navitta.device.punch", "navitta.upload.token",
                       # 26.3: a day's corrections and changes after closing are management-only, as on the site
@@ -146,7 +151,7 @@ class NavittaCase(TransactionCase):
                     self.assertFalse(seen.filtered(lambda r: r.report_id.branch_id != self.dwd), m)
         # each branch saw its own rows of the data created above
         for m in ("navitta.attendance", "navitta.visit", "navitta.daily.sales", "navitta.employee.sales", "navitta.float",
-                  "navitta.task.done", "navitta.task.alert"):
+                  "navitta.task.done", "navitta.task.alert", "navitta.shipment", "navitta.shipment.line", "navitta.defect"):
             self.assertEqual(self.env[m].with_user(self.dev).search_count([]), 1, m)
             self.assertEqual(self.env[m].with_user(self.dev_qsm).search_count([]), 1, m)
             self.assertEqual(self.env[m].with_user(self.boss).search_count([]), 2, m)
@@ -1294,6 +1299,274 @@ class NavittaCase(TransactionCase):
         self.env.ref("navitta_ops.emp_qsm_2").sudo().email = "shadia@example.com"
         rows = {r["name"]: r["mail"] for r in self.admin().admin_setup_pins()["rows"]}
         self.assertEqual((rows["شادية"], rows["بثينة"]), ("sent", "no_email"))
+
+    # ------------------------------------------------------------------ 26.3: shipments, shortage list, defective items
+    def catalog(self):
+        return self.env["navitta.catalog.item"].create([
+            {"alu": "100001", "item_no": "12345678", "model": "SANDY", "color": "BLACK", "size": "38", "price": 299, "sequence": 1},
+            {"alu": "100002", "item_no": "12345678", "model": "SANDY", "color": "BLACK", "size": "37", "price": 299, "sequence": 2},
+            {"alu": "100003", "item_no": "12345678", "model": "SANDY", "color": "BEIGE", "size": "38", "price": 299, "sequence": 3},
+            {"alu": "200001", "item_no": "87654321", "model": "BAGGY", "color": "BROWN", "price": 199, "sequence": 4},
+        ])
+
+    def xlsx(self, rows):
+        import io
+        import openpyxl
+        wb = openpyxl.Workbook()
+        for r in rows:
+            wb.active.append(r)
+        buf = io.BytesIO()
+        wb.save(buf)
+        return base64.b64encode(buf.getvalue()).decode()
+
+    def batch(self, items, emp=None, pin="2468", user=None):
+        return self.api(user).request_batch((emp or self.reem).id, pin, items)
+
+    def ship(self, vals, branch=None):
+        return self.admin().admin_ship((branch or self.dwd).id, vals)
+
+    def test_workdays(self):
+        """Shipping takes 1 to 4 working days, Sunday to Thursday (the site's add_workdays)."""
+        from odoo.addons.navitta_ops.models.common import add_workdays
+        self.assertEqual(add_workdays(date(2026, 10, 15), 1), date(2026, 10, 18))       # Thursday -> Sunday
+        self.assertEqual(add_workdays(date(2026, 10, 16), 1), date(2026, 10, 18))       # Friday -> Sunday
+        self.assertEqual(add_workdays(date(2026, 10, 17), 1), date(2026, 10, 18))       # Saturday -> Sunday
+        self.assertEqual(add_workdays(DAY, 4), date(2026, 10, 19))                      # Tuesday -> next Monday
+        self.assertEqual(add_workdays(date(2026, 10, 14), 4), date(2026, 10, 20))
+        with freeze_time(utc(12, 0)):
+            self.assertEqual(self.admin().admin_requests()["eta"], ["2026-10-14", "2026-10-19"])
+            r = self.ship({"bags": 5})
+            s = self.env["navitta.shipment"].browse(r["id"])
+            self.assertEqual((r["eta_from"], r["eta_to"], s.eta_from, s.eta_to), ("2026-10-14", "2026-10-19", date(2026, 10, 14), date(2026, 10, 19)))
+        with freeze_time(utc(12, 0, date(2026, 10, 15))):                                 # Thursday
+            s = self.env["navitta.shipment"].browse(self.ship({"bags": 5})["id"])
+            self.assertEqual((s.eta_from, s.eta_to), (date(2026, 10, 18), date(2026, 10, 21)))
+
+    def test_ship_from_requests_and_email(self):
+        """The shipment builder: the picked open requests of the branch become shipment lines and are marked shipped,
+        supplies and expense cash travel with it, and every active employee of the branch gets the full email."""
+        with freeze_time(utc(12, 0)):
+            goods = self.batch([{"item_no": "12345678", "model": "SANDY", "color": "BLACK", "size": "38", "qty": 2, "reason": "sold_out"}])["ids"][0]
+            bags = self.api().create_request(self.reem.id, "2468", {"kind": "supply", "supply": "bags", "qty": 50})["id"]
+            other = self.api(self.dev_qsm).create_request(self.hubour.id, "2468", {"kind": "supply", "supply": "bags", "qty": 9})["id"]
+            rej = self.api().create_request(self.reem.id, "2468", {"kind": "supply", "supply": "roll_card", "qty": 1})["id"]
+            Req = self.env["navitta.branch.request"]
+            Req.browse(rej).state = "rejected"
+            a = self.admin()
+            with self.assertRaises(AccessError):
+                self.api().admin_ship(self.dwd.id, {"bags": 1})
+            self.assertEqual(self.ship({})["error"], "empty_shipment")
+            self.assertEqual(self.ship({"bags": -1})["error"], "bad_qty")
+            self.assertEqual(self.ship({"cash": "x"})["error"], "bad_qty")
+            self.assertEqual(a.admin_ship(0, {"bags": 1})["error"], "not_found")
+            r = self.ship({"request_ids": [goods, bags, other, rej], "bags": 50, "roll_invoice": 2, "cash": 300, "note": "Handle with care"})
+            self.assertTrue(r["ok"])
+            s = self.env["navitta.shipment"].browse(r["id"])
+            self.assertEqual((s.branch_id, s.state, s.bags, s.roll_invoice, s.cash, s.shipped_by), (self.dwd, "shipped", 50, 2, 300, self.boss))
+            self.assertEqual(sorted(s.request_ids.ids), [goods, bags])        # not the other branch's nor a rejected request
+            self.assertEqual([(l.item_no, l.model, l.color, l.size, l.qty, l.request_id.id) for l in s.line_ids],
+                             [("12345678", "SANDY", "BLACK", "38", 2, goods)])
+            self.assertEqual(Req.browse([goods, bags, other]).mapped("state"), ["shipped", "shipped", "pending"])
+            self.assertTrue(Req.browse(goods).shipped_at)
+            # a request in a shipment on its way is received with the shipment, not alone
+            self.assertEqual(self.api().request_received(self.reem.id, "2468", bags)["error"], "in_shipment")
+            rows = {x["id"]: x for x in self.api().requests_state()["requests"]}
+            self.assertEqual((rows[bags]["in_shipment"], rows[rej]["in_shipment"]), (True, False))
+            # the staff email: full text, to every active employee of the branch (also in «My alerts»)
+            notes = self.env["navitta.notification"].search([("subject", "=", "🚚 A new shipment is on its way to your branch")])
+            self.assertEqual(notes.employee_id, self.dwd.employee_ids)
+            n = notes.filtered(lambda x: x.employee_id == self.reem)
+            self.assertEqual(n.mail_id.email_to, "reem@example.com")
+            for part in ("Hello ريم 👋", "📅 Shipping date: 13-10-2026", "between 14-10-2026 and 19-10-2026", "• 👠 2 pieces (1 models)",
+                         "• 🧾 Receipt roll × 2", "• 🛍️ Bags × 50", "• 💵 Expense cash 300 SAR", "💬 Management note: Handle with care",
+                         "Start receiving"):
+                self.assertIn(part, n.body)
+            self.assertEqual(notes.filtered(lambda x: x.employee_id == self.shima).state, "no_email")
+            self.assertIn("🚚 A new shipment is on its way to your branch", [x["subject"] for x in self.api().inbox(self.shima.id, "2468")["notes"]])
+            # the screens see it: the branch its shipment on the way, management the log
+            st = self.api().requests_state()
+            self.assertEqual([x["id"] for x in st["shipments"]], [s.id])
+            self.assertFalse(self.api(self.dev_qsm).requests_state()["shipments"])
+            self.assertEqual(a.admin_requests()["shipments"][0]["pieces"], 2)
+
+    def test_ship_excel_matching(self):
+        """The shipment Excel: headers found in the first rows (English or Arabic), every row matched with the models file
+        by barcode, or item number + color + size, else by item number; rows found nowhere are flagged."""
+        self.catalog()
+        a = self.admin()
+        data = self.xlsx([["Shipment 14/10"], ["Desc1", "ALU", "Attr", "Size", "Qty"],
+                          [None, "000100002", None, None, 2],                 # barcode -> SANDY BLACK 37
+                          [12345678, None, "BEIGE", 38, 1],                   # item number + color + size -> 100003
+                          [12345678, None, "RED", 40.0, None],                # item number only (color not in the file)
+                          [None, "999999", None, None, 3],                    # not in the models file
+                          [None, None, None, None, None]])                    # empty row: skipped
+        r = a.admin_ship_file(data, "ship.xlsx")
+        self.assertEqual([(x["alu"], x["item_no"], x["model"], x["color"], x["size"], x["qty"], x["in_catalog"]) for x in r["items"]], [
+            ("100002", "12345678", "SANDY", "BLACK", "37", 2, True),
+            ("100003", "12345678", "SANDY", "BEIGE", "38", 1, True),
+            ("", "12345678", "SANDY", "RED", "40", 1, True),
+            ("999999", "", "999999", "", "", 3, False)])
+        self.assertEqual((r["pieces"], r["models"], r["missing"]), (7, 2, 1))
+        self.assertEqual(r["items"][0]["price"], 299)
+        # Arabic headers and CSV work too; a file without the columns, an empty one or a locked one are refused
+        csv = base64.b64encode("رقم المؤسسة,اللون,المقاس,الكمية\n87654321,BROWN,,4\n".encode()).decode()
+        r2 = a.admin_ship_file(csv, "ship.csv")
+        self.assertEqual([(x["alu"], x["model"], x["qty"], x["in_catalog"]) for x in r2["items"]], [("200001", "BAGGY", 4, True)])
+        self.assertEqual(a.admin_ship_file(self.xlsx([["a", "b"], [1, 2]]), "x.xlsx")["error"], "no_ship_columns")
+        self.assertEqual(a.admin_ship_file(self.xlsx([["ALU", "Qty"]]), "x.xlsx")["error"], "empty_file")
+        self.assertEqual(a.admin_ship_file(base64.b64encode(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"0" * 50).decode(), "x.xlsx")["error"], "file_locked")
+        with self.assertRaises(AccessError):
+            self.api().admin_ship_file(data, "ship.xlsx")
+        # sending: the matched rows become the shipment's lines (the flags are worked out again on the server)
+        with freeze_time(utc(12, 0)):
+            s = self.env["navitta.shipment"].browse(self.ship({"items": r["items"]})["id"])
+        self.assertEqual([(l.alu or "", l.qty, l.in_catalog) for l in s.line_ids], [("100002", 2, True), ("100003", 1, True), ("", 1, True), ("999999", 3, False)])
+        self.assertEqual(s.pieces, 7)
+
+    def shipped(self, **vals):
+        """A shipment for dwd: one goods request (SANDY BLACK 38 × 2 with a barcode line too), 50 bags and 300 SAR."""
+        self.catalog()
+        req = self.batch([{"item_no": "12345678", "model": "SANDY", "color": "BLACK", "size": "38", "qty": 2, "reason": "sold_out"}])["ids"][0]
+        items = self.env["navitta.shipment"]._match([{"alu": "100002", "qty": 3}])
+        r = self.ship(dict({"request_ids": [req], "items": items, "bags": 50, "cash": 300}, **vals))
+        return self.env["navitta.shipment"].browse(r["id"]), self.env["navitta.branch.request"].browse(req)
+
+    def test_receive_complete(self):
+        """Receiving by scanning, signed with a PIN: a photo is required when rolls or bags are in it; then the bags go
+        to the branch's balance, the expense cash to its cash box, the requests are received and management is told."""
+        with freeze_time(utc(12, 0)):
+            s, req = self.shipped()
+            # the request's line was matched with the models file: its barcode can be scanned
+            self.assertEqual([(l.alu, l.in_catalog, l.price) for l in s.line_ids], [("100001", True, 299), ("100002", True, 299)])
+            cash0 = self.dwd._cash_summary()[self.dwd.id]["balance"]
+            api = self.api()
+            self.assertEqual(api.shipment_receive(self.reem.id, "2468", s.id)["error"], "photo_required")
+            pid = self.photo()
+            self.assertEqual(api.shipment_receive(self.reem.id, "0000", s.id, [], None, pid)["error"], "wrong_pin")
+            with self.assertRaises(AccessError):
+                self.api(self.dev_qsm).shipment_receive(self.reem.id, "2468", s.id, [], None, pid)
+            self.assertEqual(self.api(self.dev_qsm).shipment_receive(self.hubour.id, "2468", s.id, [], None, self.photo(self.qsm))["error"], "not_found")
+            with self.assertRaises(AccessError):                                     # a photo of another branch
+                api.shipment_receive(self.reem.id, "2468", s.id, [], None, self.photo(self.qsm))
+            r = api.shipment_receive(self.shima.id, "2468", s.id, [], None, pid)
+            self.assertEqual((r["ok"], r["short"]), (True, False))
+            self.assertEqual((s.state, s.received_by, s.received_day, s.received_photo_id.id, s.short), ("received", self.shima, DAY, pid, False))
+            self.assertEqual((req.state, req.received_by), ("received", self.shima))
+            self.assertEqual(self.dwd._stock_summary()[self.dwd.id]["bags"]["balance"], 50)
+            self.assertEqual(self.env["navitta.supply.move"].search([("shipment_id", "=", s.id)]).mapped("qty"), [50])
+            self.assertEqual(self.dwd._cash_summary()[self.dwd.id]["balance"], cash0 + 300)
+            n = self.env["navitta.notification"].search([("to_email", "=", "boss@example.com")], limit=1)
+            self.assertEqual((n.subject, n.body), ("Shipment arrived: %s" % self.dwd.name, "شيمة received the full shipment."))
+            self.assertEqual(api.shipment_receive(self.reem.id, "2468", s.id, [], None, pid)["error"], "not_found")
+            self.assertFalse(api.requests_state()["shipments"])
+            # a shipment without rolls or bags needs no photo
+            s2 = self.env["navitta.shipment"].browse(self.ship({"cash": 50})["id"])
+            self.assertTrue(api.shipment_receive(self.reem.id, "2468", s2.id)["ok"])
+
+    def test_receive_short(self):
+        """Something didn't arrive: the missing lines with a note (required) go to management; only what arrived is
+        counted, and the requests of models that didn't arrive stay open (received later on their own)."""
+        with freeze_time(utc(12, 0)):
+            s, req = self.shipped()
+            cash0 = self.dwd._cash_summary()[self.dwd.id]["balance"]
+            line = s.line_ids.filtered("request_id")
+            scan = s.line_ids - line
+            api, pid = self.api(), self.photo()
+            miss = [{"line_id": line.id, "qty": 1}, {"supply": "bags", "qty": 10}, {"supply": "cash"}]
+            self.assertEqual(api.shipment_receive(self.reem.id, "2468", s.id, miss, "", pid)["error"], "reason_required")
+            self.assertEqual(api.shipment_receive(self.reem.id, "2468", s.id, [{"line_id": line.id, "qty": 3}], "x", pid)["error"], "bad_qty")
+            self.assertEqual(api.shipment_receive(self.reem.id, "2468", s.id, [{"supply": "bags", "qty": 51}], "x", pid)["error"], "bad_qty")
+            self.assertEqual(api.shipment_receive(self.reem.id, "2468", s.id, [{"line_id": 0, "qty": 1}], "x", pid)["error"], "bad_qty")
+            self.assertEqual(api.shipment_receive(self.reem.id, "2468", s.id, [{"supply": "gold", "qty": 1}], "x", pid)["error"], "bad_qty")
+            self.assertEqual(s.state, "shipped")
+            r = api.shipment_receive(self.reem.id, "2468", s.id, miss, "Box was open", pid)
+            self.assertEqual((r["ok"], r["short"]), (True, True))
+            self.assertEqual((s.state, s.short, s.issue_note, line.missing_qty, scan.missing_qty, s.missing_bags, s.cash_missing),
+                             ("received", True, "Box was open", 1, 0, 10, True))
+            self.assertEqual(self.dwd._stock_summary()[self.dwd.id]["bags"]["balance"], 40)
+            self.assertEqual(self.dwd._cash_summary()[self.dwd.id]["balance"], cash0)        # the cash didn't arrive
+            self.assertEqual(req.state, "shipped")                                          # its model didn't (all) arrive
+            self.assertTrue(api.request_received(self.reem.id, "2468", req.id)["ok"])        # later, on its own
+            n = self.env["navitta.notification"].search([("to_email", "=", "boss@example.com")], limit=1)
+            self.assertEqual(n.subject, "⚠️ Shipment arrived short: %s" % self.dwd.name)
+            for part in ("ريم received the shipment with missing items:", "• 12345678 · SANDY · BLACK · 38 × 1", "• Bags × 10",
+                         "• Expense cash × 1", "Her note: Box was open"):
+                self.assertIn(part, n.body)
+            d = self.admin().admin_requests()["shipments"][0]
+            self.assertEqual((d["short"], d["missing"]), (True, ["12345678 · SANDY · BLACK · 38 × 1", "Bags × 10", "Expense cash × 1"]))
+
+    def test_request_batch(self):
+        """The shortage list: several items sent with one PIN (the site's emp_request_batch), with its checks; identical
+        lines are merged, and management gets one alert with the whole list."""
+        ok = {"item_no": "12345678", "model": "SANDY", "color": "BLACK", "size": "38", "qty": 1, "reason": "sold_out"}
+        self.assertEqual(self.batch([])["error"], "empty_list")
+        self.assertEqual(self.batch([ok], pin="0000")["error"], "wrong_pin")
+        self.assertEqual(self.batch([ok] * 51)["error"], "too_many")
+        self.assertEqual(self.batch([dict(ok, item_no="", model=" ")])["error"], "model_required")
+        self.assertEqual(self.batch([dict(ok, qty=0)])["error"], "bad_qty")
+        self.assertEqual(self.batch([dict(ok, reason="")])["error"], "reason_required")
+        self.assertEqual(self.batch([dict(ok, reason="other")])["error"], "reason_required")
+        self.assertEqual(self.batch([dict(ok, reason="customer", contact_name="سارة", contact_phone="0512")])["error"], "contact_required")
+        self.assertEqual(self.batch([dict(ok, reason="customer", contact_phone="0512345678")])["error"], "contact_required")
+        with self.assertRaises(AccessError):
+            self.batch([ok], emp=self.hubour)
+        self.assertFalse(self.env["navitta.branch.request"].search([]))                 # nothing saved by a refused list
+        r = self.batch([ok, dict(ok, qty=2), {"model": "Gold sandal", "qty": 1, "reason": "other", "note": "for the window"},
+                        dict(ok, reason="customer", contact_name="سارة", contact_phone="+966 512 345 678")])
+        self.assertEqual((r["ok"], r["n"]), (True, 3))
+        reqs = self.env["navitta.branch.request"].browse(r["ids"])
+        self.assertEqual([(q.kind, q.item_no or "", q.model, q.qty, q.reason_key, q.contact_name or "", q.contact_phone or "", q.state) for q in reqs], [
+            ("goods", "12345678", "SANDY", 3, "sold_out", "", "", "pending"),
+            ("goods", "", "Gold sandal", 1, "other", "", "", "pending"),
+            ("goods", "12345678", "SANDY", 1, "customer", "سارة", "966512345678", "pending")])
+        self.assertEqual(reqs[0]._what(), "12345678 · SANDY · BLACK · 38 × 3")
+        n = self.env["navitta.notification"].search([("subject", "=", "Shortage list from %s" % self.dwd.name)])
+        self.assertEqual(len(n), 1)
+        self.assertIn("ريم sent 3 requests:\n• 12345678 · SANDY · BLACK · 38 × 3 (Sold out at the branch)", n.body)
+        rows = {x["id"]: x for x in self.api().requests_state()["requests"]}
+        self.assertEqual((rows[reqs[2].id]["reason"], rows[reqs[2].id]["contact_phone"]), ("Customer request", "966512345678"))
+        self.assertFalse(self.env["navitta.branch.request"].with_user(self.dev).has_access("create"))
+
+    def test_defects(self):
+        """A defective item (photo, type, where it came from, PIN); management approves, or rejects with a reason,
+        and the employee is notified."""
+        api, pid = self.api(), self.photo()
+        v = {"item_no": "12345678", "alu": "000100001", "model": "SANDY", "color": "BLACK", "size": "38", "qty": 2,
+             "defect": "heel", "source": "shipment"}
+        self.assertEqual(api.create_defect(self.reem.id, "2468", v)["error"], "photo_required")
+        self.assertEqual(api.create_defect(self.reem.id, "0000", v, pid)["error"], "wrong_pin")
+        self.assertEqual(api.create_defect(self.reem.id, "2468", dict(v, item_no="", model=""), pid)["error"], "model_required")
+        self.assertEqual(api.create_defect(self.reem.id, "2468", dict(v, defect="x"), pid)["error"], "reason_required")
+        self.assertEqual(api.create_defect(self.reem.id, "2468", dict(v, source=""), pid)["error"], "reason_required")
+        self.assertEqual(api.create_defect(self.reem.id, "2468", dict(v, defect="other"), pid)["error"], "reason_required")
+        with self.assertRaises(AccessError):
+            api.create_defect(self.reem.id, "2468", v, self.photo(self.qsm))
+        r = api.create_defect(self.reem.id, "2468", v, pid)
+        x = self.env["navitta.defect"].browse(r["id"])
+        self.assertEqual((x.branch_id, x.employee_id, x.alu, x.qty, x.state, x.photo_id.id), (self.dwd, self.reem, "100001", 2, "pending", pid))
+        n = self.env["navitta.notification"].search([("to_email", "=", "boss@example.com")], limit=1)
+        self.assertEqual((n.subject, n.body), ("🩹 Defective item from %s" % self.dwd.name,
+                                               "ريم: 12345678 · SANDY · BLACK · 38 · Broken heel · Arrived like this in the shipment × 2"))
+        self.assertEqual(api.requests_state()["defects"][0]["id"], x.id)
+        self.assertFalse(self.api(self.dev_qsm).requests_state()["defects"])
+        with self.assertRaises(AccessError):
+            self.env["navitta.defect"].with_user(self.dev_qsm).browse(x.id).read(["state"])
+        with self.assertRaises(AccessError):
+            api.admin_defect_decide(x.id, True)
+        a = self.admin()
+        self.assertEqual(a.admin_defect_decide(x.id, False, " ")["error"], "reason_required")
+        self.assertTrue(a.admin_defect_decide(x.id, False, "Wear and tear, not a factory defect")["ok"])
+        self.assertEqual((x.state, x.admin_note), ("rejected", "Wear and tear, not a factory defect"))
+        self.assertEqual(a.admin_defect_decide(x.id, True)["error"], "not_found")
+        n = self.env["navitta.notification"].search([("employee_id", "=", self.reem.id)], limit=1)
+        self.assertEqual((n.subject, n.body), ("🩹 Management's reply about the defective item",
+                                               "✕ Rejected: 12345678 · SANDY · BLACK · 38\nManagement reply: Wear and tear, not a factory defect"))
+        self.assertEqual(n.mail_id.email_to, "reem@example.com")
+        y = self.env["navitta.defect"].browse(api.create_defect(self.shima.id, "2468", dict(v, defect="other", details="Glue marks"), pid)["id"])
+        self.assertTrue(a.admin_defect_decide(y.id, True)["ok"])
+        self.assertEqual(y.state, "approved")
+        self.assertEqual(self.env["navitta.notification"].search([("employee_id", "=", self.shima.id)], limit=1).body, "✅ Approved: 12345678 · SANDY · BLACK · 38")
+        self.assertEqual([d["state"] for d in a.admin_requests()["defects"]], ["approved", "rejected"])
 
 
 @tagged("post_install", "-at_install", "navitta")

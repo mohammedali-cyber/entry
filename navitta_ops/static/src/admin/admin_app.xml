@@ -415,7 +415,7 @@
             <t t-set="w" t-value="this.v"/>
             <div class="filters">
                 <div class="seg"><t t-foreach="REQKINDS" t-as="k" t-key="k[0]">
-                    <button type="button" t-att-aria-pressed="state.kind === k[0] ? 'true' : 'false'" t-on-click="() => state.kind = k[0]" t-esc="k[1]"/></t></div>
+                    <button type="button" t-att-aria-pressed="state.kind === k[0] ? 'true' : 'false'" t-on-click="() => state.kind = k[0]"><t t-esc="k[1]"/><t t-if="k[0] === 'defect' and w.defOpen.length"> (<t t-esc="w.defOpen.length"/>)</t></button></t></div>
             </div>
             <div class="kpis">
                 <div class="kpi"><span class="lbl">New requests</span><span class="val num" t-esc="w.reqs.filter((r) => r.state === 'pending').length"/></div>
@@ -424,11 +424,15 @@
                 <div class="kpi"><span class="lbl">Branches low on supplies</span><span class="val num" t-att-style="w.lowB.length ? 'color:var(--bad)' : ''" t-esc="w.lowB.length"/><span class="small" t-esc="w.lowB.map((b) => b.name).join(' · ')"/></div>
             </div>
             <div class="grid">
+                <ShipBuilder t-if="w.showReq" branches="d.branches" reqs="d.requests" start="br" eta="d.eta" waiting="d.waiting" onDone="() => this.load()"/>
+                <ShipLog t-if="w.showReq" ships="w.ships" bName="bNameFn"/>
                 <div t-if="w.showReq" class="nv-card c12"><h2>Requests needing your follow-up</h2><div class="reqs">
                     <div t-foreach="w.live" t-as="r" t-key="r.id" t-att-class="'req' + (r.state === 'pending' ? ' pending' : '')">
                         <div class="req-main"><span t-att-class="'chip ' + RQST[r.state][0]"><t t-esc="r.kind === 'goods' ? TX.outOfStock : TX.supplies"/> · <t t-esc="RQST[r.state][1]"/></span>
                             <div><div class="what"><b class="num" t-esc="r.what"/> · <t t-esc="bName(r.branch_id)"/><t t-if="r.urgent"> · <span class="chip bad">Urgent</span></t></div>
-                                <div class="meta"><t t-esc="r.employee or '—'"/> · <t t-esc="longDate(r.created_at)"/><t t-if="r.reason"> · <t t-esc="r.reason"/></t><t t-if="r.note"> · <t t-esc="r.note"/></t>
+                                <div class="meta"><t t-esc="r.employee or '—'"/> · <t t-esc="longDate(r.created_at)"/><t t-if="r.reason"> · <t t-esc="SREASONL[r.reason_key] or r.reason"/></t>
+                                    <t t-if="r.contact_name"> · 🙋‍♀️ <t t-esc="r.contact_name"/></t><t t-if="r.contact_phone"> · <a t-att-href="'tel:' + r.contact_phone" dir="ltr" class="num">📱 <t t-esc="r.contact_phone"/></a></t>
+                                    <t t-if="r.in_shipment"> · <span class="chip info">🚚 In the shipment on its way</span></t><t t-if="r.note"> · <t t-esc="r.note"/></t>
                                     <t t-if="r.kind === 'supply' and r.supply !== 'other'"> · Balance <t t-esc="bal(r.branch_id, r.supply)"/></t>
                                     <PhotoLink t-if="r.photo_id" id="r.photo_id" label="TX.itemPhoto"/></div></div></div>
                         <div class="req-act">
@@ -439,6 +443,22 @@
                         </div>
                     </div>
                     <div t-if="!w.live.length" class="empty">No open requests</div>
+                </div></div>
+
+                <div t-if="w.showDef" class="nv-card c12"><h2>🩹 Defective items <span t-if="w.defOpen.length" class="chip warn" t-esc="TX.defectsWaiting(w.defOpen.length)"/></h2><div class="reqs">
+                    <div t-foreach="w.defOpen.concat(w.defDone)" t-as="x" t-key="x.id" t-att-class="'req' + (x.state === 'pending' ? ' pending' : '')">
+                        <div class="req-main"><PhotoLink t-if="x.photo_id" id="x.photo_id" label="TX.defectPhoto"/>
+                            <div><div class="what"><b class="num" t-esc="defWhat(x)"/> · <t t-esc="bName(x.branch_id)"/></div>
+                                <div class="meta"><t t-esc="x.defect_label"/> · <t t-esc="x.source_label"/><t t-if="x.details"> · <t t-esc="x.details"/></t></div>
+                                <div class="meta"><t t-esc="x.employee or '—'"/> · <t t-esc="longDate(x.day)"/></div>
+                                <div t-if="x.state !== 'pending'" t-att-class="'dreply ' + x.state"><b t-esc="DFST[x.state][1]"/><span t-if="x.admin_note">💬 <t t-esc="x.admin_note"/></span></div></div></div>
+                        <div t-if="x.state === 'pending'" class="req-act">
+                            <textarea class="ctl" rows="2" t-att-placeholder="TX.replyPh" t-model="state.notes[x.id]"/>
+                            <button type="button" class="nv-btn primary" t-on-click="() => this.decideDefect(x, true)">✅ Approve</button>
+                            <button type="button" class="nv-btn" t-on-click="() => this.decideDefect(x, false)">✕ Reject</button>
+                        </div>
+                    </div>
+                    <div t-if="!w.defOpen.length and !w.defDone.length" class="empty">No defective items</div>
                 </div></div>
 
                 <div t-if="w.showExp" class="nv-card c12"><h2>💸 Expenses awaiting your approval</h2><div class="reqs">

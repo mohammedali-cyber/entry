@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- an item from the models file, then its color and size (or free text when it isn't in the file) -->
+    <t t-name="navitta_ops.ItemChooser">
+        <ModelPicker t-if="!v.m and !v.manual" onPick="(m, it) => this.pick(m, it)" onManual="(q) => this.manual(q)"/>
+        <t t-else="">
+            <button type="button" class="pick1" t-on-click="reset">
+                <t t-if="v.m"><div class="ms-ic sm" t-esc="icon(v.m.dcs)"/>
+                    <div><b class="num">🏷️ <t t-esc="v.m.item_no"/></b><small>Model <bdi t-esc="v.m.model"/><t t-if="v.m.price"> · <bdi t-esc="TX.sar(f0(v.m.price))"/></t></small></div></t>
+                <div t-else=""><b class="num" t-esc="v.manual"/><small>Not in the models file</small></div>
+                <span class="x">✕ Change</span>
+            </button>
+            <div class="lt">Color</div>
+            <div t-if="v.m" class="cc"><t t-foreach="v.m.colors" t-as="c" t-key="c.color">
+                <button type="button" t-att-class="'num' + (v.color === c.color ? ' on' : '')" t-on-click="() => this.setColor(c.color)"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/></button></t></div>
+            <input t-else="" class="ctl" t-model="v.color" t-att-placeholder="TX.colorPh"/>
+            <t t-if="hasSizes">
+                <div class="lt">Size</div>
+                <div t-if="v.m" class="cc num"><t t-foreach="sizes" t-as="z" t-key="z">
+                    <button type="button" t-att-class="v.size === z ? 'on' : ''" t-on-click="() => this.setSize(z)" t-esc="z"/></t></div>
+                <input t-else="" class="ctl num" t-model="v.size" t-att-placeholder="TX.sizePh"/>
+            </t>
+        </t>
+    </t>
+
+    <t t-name="navitta_ops.QtyStepper">
+        <div class="stepper" style="max-width:160px"><button type="button" aria-label="Decrease" t-on-click="() => this.step(-1)">−</button>
+            <input type="number" min="1" t-model.number="state.qty" aria-label="Quantity"/>
+            <button type="button" aria-label="Increase" t-on-click="() => this.step(1)">+</button></div>
+    </t>
+
+    <!-- «👠 Shortage list» -->
+    <t t-name="navitta_ops.ShortageList">
+        <div class="nv-card frm">
+            <h2>👠 Shortage list</h2>
+            <p class="sub">Add items one by one with “➕ Add to list”, then send them all with one PIN.</p>
+            <ItemChooser v="state.v" t-key="state.n"/>
+            <t t-if="state.v.m or state.v.manual">
+                <div class="lt">Quantity</div>
+                <t t-call="navitta_ops.QtyStepper"/>
+                <div class="lt">Reason <span style="color:var(--bad)">*</span></div>
+                <div class="cc"><t t-foreach="props.reasons" t-as="r" t-key="r[0]">
+                    <button type="button" t-att-class="state.reason === r[0] ? 'on' : ''" t-on-click="() => state.reason = r[0]" t-esc="SREASONL[r[0]] or r[1]"/></t></div>
+                <div t-if="state.reason === 'customer'" class="vrow">
+                    <input class="ctl" t-model="state.cname" placeholder="Customer name *"/>
+                    <input class="ctl num" inputmode="tel" dir="ltr" t-model="state.phone" placeholder="05XXXXXXXX" aria-label="Mobile number"/>
+                </div>
+                <input t-if="state.reason === 'other'" class="ctl" t-model="state.note" placeholder="Write the reason *"/>
+                <button type="button" class="nv-btn" t-on-click="add">➕ Add to list</button>
+            </t>
+            <span class="hint err" t-esc="state.err"/>
+
+            <div class="sl">
+                <div class="sl-h"><b>📋 <t t-esc="TX.listOf(state.list.length)"/></b>
+                    <button t-if="state.list.length" type="button" class="del" t-on-click="() => this.save([])">Clear all</button></div>
+                <div t-foreach="state.list" t-as="x" t-key="x_index" class="sl-i">
+                    <div><b class="num"><t t-esc="desc(x)"/> × <t t-esc="x.qty"/></b>
+                        <small><t t-esc="SREASONL[x.reason] or x.reason"/><t t-if="x.contact_name"> · <t t-esc="x.contact_name"/></t><t t-if="x.contact_phone"> · <bdi class="num" t-esc="x.contact_phone"/></t><t t-if="x.note"> · <t t-esc="x.note"/></t></small></div>
+                    <button type="button" class="del" aria-label="Delete" title="Delete" t-on-click="() => this.remove(x_index)">✕</button>
+                </div>
+                <div t-if="!state.list.length" class="empty">The list is empty</div>
+            </div>
+            <button type="button" class="nv-btn primary" t-att-disabled="!state.list.length" t-on-click="() => state.sign = true">🔒 <t t-esc="TX.sendAll(state.list.length)"/></button>
+            <SignModal t-if="state.sign" emps="props.emps" title="TX.sendTitle" onClose="() => state.sign = false" onSign="(e, pin) => this.send(e, pin)"/>
+        </div>
+    </t>
+
+    <!-- «🩹 Defective items» -->
+    <t t-name="navitta_ops.Defects">
+        <div class="rq-grid">
+            <div class="nv-card frm">
+                <h2>🩹 Defective item</h2>
+                <p class="sub">Take a clear photo of the defect; management replies here.</p>
+                <ItemChooser v="state.v" t-key="state.n"/>
+                <t t-if="state.v.m or state.v.manual">
+                    <div class="lt">Quantity</div>
+                    <t t-call="navitta_ops.QtyStepper"/>
+                </t>
+                <div class="lt">Defect type <span style="color:var(--bad)">*</span></div>
+                <div class="cc"><t t-foreach="props.types" t-as="r" t-key="r[0]">
+                    <button type="button" t-att-class="state.defect === r[0] ? 'on' : ''" t-on-click="() => state.defect = r[0]" t-esc="r[1]"/></t></div>
+                <div class="lt">Where is it from? <span style="color:var(--bad)">*</span></div>
+                <div class="cc"><t t-foreach="props.sources" t-as="r" t-key="r[0]">
+                    <button type="button" t-att-class="state.source === r[0] ? 'on' : ''" t-on-click="() => state.source = r[0]" t-esc="r[1]"/></t></div>
+                <textarea class="ctl" rows="2" t-model="state.details" t-att-placeholder="state.defect === 'other' ? TX.detailsReq : TX.detailsOpt"/>
+                <PhotoPicker value="state.photo" onChange="(id) => state.photo = id" label="TX.defectPhoto"/>
+                <button type="button" class="nv-btn primary" t-on-click="go">🔒 Send to management (employee PIN)</button>
+                <span class="hint err" t-esc="state.err"/>
+            </div>
+            <div class="nv-card"><h2>Defective items</h2>
+                <div class="visits">
+                    <div t-foreach="props.rows" t-as="x" t-key="x.id" class="it">
+                        <div class="h"><b class="num">🩹 <t t-esc="what(x)"/></b><PhotoLink t-if="x.photo_id" id="x.photo_id" label="TX.photo"/></div>
+                        <div class="m"><t t-esc="x.defect_label"/> · <t t-esc="x.source_label"/><t t-if="x.details"> · <t t-esc="x.details"/></t></div>
+                        <div class="m"><t t-esc="x.employee or '—'"/> · <t t-esc="longDate(x.day)"/></div>
+                        <div t-att-class="'dreply ' + x.state"><b t-esc="DFST[x.state][1]"/>
+                            <span t-if="x.admin_note">💬 Management reply: <t t-esc="x.admin_note"/></span>
+                            <span t-elif="x.state !== 'pending'">No note</span></div>
+                    </div>
+                    <div t-if="!props.rows.length" class="empty">No defective items</div>
+                </div>
+            </div>
+            <SignModal t-if="state.sign" emps="props.emps" title="TX.defectTitle" onClose="() => state.sign = false" onSign="(e, pin) => this.send(e, pin)"/>
+        </div>
+    </t>
+</templates>

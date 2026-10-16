@@ -462,9 +462,12 @@
                 <div t-if="r.state !== 'rejected' and r.state !== 'received'" class="steps">
                     <t t-foreach="STEPS" t-as="s" t-key="s"><span t-att-class="stepCls(r, s, s_index)"><t t-if="s_index &lt; STEPS.indexOf(r.state)">✓ </t><t t-esc="STEPL[s]"/></span></t>
                 </div>
+                <div t-if="r.reason or r.contact_phone" class="m"><t t-esc="SREASONL[r.reason_key] or r.reason"/><t t-if="r.contact_name"> · <t t-esc="r.contact_name"/></t>
+                    <t t-if="r.contact_phone"> · <a t-att-href="'tel:' + r.contact_phone" dir="ltr" class="num">📱 <t t-esc="r.contact_phone"/></a></t><t t-if="r.note"> · <t t-esc="r.note"/></t></div>
                 <div class="m"><t t-esc="r.employee or '—'"/> · <t t-esc="longDate(r.created_at)"/><t t-if="r.received_by"> · Received by <t t-esc="r.received_by"/></t>
                     <t t-if="r.admin_note"> · Management: «<t t-esc="r.admin_note"/>»</t></div>
-                <button t-if="r.state === 'approved' or r.state === 'shipped'" type="button" class="nv-btn" t-on-click="() => this.receive(r)">✓ Received</button>
+                <span t-if="r.in_shipment" class="chip info">🚚 In the shipment on its way</span>
+                <button t-elif="r.state === 'approved' or r.state === 'shipped'" type="button" class="nv-btn" t-on-click="() => this.receive(r)">✓ Received</button>
             </div>
             <div t-if="!reqs.length" class="empty">No requests</div>
         </div>
@@ -474,34 +477,21 @@
         <div t-if="!state.d" class="empty">Loading…</div>
         <t t-else="">
             <t t-set="d" t-value="state.d"/>
+            <IncomingShipments ships="d.shipments" emps="d.employees" waiting="waiting" onDone="() => this.load()"/>
             <div class="rq-tabs" role="tablist">
                 <button type="button" t-att-class="state.tab === 'goods' ? 'on' : ''" t-on-click="() => state.tab = 'goods'">👠 Out-of-stock</button>
+                <button type="button" t-att-class="state.tab === 'defect' ? 'on' : ''" t-on-click="() => state.tab = 'defect'">🩹 Defective items<t t-if="pendingDefects"> (<t t-esc="pendingDefects"/>)</t></button>
                 <button type="button" t-att-class="state.tab === 'supply' ? 'on' : ''" t-on-click="() => state.tab = 'supply'">🧾 Supplies<t t-if="low.length"> ⚠️</t></button>
                 <button type="button" t-att-class="state.tab === 'expense' ? 'on' : ''" t-on-click="() => state.tab = 'expense'">💸 Expenses</button>
                 <button type="button" t-att-class="state.tab === 'wait' ? 'on' : ''" t-on-click="() => state.tab = 'wait'">📞 Waiting customers<t t-if="waiting.length"> (<t t-esc="waiting.length"/>)</t></button>
             </div>
 
             <div t-if="state.tab === 'goods'" class="rq-grid">
-                <div class="nv-card frm"><h2>👠 Out-of-stock request</h2><p class="sub">An item customers asked for or that ran out at the Branch</p>
-                    <div class="three">
-                        <label>Model number *<input class="ctl num" t-model="state.g.model"/></label>
-                        <label>Color<input class="ctl" list="rq-colors" t-model="state.g.color"/></label>
-                        <label>Size<input class="ctl num" list="rq-sizes" t-model="state.g.size"/></label>
-                    </div>
-                    <datalist id="rq-colors"><t t-foreach="COLORS" t-as="c" t-key="c"><option t-att-value="c" t-att-label="vlabel(c)"/></t></datalist>
-                    <datalist id="rq-sizes"><t t-foreach="SIZES" t-as="c" t-key="c"><option t-att-value="c"/></t></datalist>
-                    <div class="two">
-                        <label>Quantity<input class="ctl num" type="number" min="1" t-model="state.g.qty"/></label>
-                        <label>Reason<select class="ctl" t-model="state.g.reason"><t t-foreach="d.choices.goods_reasons" t-as="gr" t-key="gr[0]"><option t-att-value="gr[0]" t-esc="gr[1]"/></t></select></label>
-                    </div>
-                    <label>Note (optional)<input class="ctl" t-model="state.g.note"/></label>
-                    <PhotoPicker value="state.g.photo" onChange="(id) => state.g.photo = id" label="photoLabel"/>
-                    <label class="chk"><input type="checkbox" t-model="state.g.urgent"/> Urgent</label>
-                    <button type="button" class="nv-btn primary" t-on-click="submitGoods">🔒 Send request (employee PIN)</button>
-                    <span class="hint err" t-esc="state.err"/>
-                </div>
+                <ShortageList branch="d.branch_id" emps="d.employees" reasons="d.choices.shortage_reasons" onSent="() => this.load()"/>
                 <div class="nv-card"><h2>Out-of-stock requests</h2><t t-call="navitta_ops.ReqList"><t t-set="reqs" t-value="this.reqs('goods')"/></t></div>
             </div>
+
+            <Defects t-if="state.tab === 'defect'" emps="d.employees" rows="d.defects" types="d.choices.defect_types" sources="d.choices.defect_sources" onSent="() => this.load()"/>
 
             <t t-if="state.tab === 'supply'">
                 <div t-foreach="low" t-as="k" t-key="k" class="warnbar" style="margin-bottom:10px">⚠️ <b><t t-esc="SUP[k]"/> running low:</b> only <t t-esc="bal(k)"/> left. Order now.</div>

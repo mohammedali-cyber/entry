@@ -348,4 +348,43 @@
         <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('group_navitta_admin'))]"/>
     </record>
+    <!-- 26.3: the branch reads its own shipments (as the site's branch_read policy); management reads and answers all -->
+    <record id="rule_branch_shipment" model="ir.rule">
+        <field name="name">Navitta: own branch shipments</field>
+        <field name="model_id" ref="model_navitta_shipment"/>
+        <field name="domain_force">[('branch_id', '=', user.navitta_branch_id.id)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_branch'))]"/>
+    </record>
+    <record id="rule_admin_navitta_shipment" model="ir.rule">
+        <field name="name">Navitta admin: all (navitta_shipment)</field>
+        <field name="model_id" ref="model_navitta_shipment"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_admin'))]"/>
+    </record>
+    <!-- 26.3: the branch reads its own shipment lines (as the site's branch_read policy); management reads and answers all -->
+    <record id="rule_branch_shipment_line" model="ir.rule">
+        <field name="name">Navitta: own branch shipment lines</field>
+        <field name="model_id" ref="model_navitta_shipment_line"/>
+        <field name="domain_force">[('branch_id', '=', user.navitta_branch_id.id)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_branch'))]"/>
+    </record>
+    <record id="rule_admin_navitta_shipment_line" model="ir.rule">
+        <field name="name">Navitta admin: all (navitta_shipment_line)</field>
+        <field name="model_id" ref="model_navitta_shipment_line"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_admin'))]"/>
+    </record>
+    <!-- 26.3: the branch reads its own defective items (as the site's branch_read policy); management reads and answers all -->
+    <record id="rule_branch_defect" model="ir.rule">
+        <field name="name">Navitta: own branch defective items</field>
+        <field name="model_id" ref="model_navitta_defect"/>
+        <field name="domain_force">[('branch_id', '=', user.navitta_branch_id.id)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_branch'))]"/>
+    </record>
+    <record id="rule_admin_navitta_defect" model="ir.rule">
+        <field name="name">Navitta admin: all (navitta_defect)</field>
+        <field name="model_id" ref="model_navitta_defect"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_admin'))]"/>
+    </record>
 </odoo>

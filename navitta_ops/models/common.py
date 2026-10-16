@@ -41,6 +41,14 @@ STOCK_SUPPLIES = ("roll_invoice", "roll_card", "bags")
 # not a selection field: the label is written into the request's free-text reason, so translate it lazily
 GOODS_REASONS = [("asked", _lt("Customer asked, not available")), ("sold_out", _lt("Sold out at the branch")),
                  ("size_missing", _lt("Missing size")), ("other", _lt("Other"))]
+# 26.3 shortage list (several items sent with one PIN): why the branch needs the item
+SHORTAGE_REASONS = [("customer", "Customer request"), ("sold_out", "Sold out at the branch"), ("other", "Other")]
+# 26.3 defective items: what is wrong and where the item came from
+DEFECT_TYPES = [
+    ("heel", "Broken heel"), ("stitching", "Open stitching"), ("stains", "Stains or faded color"), ("scratch", "Scratch or peeling"),
+    ("zipper", "Broken zipper or buckle"), ("two_sizes", "Two different sizes in the box"), ("other", "Other"),
+]
+DEFECT_SOURCES = [("shipment", "Arrived like this in the shipment"), ("display", "From the display"), ("returned", "Returned by a customer")]
 EXPENSE_CATEGORIES = [
     ("delivery", "Goods delivery"), ("worker", "Worker's salary"), ("cleaning", "Cleaning"), ("hospitality", "Hospitality"),
     ("maintenance", "Maintenance"), ("cover", "Employee cover"), ("refund", "Customer refund"), ("other", "Other"),
@@ -127,6 +135,17 @@ def day_bounds_utc(env, day):
 def dow(day):
     """0 = Sunday … 6 = Saturday (PostgreSQL extract(dow))."""
     return (day.weekday() + 1) % 7
+
+
+def add_workdays(day, n):
+    """`day` + n working days; working days are Sunday to Thursday (Friday and Saturday are skipped), as the site's
+    add_workdays()."""
+    x, k = day, 0
+    while k < n:
+        x += timedelta(days=1)
+        if dow(x) not in (5, 6):
+            k += 1
+    return x
 
 
 def hours_to_min(h):

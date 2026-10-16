@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- shipments (built and sent from the «Branch requests» screen; received on the branch device) -->
+    <record id="view_shipment_list" model="ir.ui.view">
+        <field name="name">navitta.shipment.list</field>
+        <field name="model">navitta.shipment</field>
+        <field name="arch" type="xml">
+            <list create="0" decoration-info="state == 'shipped'" decoration-danger="short" decoration-muted="state == 'received' and not short">
+                <field name="shipped_at"/>
+                <field name="branch_id"/>
+                <field name="pieces"/>
+                <field name="roll_invoice" optional="show"/>
+                <field name="roll_card" optional="show"/>
+                <field name="bags" optional="show"/>
+                <field name="cash" sum="Total"/>
+                <field name="eta_from" optional="show"/>
+                <field name="eta_to" optional="show"/>
+                <field name="state"/>
+                <field name="short"/>
+                <field name="received_at" optional="show"/>
+                <field name="received_by" optional="show"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_shipment_form" model="ir.ui.view">
+        <field name="name">navitta.shipment.form</field>
+        <field name="model">navitta.shipment</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0">
+                <header><field name="state" widget="statusbar"/></header>
+                <sheet>
+                    <group>
+                        <group><field name="branch_id"/><field name="shipped_at"/><field name="shipped_by"/><field name="eta_from"/><field name="eta_to"/>
+                            <field name="note"/></group>
+                        <group><field name="roll_invoice"/><field name="roll_card"/><field name="bags"/><field name="cash"/>
+                            <field name="received_at"/><field name="received_by"/><field name="short"/></group>
+                    </group>
+                    <group string="Didn't arrive" invisible="not short">
+                        <group><field name="missing_roll_invoice"/><field name="missing_roll_card"/><field name="missing_bags"/><field name="cash_missing"/></group>
+                        <group><field name="issue_note"/><field name="issue_at"/></group>
+                    </group>
+                    <notebook>
+                        <page string="Models" name="lines">
+                            <field name="line_ids">
+                                <list>
+                                    <field name="item_no"/><field name="alu" optional="hide"/><field name="model"/><field name="color"/><field name="size"/>
+                                    <field name="qty" sum="Pieces"/><field name="price" optional="show"/><field name="in_catalog"/>
+                                    <field name="request_id" optional="show"/><field name="missing_qty" sum="Didn't arrive"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Branch requests in the shipment" name="requests"><field name="request_ids"/></page>
+                        <page string="Photo of the rolls and bags" name="photo" invisible="not received_photo_id">
+                            <field name="received_photo" widget="image" options="{'size': [0, 360]}"/>
+                            <field name="received_photo_id" invisible="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_shipment_search" model="ir.ui.view">
+        <field name="name">navitta.shipment.search</field>
+        <field name="model">navitta.shipment</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="branch_id"/>
+                <filter name="on_the_way" string="On the way" domain="[('state', '=', 'shipped')]"/>
+                <filter name="short" string="Arrived short" domain="[('short', '=', True)]"/>
+                <group><filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="action_shipments" model="ir.actions.act_window">
+        <field name="name">Shipments</field>
+        <field name="res_model">navitta.shipment</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- defective items (reported by the branch, answered by management) -->
+    <record id="view_defect_list" model="ir.ui.view">
+        <field name="name">navitta.defect.list</field>
+        <field name="model">navitta.defect</field>
+        <field name="arch" type="xml">
+            <list create="0" decoration-warning="state == 'pending'" decoration-muted="state != 'pending'">
+                <field name="create_date" string="Time"/>
+                <field name="branch_id"/>
+                <field name="item_no"/>
+                <field name="model"/>
+                <field name="color" optional="show"/>
+                <field name="size" optional="show"/>
+                <field name="qty"/>
+                <field name="defect"/>
+                <field name="source"/>
+                <field name="employee_id"/>
+                <field name="state"/>
+                <field name="admin_note" optional="show"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_defect_form" model="ir.ui.view">
+        <field name="name">navitta.defect.form</field>
+        <field name="model">navitta.defect</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <header>
+                    <button name="action_approve" type="object" string="✅ Approve" class="btn-primary" invisible="state != 'pending'"/>
+                    <button name="action_reject" type="object" string="✕ Reject" invisible="state != 'pending'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group><field name="branch_id" readonly="1"/><field name="item_no" readonly="1"/><field name="alu" readonly="1"/>
+                            <field name="model" readonly="1"/><field name="color" readonly="1"/><field name="size" readonly="1"/><field name="qty" readonly="1"/></group>
+                        <group><field name="employee_id" readonly="1"/><field name="defect" readonly="1"/><field name="source" readonly="1"/>
+                            <field name="details" readonly="1"/><field name="decided_at" readonly="1"/></group>
+                    </group>
+                    <field name="photo" widget="image" readonly="1" options="{'size': [0, 360]}"/>
+                    <group><field name="admin_note" placeholder="Management reply (required to reject; sent to the employee)" readonly="state != 'pending'"/></group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_defect_search" model="ir.ui.view">
+        <field name="name">navitta.defect.search</field>
+        <field name="model">navitta.defect</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="model"/>
+                <field name="item_no"/>
+                <field name="branch_id"/>
+                <filter name="pending" string="Waiting for your reply" domain="[('state', '=', 'pending')]"/>
+                <group><filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_defect" string="Defect type" context="{'group_by': 'defect'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="action_defects" model="ir.actions.act_window">
+        <field name="name">Defective items</field>
+        <field name="res_model">navitta.defect</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

@@ -70,3 +70,9 @@ access_rule_ack_branch,navitta.rule_ack.branch,model_navitta_rule_ack,group_navi
 access_rule_ack_admin,navitta.rule_ack.admin,model_navitta_rule_ack,group_navitta_admin,1,1,1,1
 access_sales_edit_log_admin,navitta.sales_edit_log.admin,model_navitta_sales_edit_log,group_navitta_admin,1,0,0,0
 access_sales_change_log_admin,navitta.sales_change_log.admin,model_navitta_sales_change_log,group_navitta_admin,1,0,0,0
+access_shipment_branch,navitta.shipment.branch,model_navitta_shipment,group_navitta_branch,1,0,0,0
+access_shipment_admin,navitta.shipment.admin,model_navitta_shipment,group_navitta_admin,1,1,0,1
+access_shipment_line_branch,navitta.shipment_line.branch,model_navitta_shipment_line,group_navitta_branch,1,0,0,0
+access_shipment_line_admin,navitta.shipment_line.admin,model_navitta_shipment_line,group_navitta_admin,1,1,0,1
+access_defect_branch,navitta.defect.branch,model_navitta_defect,group_navitta_branch,1,0,0,0
+access_defect_admin,navitta.defect.admin,model_navitta_defect,group_navitta_admin,1,1,0,1

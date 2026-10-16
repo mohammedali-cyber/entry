@@ -87,6 +87,13 @@ ERRORS = {
     "no_target_columns": _lt("The columns weren't found at the top of the file: branch, date, target"),
     "empty_file": _lt("The file is empty"),
     "file_locked": _lt("The file is password-protected. Open it in Excel, save it without a password and upload it again"),
+    # shipments, shortage list and defective items (26.3)
+    "empty_shipment": _lt("The shipment is empty"),
+    "in_shipment": _lt("This request is in a shipment, receive it with the shipment"),
+    "empty_list": _lt("The list is empty"),
+    "contact_required": _lt("Customer request: write her name and mobile number"),
+    "too_many": _lt("Too many items in one list, send them in two lists"),
+    "no_ship_columns": _lt("Couldn't find the columns at the top of the file: item number or barcode, color, size and quantity"),
 }
 
 

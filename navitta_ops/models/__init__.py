@@ -10,6 +10,7 @@ from . import message
 from . import sales
 from . import request
 from . import catalog
+from . import shipment
 from . import device
 from . import float_task
 from . import rules
@@ -19,4 +20,5 @@ from . import api_admin
 from . import api_rules
 from . import api_tasks
 from . import api_sales
+from . import api_shipments
 from . import report_summary

@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- the models of a shipment, grouped by model + color with the sizes listed -->
+    <t t-name="navitta_ops.ShipItems">
+        <div class="tscroll"><table class="mt"><thead><tr><th>Item number</th><th>Model</th><th>Color</th><th>Sizes</th><th>Quantity</th></tr></thead><tbody>
+            <tr t-foreach="shown" t-as="g" t-key="g.key">
+                <td class="num"><b t-esc="g.first.item_no or '—'"/></td>
+                <td class="num"><t t-esc="g.first.model"/><t t-if="g.missing"> <span class="chip warn" t-esc="TX.notInFile"/></t></td>
+                <td class="num" t-esc="g.first.color or '—'"/>
+                <td class="num" t-esc="g.sizes or '—'"/>
+                <td class="num"><b t-esc="g.qty"/><t t-foreach="g.marks" t-as="mk" t-key="mk_index"> <span t-att-class="'chip ' + mk[0]" t-esc="mk[1]"/></t></td>
+            </tr>
+            <tr t-if="groups.length > 6"><td colspan="5"><button type="button" class="linkbtn" t-on-click="() => state.all = !state.all"
+                t-esc="state.all ? TX.showLess : TX.moreModels(groups.length - 6)"/></td></tr>
+        </tbody></table></div>
+    </t>
+
+    <!-- branch: receiving a shipment by scanning -->
+    <t t-name="navitta_ops.ReceiveShipment">
+        <NvModal onClose="props.onClose" cls="'rcvm'">
+            <div class="rcv">
+                <div class="nv-card-h"><h2>📦 Receive shipment</h2><button type="button" class="nv-btn" t-on-click="() => props.onClose()">Close</button></div>
+                <div t-att-class="'rcv-in ' + (state.msg ? state.msg.k : '')">
+                    <span aria-hidden="true">📟</span>
+                    <input t-ref="scan" class="num" inputmode="numeric" autocomplete="off" t-model="state.code" t-on-keydown="onKey"
+                           placeholder="Scan the item's barcode" aria-label="Scan the item's barcode"/>
+                    <button type="button" class="nv-btn" t-on-click="scan">Add</button>
+                </div>
+                <div t-if="state.msg" t-att-class="'rcv-msg ' + state.msg.k" role="status" t-esc="state.msg.t"/>
+                <div class="rcv-p"><span class="num" t-esc="TX.arrivedOf(arrived, total)"/><div class="pbar"><i t-att-style="'width:' + pct + '%'"/></div></div>
+                <div class="rcv-g">
+                    <div class="rcv-c"><h3>📦 In the shipment <span class="num">(<t t-esc="restCount"/>)</span></h3>
+                        <div t-foreach="rest" t-as="l" t-key="l.key" class="rcv-l">
+                            <div><b class="num" t-esc="l.label"/><small t-if="l.sub" class="num" t-esc="l.sub"/></div>
+                            <span class="q num">× <t t-esc="left(l)"/></span>
+                            <button t-if="!l.scan" type="button" class="nv-btn" t-on-click="() => this.manual(l)">✓ Arrived</button>
+                        </div>
+                        <div t-if="!rest.length" class="empty">✓ Everything arrived</div>
+                    </div>
+                    <div class="rcv-c ok"><h3>✅ Arrived <span class="num">(<t t-esc="arrived"/>)</span></h3>
+                        <div t-foreach="done" t-as="l" t-key="l.key" class="rcv-l">
+                            <div><b class="num" t-esc="l.label"/><small t-if="l.sub" class="num" t-esc="l.sub"/></div>
+                            <span class="q num">× <t t-esc="arrivedOf(l)"/></span>
+                            <button type="button" class="del" aria-label="Undo" title="Undo" t-on-click="() => this.add(l, -1)">↩</button>
+                        </div>
+                    </div>
+                </div>
+                <PhotoPicker t-if="needPhoto" value="state.photo" onChange="(id) => state.photo = id" label="TX.photoLabel"/>
+                <div t-if="state.short" class="rcv-short">
+                    <b>⚠️ Not arrived:</b>
+                    <ul><li t-foreach="rest" t-as="l" t-key="l.key" class="num"><t t-esc="l.label"/><t t-if="l.sub"> · <t t-esc="l.sub"/></t> × <t t-esc="left(l)"/></li></ul>
+                    <textarea class="ctl" rows="2" placeholder="Your note to management *" t-model="state.note"/>
+                </div>
+                <div class="vrow">
+                    <t t-if="!state.short">
+                        <button type="button" class="nv-btn primary big" t-att-disabled="!ready" t-on-click="() => state.sign = true">✓ Received</button>
+                        <button type="button" class="nv-btn" t-att-disabled="!rest.length" t-on-click="() => state.short = true">⚠️ Something's missing</button>
+                    </t>
+                    <t t-else="">
+                        <button type="button" class="nv-btn primary big" t-att-disabled="!state.note.trim() or (needPhoto and !state.photo)" t-on-click="() => state.sign = true">🔒 Receive what arrived and notify management</button>
+                        <button type="button" class="nv-btn" t-on-click="() => state.short = false">Back</button>
+                    </t>
+                </div>
+                <t t-if="!ready and !state.short">
+                    <span t-if="rest.length" class="hint">“Received” unlocks when “In the shipment” is empty</span>
+                    <span t-else="" class="hint">Photograph the rolls and bags first</span>
+                </t>
+            </div>
+            <SignModal t-if="state.sign" emps="props.emps" title="TX.receiveTitle" onClose="() => state.sign = false" onSign="(e, pin) => this.send(e, pin)"/>
+        </NvModal>
+    </t>
+
+    <!-- branch: shipments on their way -->
+    <t t-name="navitta_ops.IncomingShipments">
+        <t t-foreach="props.ships" t-as="s" t-key="s.id">
+            <div class="nv-card ship-in">
+                <div class="nv-card-h"><div><h2>🚚 A shipment is on its way</h2><p class="sub" t-esc="TX.shippedBy(longDate(s.shipped_day))"/></div>
+                    <span t-att-class="'chip ' + SHIPST[s.state][0]" t-esc="SHIPST[s.state][1]"/></div>
+                <div class="shp">
+                    <div class="steps2"><span class="d">✓ Shipped</span><span class="c">On the way</span><span>Arrived</span></div>
+                    <div class="eta"><span class="i" aria-hidden="true">⏱️</span><div>Shipping takes <b>1 to 4 working days</b> · Arrives between <b t-esc="longDate(s.eta_from)"/> and <b t-esc="longDate(s.eta_to)"/></div></div>
+                    <div t-if="s.note" class="nt">💬 Management: <t t-esc="s.note"/></div>
+                    <div t-if="s.lines.length" class="sec"><h3>👠 <t t-esc="TX.modelsPieces(pieces(s))"/></h3>
+                        <ItemsTable items="s.lines" mark="marker(s)"/></div>
+                    <div class="sum">
+                        <t t-foreach="SUPS" t-as="k" t-key="k"><span t-if="s[k] > 0" class="chip neutral"><t t-esc="SUP[k]"/> × <t t-esc="s[k]"/></span></t>
+                        <span t-if="s.cash > 0" class="chip neutral">💵 <t t-esc="TX.cashOf(f0(s.cash))"/></span>
+                    </div>
+                    <div class="vrow"><button type="button" class="nv-btn primary big" t-on-click="() => state.recv = s">📦 Start receiving</button></div>
+                    <span class="hint">Scan every piece and photograph the rolls and bags. When you finish, your PIN is required; rolls and bags are added to the branch stock and the cash to the Cash box automatically.</span>
+                </div>
+            </div>
+        </t>
+        <ReceiveShipment t-if="state.recv" s="state.recv" emps="props.emps" onClose="() => state.recv = null" onDone="() => this.done()"/>
+    </t>
+
+    <!-- management: build a shipment for one branch -->
+    <t t-name="navitta_ops.ShipBuilder">
+        <div class="nv-card c12">
+            <div class="nv-card-h"><div><h2>🚚 New shipment to a branch</h2><p class="sub">Choose the branch, add its requests, upload the models file, then “Shipped”.</p></div>
+                <select class="ctl" style="width:auto;min-width:200px" aria-label="Branch" t-on-change="(ev) => this.setBranch(ev.target.value)">
+                    <t t-foreach="props.branches" t-as="b" t-key="b.id"><option t-att-value="b.id" t-att-selected="b.id === state.br" t-esc="b.name"/></t>
+                </select></div>
+            <div class="shp">
+                <div class="sec"><h3>📋 Open branch requests · pick what goes in the shipment</h3>
+                    <label t-foreach="open" t-as="r" t-key="r.id" class="ck"><input type="checkbox" t-att-checked="state.pick[r.id]" t-on-change="() => this.toggle(r)"/>
+                        <div><b class="num" t-esc="reqLabel(r)"/>
+                            <t t-if="r.reason"> <span class="tag" t-esc="r.reason"/></t>
+                            <t t-if="reqWaiting(r)"> <span class="tag g" t-esc="TX.waiting"/></t>
+                            <t t-if="r.urgent"> <span class="tag" t-esc="TX.urgent"/></t></div>
+                        <span class="m" t-esc="longDate(r.created_at)"/></label>
+                    <div t-if="!open.length" class="empty">No open requests for this branch</div>
+                </div>
+
+                <div class="sec"><h3>📤 Shipment models file</h3>
+                    <span class="s">Excel with: item number or barcode, color, size and quantity. Matched automatically with the models file.</span>
+                    <div class="up"><span class="f" aria-hidden="true">📗</span>
+                        <div t-if="state.file"><b t-esc="state.file.name"/><small t-esc="fileSummary"/></div>
+                        <div t-else=""><b>No file</b><small>Optional, if you have models beyond the requests</small></div>
+                        <label class="nv-btn" style="margin-inline-start:auto;cursor:pointer"><t t-if="state.file">Change file</t><t t-else="">📤 Upload file</t>
+                            <input type="file" accept=".xlsx,.csv" hidden="1" t-on-change="readFile"/></label>
+                        <button t-if="state.file" type="button" class="del" aria-label="Remove the file" t-on-click="() => state.file = null">✕</button>
+                    </div>
+                    <ItemsTable t-if="items.length" items="items"/>
+                </div>
+
+                <div class="sec"><h3>🧾 Supplies and cash with the shipment</h3>
+                    <div class="sg">
+                        <label t-foreach="SUPS" t-as="k" t-key="k"><t t-esc="SUP[k]"/><input class="ctl num" type="number" min="0" t-model="state.sup[k]"/></label>
+                        <label>💵 Expense cash (SAR)<input class="ctl num" type="number" min="0" t-model="state.sup.cash"/></label>
+                    </div>
+                    <input class="ctl" placeholder="Note to the branch (optional)" t-model="state.note"/>
+                </div>
+
+                <div class="eta"><span class="i" aria-hidden="true">⏱️</span><div>Shipping takes <b>1 to 4 working days</b> · Expected arrival: <b><t t-esc="longDate(props.eta[0])"/> – <t t-esc="longDate(props.eta[1])"/></b><br/><small>Working days are Sunday to Thursday</small></div></div>
+                <div class="sum">
+                    <span t-if="pieces" class="chip neutral">👠 <t t-esc="TX.pieces(pieces)"/></span>
+                    <t t-foreach="SUPS" t-as="k" t-key="k"><span t-if="+state.sup[k] > 0" class="chip neutral"><t t-esc="SUP[k]"/> × <t t-esc="state.sup[k]"/></span></t>
+                    <span t-if="+state.sup.cash > 0" class="chip neutral">💵 <t t-esc="TX.sar(f0(+state.sup.cash))"/></span>
+                </div>
+                <p t-if="state.msg" class="hint" role="status" t-esc="state.msg"/>
+                <div class="vrow"><button type="button" class="nv-btn primary big" t-att-disabled="!canSend" t-on-click="send">🚚 Shipped · send to branch</button></div>
+            </div>
+        </div>
+    </t>
+
+    <!-- management: recent shipments -->
+    <t t-name="navitta_ops.ShipLog">
+        <div class="nv-card c12"><h2>🚚 Recent shipments</h2>
+            <div class="reqs">
+                <div t-foreach="props.ships" t-as="s" t-key="s.id" class="req">
+                    <div class="req-main"><span t-att-class="'chip ' + SHIPST[shipState(s)][0]" t-esc="SHIPST[shipState(s)][1]"/>
+                        <div><div class="what"><b t-esc="props.bName(s.branch_id)"/> · <t t-esc="TX.pieces(pieces(s))"/>
+                            <t t-foreach="SUPS" t-as="k" t-key="k"><t t-if="s[k] > 0"> · <t t-esc="SUP[k]"/> × <t t-esc="s[k]"/></t></t>
+                            <t t-if="s.cash > 0"> · 💵 <t t-esc="TX.sar(f0(s.cash))"/></t></div>
+                            <div class="meta"><t t-esc="TX.shippedOn(longDate(s.shipped_day))"/> · <t t-esc="dates(s)"/><t t-if="s.received_by"> · <t t-esc="s.received_by"/></t>
+                                <t t-if="s.issue_note"> · ⚠️ «<t t-esc="s.issue_note"/>»</t>
+                                <t t-if="s.received_photo_id"> · <PhotoLink id="s.received_photo_id" label="TX.photo"/></t></div>
+                            <div t-if="s.missing.length" class="meta">⚠️ Missing: <span class="num" t-esc="s.missing.join(' · ')"/></div></div></div>
+                </div>
+                <div t-if="!props.ships.length" class="empty">No shipments yet</div>
+            </div>
+        </div>
+    </t>
+</templates>

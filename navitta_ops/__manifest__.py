@@ -3,10 +3,10 @@
     "summary": "Visit counter, attendance, late arrivals, leaves, sales and requests for Navitta branches",
     "description": """
 Navitta branch operations: visits counter, PIN attendance, breaks, late cases and penalties,
-leaves with cover, employee inbox, targets and sales, daily report, branch requests, supplies,
-expenses, lost sales, models file, management dashboard and a nightly PDF summary by email.
+leaves with cover, employee inbox, targets and sales, daily report, branch requests, shortage lists,
+shipments received by scanning, defective items, supplies, expenses, lost sales, models file, management dashboard and a nightly PDF summary by email.
 """,
-    "version": "18.0.1.8.0",
+    "version": "18.0.1.9.0",
     "category": "Operations",
     "author": "Navitta",
     "license": "LGPL-3",
@@ -29,6 +29,7 @@ expenses, lost sales, models file, management dashboard and a nightly PDF summar
         "views/message_views.xml",
         "views/sales_views.xml",
         "views/request_views.xml",
+        "views/shipment_views.xml",
         "views/catalog_views.xml",
         "views/device_views.xml",
         "views/float_task_views.xml",

@@ -5,12 +5,14 @@ import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 import {
-    CASEST, COLORS, EXPICON, LEAVEST, LOST, LOSTL, NOBUY, LOSTFULL, OUTOF, QBREAK, QLATE, RQST, EXST, SAT, SIZES, SUP, TRIED, TYPES,
+    CASEST, COLORS, EXPICON, LEAVEST, LOST, LOSTL, NOBUY, LOSTFULL, OUTOF, QBREAK, QLATE, RQST, EXST, SAT, SIZES, SREASONL, SUP, TRIED, TYPES,
     CTX, addDays, api, clock, dTxt, days, f0, h12, jn, longDate, minuteNow, mmss, now, photoUrl, setClock, sizesOf, swatch, today, ago, icon, dcsText,
     DIR, LANG, vlabel, WD,
 } from "../common/utils";
 import { Dots } from "../common/cases";
 import { FloatCard, FloatEnd, TasksCard, endLeft } from "../common/tasks";
+import { IncomingShipments } from "../common/shipments";
+import { Defects, ShortageList } from "./shortage";
 import {
     DailyQuote, FaceCam, ModelPicker, ModelSearch, NvModal, PhotoLink, PhotoPicker, PinPad, SignModal, TargetBar,
 } from "../common/components";
@@ -645,34 +647,27 @@ class Inbox extends Component {
 // ---------------------------------------------------------------- branch requests, supplies, expenses, waiting customers
 class Requests extends Component {
     static template = "navitta_ops.Requests";
-    static components = { SignModal, PhotoPicker, PhotoLink };
+    static components = { SignModal, PhotoPicker, PhotoLink, IncomingShipments, ShortageList, Defects };
     static props = { tab: { optional: true } };
     setup() {
         this.orm = useService("orm");
         this.notification = useService("notification");
         this.state = useState({
             tab: this.props.tab || "goods", d: null, sign: null,
-            g: this.blankGoods(), s: { supply: "bags", qty: 1, what: "", note: "" }, x: { amount: "", category: "delivery", details: "", receipt: null },
+            s: { supply: "bags", qty: 1, what: "", note: "" }, x: { amount: "", category: "delivery", details: "", receipt: null },
             err: "",
         });
         Object.assign(this, H);
-        this.COLORS = COLORS;
-        this.SIZES = SIZES;
+        this.SREASONL = SREASONL;
         this.STEPS = ["pending", "approved", "shipped", "received"];
         this.STEPL = { pending: _t("Requested"), approved: _t("Approved by Management"), shipped: _t("Shipped"), received: _t("Arrived") };
         onWillStart(() => this.load());
-    }
-    get photoLabel() {
-        return _t("📷 Item photo (optional)");
     }
     get receiptLabel() {
         return _t("🧾 Receipt photo");
     }
     waitTitle(w) {
         return jn([w.item_no && "🏷️ " + w.item_no, w.model, w.color, w.size && _t("Size %s", w.size)], " · ");
-    }
-    blankGoods() {
-        return { model: "", color: "", size: "", qty: 1, reason: "asked", note: "", urgent: false, photo: null };
     }
     async load() {
         const d = await api(this.orm, "requests_state");
@@ -693,6 +688,9 @@ class Requests extends Component {
     }
     get waiting() {
         return this.state.d.waiting.filter((w) => !w.contacted_at);
+    }
+    get pendingDefects() {
+        return this.state.d.defects.filter((x) => x.state === "pending").length;
     }
     reqs(kind) {
         return this.state.d.requests.filter((r) => r.kind === kind);
@@ -718,14 +716,6 @@ class Requests extends Component {
                 return null;
             },
         };
-    }
-    submitGoods() {
-        const g = this.state.g;
-        if (!g.model.trim()) return (this.state.err = _t("Enter the model number"));
-        if (!(+g.qty > 0)) return (this.state.err = _t("Invalid quantity"));
-        this.state.err = "";
-        this.sign(_t("Out-of-stock request"), "create_request", () => [{ kind: "goods", model: g.model, color: g.color, size: g.size, qty: +g.qty,
-            reason: g.reason, note: g.note, urgent: g.urgent, photo_id: g.photo }], _t("Request sent to Management"), () => (this.state.g = this.blankGoods()));
     }
     submitSupply() {
         const s = this.state.s;

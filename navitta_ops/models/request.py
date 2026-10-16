@@ -6,7 +6,7 @@ from datetime import timedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
-from .common import EXPENSE_CATEGORIES, SUPPLIES, sel_label
+from .common import EXPENSE_CATEGORIES, SHORTAGE_REASONS, SUPPLIES, sel_label
 
 MAX_PHOTO_BYTES = 1_500_000           # photos are compressed on the device (~1280px JPEG) before upload
 PHOTO_MIMES = ("image/jpeg", "image/png", "image/webp")
@@ -73,11 +73,15 @@ class NavittaBranchRequest(models.Model):
     kind = fields.Selection([("goods", "Out-of-stock request"), ("supply", "Supplies")], "Type", required=True)
     supply = fields.Selection(SUPPLIES, "Supply")
     employee_id = fields.Many2one("navitta.employee", "Requested by", ondelete="set null")
+    item_no = fields.Char("Item number", index=True)
     model = fields.Char("Model / item")
     color = fields.Char("Color")
     size = fields.Char("Size")
     qty = fields.Integer("Quantity", required=True, default=1)
     reason = fields.Char("Reason")
+    reason_key = fields.Selection(SHORTAGE_REASONS, "Shortage reason", help="Reason picked in the shortage list")
+    contact_name = fields.Char("Customer name")
+    contact_phone = fields.Char("Customer mobile")
     note = fields.Text("Note")
     urgent = fields.Boolean("Urgent")
     photo_id = fields.Many2one("navitta.photo", "Item photo", ondelete="set null")
@@ -89,13 +93,15 @@ class NavittaBranchRequest(models.Model):
     shipped_at = fields.Datetime("Shipping time")
     received_at = fields.Datetime("Receipt time")
     received_by = fields.Many2one("navitta.employee", "Received by", ondelete="set null")
+    shipment_ids = fields.Many2many("navitta.shipment", "navitta_shipment_request_rel", "request_id", "shipment_id", "Shipments", readonly=True)
 
     _sql_constraints = [("qty_pos", "CHECK(qty > 0)", "The quantity must be greater than zero")]
 
     def _what(self):
         self.ensure_one()
         if self.kind == "goods":
-            s = " · ".join(x for x in (self.model, self.color, self.size) if x)
+            model = self.model if self.model != self.item_no else False
+            s = " · ".join(x for x in (self.item_no, model, self.color, self.size) if x)
         else:
             s = self.model if self.supply == "other" else sel_label(self.env, self._name, "supply", self.supply)
         return "%s × %s" % (s, self.qty)
@@ -119,6 +125,8 @@ class NavittaBranchRequest(models.Model):
         r = self.sudo()
         if r.state not in ("approved", "shipped") or r.branch_id != employee.branch_id:
             return "not_found"
+        if r._in_open_shipment():
+            return "in_shipment"           # received with its shipment (so its supplies aren't counted twice)
         r.write({"state": "received", "received_at": fields.Datetime.now(), "received_by": employee.id})
         if r.kind == "supply" and r.supply in ("roll_invoice", "roll_card", "bags"):
             from .common import app_today
@@ -126,6 +134,10 @@ class NavittaBranchRequest(models.Model):
                 "branch_id": r.branch_id.id, "day": app_today(self.env), "supply": r.supply, "qty": r.qty,
                 "kind": "received", "request_id": r.id})
         return None
+
+    def _in_open_shipment(self):
+        self.ensure_one()
+        return bool(self.sudo().shipment_ids.filtered(lambda s: s.state != "received"))
 
     def action_approve(self):
         self._button("approved")
@@ -155,6 +167,7 @@ class NavittaSupplyMove(models.Model):
     kind = fields.Selection([("opening", "Opening balance"), ("received", "Received"), ("used", "Used"), ("adjust", "Adjustment")],
                             "Move", required=True)
     request_id = fields.Many2one("navitta.branch.request", "Request", ondelete="set null")
+    shipment_id = fields.Many2one("navitta.shipment", "Shipment", ondelete="set null")
 
 
 class NavittaExpense(models.Model):

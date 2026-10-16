@@ -3,7 +3,7 @@
 
     <t t-name="navitta_ops.NvModal">
         <div class="nv-modal-bg" t-on-click="onBg">
-            <div t-att-class="'nv-modal' + (props.wide ? ' wide2' : '')"><t t-slot="default"/></div>
+            <div t-att-class="'nv-modal' + (props.wide ? ' wide2' : '') + (props.cls ? ' ' + props.cls : '')"><t t-slot="default"/></div>
         </div>
     </t>
 

@@ -845,6 +845,76 @@ td .m,td.m{font-size:12px;color:var(--fg-2)}
 .eod{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-block:6px 10px}
 .eod .ph{display:flex;align-items:center;gap:6px}
 .eod img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+// ---------- 26.3: shipments (builder, log, on the way), receiving by scanning, shortage list, defective items
+.shp{display:flex;flex-direction:column;gap:14px}
+.shp .sec{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface);display:flex;flex-direction:column;gap:8px;min-width:0}
+.shp .sec h3{margin:0;font-size:14.5px}
+.shp .s{font-size:12px;color:var(--fg-2)}
+.shp .nt{font-size:13px;color:var(--fg-2);background:var(--surface-2);border-radius:8px;padding:8px 10px}
+.ship-in{margin-bottom:16px}
+.ck{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px dashed var(--line);font-size:13.5px;cursor:pointer}
+.ck:last-of-type{border-bottom:0}
+.ck input{width:18px;height:18px;flex:none;accent-color:var(--fg)}
+.ck>div{min-width:0}
+.ck .m{color:var(--fg-2);font-size:12px;margin-inline-start:auto;text-align:end;white-space:nowrap}
+.ck .tag{font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--warn-bg);color:var(--warn)}
+.ck .tag.g{background:var(--good-bg);color:var(--good)}
+.up{display:flex;align-items:center;gap:12px;border:2px dashed var(--line);border-radius:10px;padding:10px 12px;background:var(--surface-2);flex-wrap:wrap}
+.up .f{font-size:26px}
+.up b{display:block}
+.up small{color:var(--fg-2)}
+.mt{width:100%;border-collapse:collapse;font-size:12.5px}
+.mt th{color:var(--fg-2);font-weight:600;text-align:start;padding:5px 6px;border-bottom:1px solid var(--line)}
+.mt td{padding:5px 6px;border-bottom:1px solid var(--line)}
+.sg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.sg label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--fg-2)}
+.sg .ctl{font-weight:700;color:var(--fg);width:100%;min-width:0}
+.eta{display:flex;align-items:center;gap:12px;background:var(--info-bg);color:var(--info);border-radius:10px;padding:10px 14px;font-size:13.5px}
+.eta b{color:var(--fg)}
+.eta .i{font-size:24px}
+.sum{display:flex;gap:8px;flex-wrap:wrap}
+.nv-btn.big{padding:13px 22px;font-size:15px}
+.nv-btn:disabled{opacity:.45;cursor:not-allowed}
+.steps2{display:flex;gap:6px}
+.steps2 span{flex:1;text-align:center;padding:7px 4px;border-radius:8px;background:var(--surface-2);font-size:12.5px;font-weight:600;color:var(--fg-3)}
+.steps2 span.d{background:var(--good-bg);color:var(--good)}
+.steps2 span.c{background:var(--fg);color:var(--bg)}
+@media (max-width:700px){.sg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.nv-modal.rcvm{max-width:980px;max-height:calc(100vh - 32px);overflow:auto}
+.rcv{display:flex;flex-direction:column;gap:12px;padding:12px}
+.rcv-in{display:flex;align-items:center;gap:8px;border:2px solid var(--fg);border-radius:12px;padding:6px 10px}
+.rcv-in input{flex:1;border:0;background:transparent;font-size:18px;padding:6px;color:var(--fg);min-width:0}
+.rcv-in input:focus{outline:none}
+.rcv-in.bad{border-color:var(--bad)}
+.rcv-in.ok{border-color:var(--good)}
+.rcv-msg{border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px}
+.rcv-msg.ok{background:var(--good-bg);color:var(--good)}
+.rcv-msg.bad{background:var(--bad-bg);color:var(--bad)}
+.rcv-msg.warn{background:var(--warn-bg);color:var(--warn)}
+.rcv-p{display:flex;align-items:center;gap:10px;font-size:13px}
+.rcv-p .pbar{flex:1}
+.rcv-p .pbar i{background:var(--good)}
+.rcv-g{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+@media (max-width:700px){.rcv-g{grid-template-columns:minmax(0,1fr)}.rcv{padding:6px}.nv-modal.rcvm .nv-btn.big{width:100%}}
+.rcv-c{border:1px solid var(--line);border-radius:12px;padding:10px;max-height:44vh;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.rcv-c.ok{background:var(--good-bg)}
+.rcv-c h3{margin:0 0 4px;font-size:15px}
+.rcv-l{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:7px 9px;background:var(--surface)}
+.rcv-l>div{flex:1;display:flex;flex-direction:column;min-width:0}
+.rcv-l small{color:var(--muted);font-size:12px}
+.rcv-l .q{font-weight:800}
+.rcv-short{background:var(--bad-bg);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;color:var(--bad)}
+.rcv-short ul{margin:0;padding-inline-start:18px;color:var(--fg)}
+.frm .lt{font-size:12.5px;font-weight:700;color:var(--fg-2);margin-top:4px}
+.sl{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;background:var(--surface-2)}
+.sl-h{display:flex;justify-content:space-between;align-items:center}
+.sl-i{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:7px 10px;background:var(--surface)}
+.sl-i>div{flex:1;display:flex;flex-direction:column;min-width:0}
+.sl-i small{font-size:12px;color:var(--muted)}
+.dreply{border-radius:9px;padding:7px 10px;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.dreply.pending{background:var(--surface-2);color:var(--muted)}
+.dreply.approved{background:var(--good-bg);color:var(--good)}
+.dreply.rejected{background:var(--bad-bg);color:var(--bad)}
 }
 // modals are rendered inside .o_navitta too (position: fixed)
 

@@ -5,13 +5,14 @@ import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 import {
-    EXPICON, EXST, LOST, LOSTL, MONTHS, OUTOF, RQST, SUP, WD, addDays, ago, api, clock, dTxt, days, dmy, downloadCsv, f0, h12, longDate,
+    DFST, EXPICON, EXST, LOST, LOSTL, MONTHS, OUTOF, RQST, SREASONL, SUP, WD, addDays, ago, api, clock, dTxt, days, dmy, downloadCsv, f0, h12, longDate,
     mmss, now, pc, setClock, today, weekday, jn, DIR, LANG, vlabel,
 } from "../common/utils";
 import { DailyQuote, EmpBoard, NvModal, PhotoLink, TargetEditor } from "../common/components";
 import { CaseDecide, Dots } from "../common/cases";
 import { groupOf, phases } from "../common/tasks";
 import { DayChanges, DayEdit, TargetFile } from "./sales_tools";
+import { ShipBuilder, ShipLog } from "../common/shipments";
 
 const LEAVEADM = { pending: _t("Awaiting your approval"), cover: _t("Awaiting colleague"), cover_no: _t("Colleague declined"), approved: _t("Approved"), rejected: _t("Rejected") };
 // the new PIN's email (sent right away, then wiped)
@@ -75,6 +76,12 @@ const TX = {
     reportGap: (n) => _t("On %s days with a report: the report figures differ from the Point of Sale invoices", n),
     fromTo: (a, b) => _t("From %(from)s to %(to)s", { from: a, to: b }),
     size: (s) => _t("Size %s", s),
+    defectsWaiting: (n) => _t("%s awaiting your reply", n),
+    defectPhoto: _t("Defect photo"),
+    replyPh: _t("💬 Management reply (required to reject)"),
+    defectOk: _t("Approved"),
+    defectNo: _t("Rejected"),
+    rejectReason: _t("Write the rejection reason in the reply box"),
     caseLine: (c) => c.kind === "break"
         ? _t("Break %(used)s min · over by %(over)s min", { used: c.break_used, over: c.minutes })
         : _t("Late arrival %s min", c.minutes) + (c.check_in ? " · " + _t("Checked in %s", clock(c.check_in)) : ""),
@@ -82,8 +89,8 @@ const TX = {
 const CMPCOLS = [["target", _t("Target")], ["sales", _t("Sales")], ["achieved", _t("Achieved")], ["tax", _t("VAT")], ["invoices", _t("Invoices")],
     ["avg_invoice", _t("Average invoice")], ["items", _t("Items")], ["returns", _t("Returns")], ["visits", _t("Counter customers")],
     ["conversion", _t("Conversion")], ["counter_gap", _t("Invoices − Bought (counter)")], ["report_gap", _t("Report − System")]];
-const REQKINDS = [["all", _t("All")], ["goods", _t("Out-of-stock request")], ["supply", _t("Supplies")], ["expense", _t("Expenses")]];
-const H = { jn, f0, mmss, clock, longDate, h12, dTxt, days, ago, pc, dmy, weekday, addDays, LOSTL, SUP, EXPICON, RQST, EXST, WD, MONTHS, LEAVEADM, NOTIF, PINMAIL,
+const REQKINDS = [["all", _t("All")], ["goods", _t("Out-of-stock request")], ["defect", _t("🩹 Defective items")], ["supply", _t("Supplies")], ["expense", _t("Expenses")]];
+const H = { jn, f0, mmss, clock, longDate, h12, dTxt, days, ago, pc, dmy, weekday, addDays, LOSTL, SUP, EXPICON, RQST, EXST, DFST, SREASONL, WD, MONTHS, LEAVEADM, NOTIF, PINMAIL,
     TX, CMPCOLS, REQKINDS, SEP, ARROW, vlabel };
 
 // ---------------------------------------------------------------- shared period filter (every tab)
@@ -453,7 +460,7 @@ class Sales extends AdminBase {
 // ---------------------------------------------------------------- requests, expenses, supplies
 class Requests extends AdminBase {
     static template = "navitta_ops.AdminRequests";
-    static components = { PhotoLink };
+    static components = { PhotoLink, ShipBuilder, ShipLog };
     setup() {
         super.setup();
         this.state = useState({ d: null, kind: "all", notes: {}, open: null });
@@ -490,8 +497,25 @@ class Requests extends AdminBase {
             pendX: d.expenses.filter((x) => x.state === "pending" && this.inB(x.branch_id)),
             pendTotal: d.expenses.filter((x) => x.state === "pending" && this.inB(x.branch_id)).reduce((s, x) => s + Number(x.amount), 0),
             lowB: d.branches.filter((b) => Object.keys(this.mins).some((k) => this.bal(b.id, k) < this.mins[k])),
-            showReq: ["all", "goods", "supply"].includes(s.kind), showExp: ["all", "expense"].includes(s.kind),
+            showReq: ["all", "goods", "supply"].includes(s.kind), showExp: ["all", "expense"].includes(s.kind), showDef: ["all", "defect"].includes(s.kind),
+            ships: d.shipments.filter((x) => this.inB(x.branch_id)).slice(0, 8),
+            defOpen: d.defects.filter((x) => x.state === "pending" && this.inB(x.branch_id)),
+            defDone: d.defects.filter((x) => x.state !== "pending" && this.inB(x.branch_id)).slice(0, 10),
         };
+    }
+    get bNameFn() {
+        return (id) => this.bName(id);
+    }
+    defWhat(x) {
+        return jn([x.item_no, x.model !== x.item_no && x.model, x.color, x.size && TX.size(x.size)]) + (x.qty > 1 ? " × " + x.qty : "");
+    }
+    decideDefect(x, ok) {
+        const note = (this.state.notes[x.id] || "").trim();
+        if (!ok && !note) {
+            this.toast(TX.rejectReason, "warning");
+            return;
+        }
+        this.act("admin_defect_decide", [x.id, ok, note || null], ok ? TX.defectOk : TX.defectNo);
     }
     branchExp(b) {
         const d = this.state.d, m0 = d.month_start;

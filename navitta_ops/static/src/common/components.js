@@ -35,7 +35,7 @@ const TX = {
 
 export class NvModal extends Component {
     static template = "navitta_ops.NvModal";
-    static props = { onClose: Function, wide: { type: Boolean, optional: true }, slots: Object };
+    static props = { onClose: Function, wide: { type: Boolean, optional: true }, cls: { type: String, optional: true }, slots: Object };
     onBg(ev) {
         if (ev.target === ev.currentTarget) {
             this.props.onClose();

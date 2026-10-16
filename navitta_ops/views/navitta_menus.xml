@@ -33,6 +33,8 @@
         <menuitem id="menu_rec_sales_edit_log" name="Sales day edits" action="action_sales_edit_log" sequence="13"/>
         <menuitem id="menu_rec_sales_change_log" name="Changes after the day was closed" action="action_sales_change_log" sequence="13"/>
         <menuitem id="menu_rec_requests" name="Branch request log" action="action_branch_requests" sequence="14"/>
+        <menuitem id="menu_rec_shipments" name="Shipments" action="action_shipments" sequence="14"/>
+        <menuitem id="menu_rec_defects" name="Defective items" action="action_defects" sequence="14"/>
         <menuitem id="menu_rec_expenses" name="Expenses" action="action_expenses" sequence="15"/>
         <menuitem id="menu_rec_supply" name="Supply moves" action="action_supply_moves" sequence="16"/>
         <menuitem id="menu_rec_lost" name="Lost sales log" action="action_lost_sales" sequence="17"/>
