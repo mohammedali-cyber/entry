@@ -468,6 +468,8 @@ class NavittaApiAdmin(models.AbstractModel):
                                            "soldBy": x.sold_by, "by": x.exchanged_by} for x in r.exchange_ids]) for r in reps],
             "visits": [self._visit_dict(v) for v in visits],
             "attendance": att, "breaks": brk, "cases": [self._case_dict(c) for c in cases],
+            # today's float and tasks per branch (26.3)
+            "daily": self._day_floats_tasks(d),
         }
 
     # ------------------------------------------------------------------ nightly summary
@@ -488,8 +490,17 @@ class NavittaApiAdmin(models.AbstractModel):
         sales = sum(ds.mapped("sales"))
         invoices = sum(ds.mapped("invoices"))
         buys = len(visits.filtered("bought"))
+        floats = S["navitta.float"].sudo().search([("day", "=", day)])
+        TaskDef = S["navitta.task.def"].sudo()
         rows = []
+        events = []
         for b in branches:
+            bf = floats.filtered(lambda f: f.branch_id == b)
+            tasks = TaskDef._day_list(b, day) if TaskDef.search_count([]) else []
+            for f in bf.filtered(lambda f: f.state == "short"):
+                events.append({"level": "bad", "title": _("Float short"), "text": "%s: %s" % (b.name, _(
+                    "%(k)s · %(a)s SAR of %(x)s SAR%(n)s", k=sel_label(S, "navitta.float", "kind", f.kind), a="{:,.0f}".format(f.amount),
+                    x="{:,.0f}".format(f.expected), n=(" · " + f.note) if f.note else ""))})
             rs = reps.filtered(lambda r: r.branch_id == b)
             bs = ds.filtered(lambda r: r.branch_id == b)
             vs = visits.filtered(lambda v: v.branch_id == b)
@@ -500,6 +511,10 @@ class NavittaApiAdmin(models.AbstractModel):
                 "late": len(bc.filtered(lambda c: c.kind == "late")), "over": len(bc.filtered(lambda c: c.kind == "break")),
                 "lost": sum(len(r.lost_ids) for r in rs) if rs else len(vs.filtered(lambda v: v.lost_color or v.lost_size)),
                 "sent": bool(rs),
+                # the float: ok / short / pending / not counted (start and end of the day), and the tasks done
+                "float_start": bf.filtered(lambda f: f.kind == "start")[:1].state or False,
+                "float_end": bf.filtered(lambda f: f.kind == "end")[:1].state or False,
+                "tasks_done": len([x for x in tasks if x["done_at"]]), "tasks_all": len(tasks),
             })
         review = [{"who": "%s · %s" % (c.employee_id.name, c.employee_id.branch_id.name), "state": c.state,
                    "what": (_("☕ Over by %s min", c.minutes) if c.kind == "break" else _("Late %s min", c.minutes)),
@@ -507,7 +522,6 @@ class NavittaApiAdmin(models.AbstractModel):
                   for c in S["navitta.late.case"].sudo().search([("state", "in", ("reply", "review"))], limit=8)]
         review += [{"who": r.employee_id.name, "state": "leave", "what": _("Leave request"),
                     "reason": _("%(t)s from %(a)s to %(b)s", t=sel_label(S, "navitta.leave.request", "type", r.type), a=r.from_day, b=r.to_day)} for r in lreq]
-        events = []
         for r in reps:
             for lv, t, x in r._events():
                 events.append({"level": lv, "title": t, "text": "%s: %s" % (r.branch_id.name, x)})
@@ -530,6 +544,7 @@ class NavittaApiAdmin(models.AbstractModel):
             "buy_pct": (100.0 * buys / len(visits)) if visits else None,
             "pending": len(cases.filtered(lambda x: x.state == "review")) + len(lreq),
             "late": len(cases.filtered(lambda x: x.kind == "late")), "over": len(cases.filtered(lambda x: x.kind == "break")),
+            "float_short": len(floats.filtered(lambda f: f.state == "short")),
             "review": review, "events": events, "lost": lost_rows,
             "shift": "%s – %s" % (self._fmt12(hours_to_min(c.navitta_shift_start), self.env),
                                   self._fmt12(hours_to_min(c.navitta_shift_end), self.env)),

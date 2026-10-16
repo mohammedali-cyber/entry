@@ -25,7 +25,7 @@ class NavittaCase(TransactionCase):
         cls.company = cls.env.company
         cls.company.write({"navitta_tz": "Asia/Riyadh", "navitta_shift_start": 15.5, "navitta_shift_end": 23.5,
                            "navitta_grace": 5, "navitta_break_max": 30, "navitta_chances": 3,
-                           "navitta_report_email": "boss@example.com", "navitta_cash_tasks": False})
+                           "navitta_report_email": "boss@example.com"})
         cls.dwd = cls.env.ref("navitta_ops.branch_dwd")
         cls.qsm = cls.env.ref("navitta_ops.branch_qsm")
         cls.reem = cls.env.ref("navitta_ops.emp_dwd_1")       # weekly off: Monday
@@ -47,9 +47,24 @@ class NavittaCase(TransactionCase):
             "name": "الإدارة", "login": "boss", "groups_id": [(6, 0, [user.id, grp_admin.id])]})
         cls.plain = cls.env["res.users"].create({"name": "موظف عادي", "login": "plain", "groups_id": [(6, 0, [user.id])]})
         cls.company._navitta_set_admin_password("9999")
+        # today's tasks are switched off for the tests of the other rules (the float/tasks tests switch them on)
+        cls.tasks = cls.env["navitta.task.def"].search([])
+        cls.tasks.write({"active": False})
 
     def api(self, user=None):
         return self.env["navitta.api"].with_user(user or self.dev)
+
+    def tasks_on(self):
+        self.tasks.write({"active": True})
+        return {t.title: t for t in self.tasks}
+
+    def end_float(self, branch=None, day=DAY):
+        """The end-of-shift float, counted (the daily report can't be sent before)."""
+        self.env["navitta.float"].create({"branch_id": (branch or self.dwd).id, "day": day, "kind": "end", "expected": 1000,
+                                          "amount": 1000, "n100": 10, "state": "ok", "counted_by": self.reem.id})
+
+    def photo(self, branch=None):
+        return self.env["navitta.photo"]._from_b64(branch or self.dwd, base64.b64encode(b"\xff\xd8\xff" + b"0" * 200).decode())[0].id
 
     def admin(self):
         return self.api(self.boss)
@@ -96,6 +111,10 @@ class NavittaCase(TransactionCase):
         for b in (self.dwd, self.qsm):
             Sales._row(b, DAY).write({"sales": 100})
             self.env["navitta.employee.sales"].create({"branch_id": b.id, "day": DAY, "amount": 100})
+            # today's float and tasks
+            self.end_float(b)
+            self.env["navitta.task.done"].create({"branch_id": b.id, "day": DAY, "task_id": self.tasks[1].id, "part": 1})
+            self.env["navitta.task.alert"].create({"branch_id": b.id, "day": DAY, "phase": "start", "missed": "• x"})
         admin_only = {"navitta.leave.request", "navitta.thread", "navitta.message", "navitta.notification",
                       "navitta.device", "navitta.device.punch", "navitta.upload.token"}
         models = [m for m in self.env if m.startswith("navitta.") and not self.env[m]._abstract and not self.env[m]._transient]
@@ -118,7 +137,8 @@ class NavittaCase(TransactionCase):
                 elif "report_id" in seen._fields:
                     self.assertFalse(seen.filtered(lambda r: r.report_id.branch_id != self.dwd), m)
         # each branch saw its own rows of the data created above
-        for m in ("navitta.attendance", "navitta.visit", "navitta.daily.sales", "navitta.employee.sales"):
+        for m in ("navitta.attendance", "navitta.visit", "navitta.daily.sales", "navitta.employee.sales", "navitta.float",
+                  "navitta.task.done", "navitta.task.alert"):
             self.assertEqual(self.env[m].with_user(self.dev).search_count([]), 1, m)
             self.assertEqual(self.env[m].with_user(self.dev_qsm).search_count([]), 1, m)
             self.assertEqual(self.env[m].with_user(self.boss).search_count([]), 2, m)
@@ -128,66 +148,283 @@ class NavittaCase(TransactionCase):
             with self.assertRaises(AccessError):
                 self.reem.with_user(self.dev).read([f])
 
-    # ------------------------------------------------------------------ cash custody and closing tasks
-    def test_cash_custody_and_closing_tasks(self):
-        """The first employee counts the custody before the counter opens; nobody checks out before her open visits
-        are closed, the daily report is sent and she counted the closing cash (screen and fingerprint device)."""
-        self.company.navitta_cash_tasks = True
-        Count = self.env["navitta.cash.count"]
-        # yesterday's closing count: today's custody is compared with it
-        Count.create({"branch_id": self.dwd.id, "day": DAY - timedelta(days=1), "kind": "close", "employee_id": self.shima.id,
-                      "n500": 2, "n100": 3, "coins": 2.5})
+    # ------------------------------------------------------------------ today's float and today's tasks (26.3)
+    def test_float_start_confirm_and_shortage(self):
+        """The start-of-day float: a checked-in employee counts it with a photo, her colleague on shift confirms it with
+        her PIN, or reports a shortage with a note (management is alerted)."""
+        Float = self.env["navitta.float"]
+        self.assertEqual((self.dwd.float_amount, self.dwd.float_place), (1000, "First cashier drawer"))
         with freeze_time(utc(15, 20)):
             self.assertTrue(self.api().check_in(self.reem.id, "2468")["ok"])
-        with freeze_time(utc(15, 25)):
+            st = self.api().branch_state()["float"]
+            self.assertEqual((st["amount"], st["start"], st["end"]), (1000, False, False))
+            pid = self.photo()
+            api = self.api()
+            self.assertEqual(api.float_count(self.reem.id, "2468", "start", {"100": 10})["error"], "photo_required")
+            self.assertEqual(api.float_count(self.reem.id, "0000", "start", {"100": 10}, pid)["error"], "wrong_pin")
+            self.assertEqual(api.float_count(self.shima.id, "2468", "start", {"100": 10}, pid)["error"], "not_checked_in")
+            self.assertEqual(api.float_count(self.reem.id, "2468", "start", {"100": -1}, pid)["error"], "bad_count")
+            self.assertEqual(api.float_count(self.reem.id, "2468", "start", {"100": 9}, pid)["error"], "float_mismatch")
+            with self.assertRaises(AccessError):                                   # a photo of another branch
+                api.float_count(self.reem.id, "2468", "start", {"100": 10}, self.photo(self.qsm))
+            r = api.float_count(self.reem.id, "2468", "start", {"100": 9, "50": 1, "10": 4, "5": 2})
+            self.assertEqual(r["error"], "photo_required")
+            r = api.float_count(self.reem.id, "2468", "start", {"100": 9, "50": 1, "10": 4, "5": 2}, pid)
+            self.assertEqual((r["state"], r["total"]), ("pending", 1000))            # shima is on shift: she confirms
+            f = Float.search([("branch_id", "=", self.dwd.id), ("day", "=", DAY), ("kind", "=", "start")])
+            self.assertEqual((f.n100, f.n50, f.n10, f.n5, f.counted_by, f.photo_id.id, f.confirm_needed), (9, 1, 4, 2, self.reem, pid, True))
+            self.assertEqual(api.float_confirm(self.reem.id, "2468", f.id, True)["error"], "same_emp")
+            self.assertEqual(api.float_confirm(self.shima.id, "2468", f.id, False)["error"], "reason_required")
+            self.assertTrue(api.float_confirm(self.shima.id, "2468", f.id, True)["ok"])
+            self.assertEqual((f.state, f.confirmed_by), ("ok", self.shima))
+            self.assertEqual(api.float_confirm(self.shima.id, "2468", f.id, True)["error"], "not_found")
+            self.assertEqual(api.float_count(self.reem.id, "2468", "start", {"100": 10}, pid)["error"], "already_done")
+            self.assertEqual(self.api().branch_state()["float"]["start"]["confirmed_name"], "شيمة")
+            self.assertFalse(self.env["navitta.notification"].search([("subject", "like", "Float short")]))
+        shadia = self.env.ref("navitta_ops.emp_qsm_2")
+        shadia._set_pin("1357")
+        with freeze_time(utc(15, 20)):
+            # another branch: her colleague on shift confirms
+            qapi = self.api(self.dev_qsm)
+            self.assertTrue(qapi.check_in(self.hubour.id, "2468")["ok"])
+            r = qapi.float_count(self.hubour.id, "2468", "start", {"100": 10}, self.photo(self.qsm))
+            self.assertEqual(r["state"], "pending")
+            qf = Float.search([("branch_id", "=", self.qsm.id), ("kind", "=", "start")])
+            with self.assertRaises(AccessError):
+                self.api().float_confirm(self.hubour.id, "2468", qf.id, True)    # another branch's device
+            self.assertEqual(self.api().float_confirm(self.shima.id, "2468", qf.id, True)["error"], "not_found")
+            # her colleague finds it short: a note is required and management is alerted
+            self.assertTrue(qapi.float_confirm(shadia.id, "1357", qf.id, False, "لقيت 900 بس")["ok"])
+            self.assertEqual((qf.state, qf.note, qf.confirmed_by), ("short", "لقيت 900 بس", shadia))
+            n = self.env["navitta.notification"].search([("subject", "like", "Float short")])
+            self.assertEqual(len(n), 1)
+            self.assertIn("لقيت 900 بس", n.body)
+            # a short count can be counted again (the confirmation starts over)
+            r = qapi.float_count(self.hubour.id, "2468", "start", {"100": 9}, self.photo(self.qsm), "ورقة ناقصة")
+            self.assertEqual((r["state"], qf.amount, qf.confirmed_by.id), ("short", 900, False))
+            self.assertEqual(len(self.env["navitta.notification"].search([("subject", "like", "Float short")])), 2)
+        # alone in the branch on the day: recorded as complete right away
+        with freeze_time(utc(15, 20, d=date(2026, 10, 12))):                     # Monday: reem's day off
             self.assertTrue(self.api().check_in(self.shima.id, "2468")["ok"])
-            st = self.api().branch_state()["cash"]
-            self.assertEqual((st["required"], st["open"], st["opener_id"], st["open_expected"]), (True, False, self.reem.id, 1302.5))
-            self.assertEqual(st["tasks"][self.reem.id], ["report", "cash_close"])
-            self.assertEqual(self.api().visit_start(self.shima.id)["error"], "cash_open_required")   # counter locked for all
-            self.assertEqual(self.api().cash_count(self.reem.id, "0000", "open", {"500": 2})["error"], "wrong_pin")
-            self.assertEqual(self.api().cash_count(self.reem.id, "2468", "open", {"500": -1})["error"], "bad_count")
-            with self.assertRaises(AccessError):                                   # another branch's employee
-                self.api().cash_count(self.hubour.id, "2468", "open", {"500": 1})
-            r = self.api().cash_count(self.reem.id, "2468", "open", {"500": 2, "100": 3})
-            self.assertEqual((r["total"], r["expected"], r["difference"]), (1300, 1302.5, -2.5))      # 2.50 short
-            self.assertTrue(self.env["navitta.notification"].search([("subject", "like", "Difference in")]))
-            self.assertEqual(self.api().cash_count(self.shima.id, "2468", "open", {"500": 3})["error"], "already_counted")
-            vid = self.api().visit_start(self.shima.id)["id"]
-        with freeze_time(utc(23, 30)):
-            self.api().visit_end(vid)
-            # the check-out is refused while tasks are left, and the screen lists them
-            r = self.api().check_out(self.shima.id, "2468")
-            self.assertEqual((r["error"], r["tasks"]), ("tasks_pending", ["visits", "report", "cash_close"]))
-            self.assertTrue(self.api().visit_save(vid, {"buy": True})["ok"])
-            self.assertTrue(self.api().report_save({"employee_name": "شيمة", "sales": 900, "cash": 500, "card": 400, "deposit": 300})["ok"])
-            self.assertEqual(self.api().check_out(self.shima.id, "2468")["tasks"], ["cash_close"])
-            r = self.api().cash_count(self.shima.id, "2468", "close", {"500": 3, "1": 2}, "ok")
-            self.assertEqual((r["total"], r["expected"], r["difference"]), (1502, 1500, 2))           # 1300 + 500 cash - 300 deposit
-            r = self.api().cash_count(self.shima.id, "2468", "close", {"500": 3})                      # she may count again
-            self.assertEqual(r["difference"], 0)
-            self.assertEqual(Count.search_count([("employee_id", "=", self.shima.id), ("kind", "=", "close"), ("day", "=", DAY)]), 1)
-            self.assertTrue(self.api().check_out(self.shima.id, "2468")["ok"])
-            # the fingerprint device can't check reem out either until her closing count
-            dev = self.env["navitta.device"].create({"serial_number": "NVCASH", "branch_id": self.dwd.id, "state": "active"})
+            r = self.api().float_count(self.shima.id, "2468", "start", {"100": 10}, self.photo())
+            self.assertEqual(r["state"], "ok")
+        # the devices see their own branch's floats only, and can't change them directly
+        self.assertEqual(Float.with_user(self.dev_qsm).search([]).branch_id, self.qsm)
+        with self.assertRaises(AccessError):
+            Float.with_user(self.dev).browse(f.id).write({"state": "short"})
+
+    def test_float_end_required_by_daily_report(self):
+        """The end-of-shift float is counted inside the daily report (signed with a PIN), required before sending it; a
+        total that differs from the float amount needs a note."""
+        with freeze_time(utc(23, 0)):
+            api = self.api()
+            self.assertEqual(api.report_save({"employee_name": "ريم", "sales": 900})["error"], "float_end_required")
+            self.assertEqual(api.report_get()["float"]["end"], False)
+            self.assertEqual(api.float_count(self.shima.id, "2468", "end", {"100": 9})["error"], "float_mismatch")
+            r = api.float_count(self.shima.id, "2468", "end", {"100": 9}, None, "  ناقص 100  ")
+            self.assertEqual((r["state"], r["total"]), ("short", 900))      # no photo, no colleague confirmation at the end
+            self.assertEqual(api.float_get()["end"]["note"], "ناقص 100")
+            self.assertTrue(self.env["navitta.notification"].search([("subject", "like", "Float short")]))
+            data = self.env["navitta.api"]._summary_data(DAY)
+            self.assertEqual(data["float_short"], 1)
+            self.assertTrue([e for e in data["events"] if e["title"] == "Float short"])
+            self.assertEqual([b["float_end"] for b in data["branches"] if b["name"] == self.dwd.name], ["short"])
+            self.assertTrue(api.report_save({"employee_name": "ريم", "sales": 900})["ok"])
+            # counted again: one end count for the day
+            r = api.float_count(self.reem.id, "2468", "end", {"100": 10})
+            self.assertEqual(r["state"], "ok")
+            ends = self.env["navitta.float"].search([("branch_id", "=", self.dwd.id), ("day", "=", DAY), ("kind", "=", "end")])
+            self.assertEqual((len(ends), ends.counted_by, ends.note), (1, self.reem, False))
+            day = self.admin().admin_day("2026-10-13")["daily"][self.dwd.id]["float"]
+            self.assertEqual((day["end"]["state"], day["start"]), ("ok", False))
+
+    def test_task_windows_and_signing(self):
+        """Each period opens in its window; «both» tasks are signed by each employee herself, sections by anyone on
+        shift, photo tasks need a photo; auto tasks mark themselves."""
+        T = self.tasks_on()
+        uniform, till = T["Uniform and name badge"], T["Open the till and test the printer, card terminal and scanner"]
+        arrange, supplies = T["Arrange her section by size and color"], T["Check bags and invoice/card rolls"]
+        shortages, float_t = T["Log shortages"], T["Count the float and colleague confirms"]
+        api = self.api()
+        with freeze_time(utc(14, 0)):
+            self.assertTrue(api.check_in(self.reem.id, "2468")["ok"])
+            st = api.tasks_state()
+            self.assertEqual(st["windows"], {"start": [870, 990], "mid": [1170, 1230], "end": [1365, 1439]})
+            self.assertEqual(api.task_done(self.reem.id, "2468", uniform.id, self.reem.slot)["error"], "task_locked")
+        with freeze_time(utc(15, 0)):
+            self.assertEqual(api.task_done(self.reem.id, "2468", uniform.id, self.shima.slot)["error"], "not_yours")
+            self.assertEqual(api.task_done(self.reem.id, "0000", uniform.id, self.reem.slot)["error"], "wrong_pin")
+            self.assertTrue(api.task_done(self.reem.id, "2468", uniform.id, self.reem.slot)["ok"])
+            self.assertEqual(api.task_done(self.reem.id, "2468", uniform.id, self.reem.slot)["error"], "already_done")
+            self.assertEqual(api.task_done(self.reem.id, "2468", till.id, 1)["error"], "not_found")
+            self.assertTrue(api.task_done(self.reem.id, "2468", till.id, 0)["ok"])
+            self.assertEqual(api.task_done(self.reem.id, "2468", arrange.id, 1)["error"], "photo_required")
+            self.assertTrue(api.task_done(self.reem.id, "2468", arrange.id, 1, self.photo())["ok"])
+            self.assertTrue(api.task_done(self.reem.id, "2468", arrange.id, 2, self.photo())["ok"])   # her colleague's section: she may cover it
+            self.assertEqual(api.task_done(self.reem.id, "2468", arrange.id, 9, self.photo())["error"], "not_found")
+            self.assertEqual(api.task_done(self.reem.id, "2468", float_t.id, 0)["error"], "not_found")   # auto: marked by the float
+            self.assertEqual(api.task_done(self.reem.id, "2468", shortages.id, 0)["error"], "task_locked")
+            rows = api.tasks_state()["tasks"]
+            mine = [x for x in rows if x["task_id"] == uniform.id]
+            self.assertEqual([(x["for_emp"], bool(x["done_at"])) for x in mine], [(self.reem.id, True), (self.shima.id, False)])
+            sec = [x for x in rows if x["task_id"] == arrange.id]
+            self.assertEqual([(x["part"], x["for_emp"], x["done_name"], bool(x["photo_id"])) for x in sec],
+                             [(1, self.reem.id, "ريم", True), (2, self.shima.id, "ريم", True)])
+            # the float task marks itself once the float is counted and confirmed
+            self.assertTrue(api.float_count(self.reem.id, "2468", "start", {"100": 10}, self.photo())["ok"])
+            fl_row = [x for x in api.tasks_state()["tasks"] if x["task_id"] == float_t.id][0]
+            self.assertFalse(fl_row["done_at"])                                # waiting for shima's confirmation
+            f = self.env["navitta.float"].search([("branch_id", "=", self.dwd.id), ("kind", "=", "start")])
+            self.assertTrue(api.float_confirm(self.shima.id, "2468", f.id, True)["ok"])
+            fl_row = [x for x in api.tasks_state()["tasks"] if x["task_id"] == float_t.id][0]
+            self.assertEqual((bool(fl_row["done_at"]), fl_row["done_name"]), (True, "ريم"))
+            # a deactivated task is gone from the list and can't be signed
+            supplies.active = False
+            self.assertFalse([x for x in api.tasks_state()["tasks"] if x["task_id"] == supplies.id])
+            self.assertEqual(api.task_done(self.reem.id, "2468", supplies.id, 0)["error"], "not_found")
+            supplies.active = True
+        with freeze_time(utc(17, 0)):
+            self.assertEqual(api.task_done(self.reem.id, "2468", supplies.id, 0)["error"], "task_missed")
+        with freeze_time(utc(20, 0)):
+            self.assertTrue(api.task_done(self.reem.id, "2468", shortages.id, 0)["ok"])
+        # the device can't sign directly, and sees its own branch only
+        Done = self.env["navitta.task.done"]
+        self.assertEqual(Done.with_user(self.dev).search_count([]), 5)
+        self.assertEqual(Done.with_user(self.dev_qsm).search_count([]), 0)
+        with self.assertRaises(AccessError):
+            Done.with_user(self.dev).create({"branch_id": self.dwd.id, "day": DAY, "task_id": till.id})
+        # on her day off (Monday) the «both» task is only for her colleague, and her section is covered
+        rows = self.env["navitta.task.def"]._day_list(self.dwd, date(2026, 10, 12))
+        self.assertEqual([x["for_emp"] for x in rows if x["task_id"] == uniform.id], [self.shima.id])
+        self.assertEqual([(x["part"], x["for_emp"]) for x in rows if x["task_id"] == arrange.id], [(1, self.shima.id), (2, self.shima.id)])
+        # a branch with a morning shift opens the start tasks an hour before the morning shift (not on the no-morning days)
+        ahs = self.env.ref("navitta_ops.branch_ahs")
+        self.env.ref("navitta_ops.emp_ahs_1").shift = "am"
+        TaskDef = self.env["navitta.task.def"]
+        self.assertEqual(TaskDef._windows(ahs, DAY)["start"], [510, 990])                  # 9:30 AM - 1h
+        self.assertEqual(TaskDef._windows(ahs, date(2026, 10, 12))["start"], [870, 990])   # Monday: evening only
+        self.assertEqual(TaskDef._windows(self.dwd, DAY)["start"], [870, 990])
+        # auto tasks keep «either one» and no photo
+        float_t.write({"who": "both", "photo": True})
+        self.assertEqual((float_t.who, float_t.photo), ("any", False))
+        # management sets the period times
+        self.company.navitta_task_end_from = 22.0
+        self.assertEqual(TaskDef._windows(self.dwd, DAY)["end"], [1320, 1439])
+        with self.assertRaises(ValidationError):
+            self.company.write({"navitta_task_mid_from": 21.0, "navitta_task_mid_to": 20.0})
+
+    def test_checkout_waits_for_end_tasks(self):
+        """Check-out: her own end-of-shift tasks first; the shared («either one») ones only from the last employee leaving.
+        The fingerprint device follows the same rule."""
+        T = self.tasks_on()
+        final, lock = T["Final arrangement of her section and the stockroom"], T["Lock the safe, lights off, doors locked"]
+        api = self.api()
+        with freeze_time(utc(15, 20)):
+            self.assertTrue(api.check_in(self.reem.id, "2468")["ok"])
+            self.assertTrue(api.check_in(self.shima.id, "2468")["ok"])
+        # before the end period opens nothing blocks (start / mid tasks only alert management when missed)
+        self.assertEqual(self.env["navitta.task.def"]._end_left(self.shima, DAY, 22 * 60), [])
+        with freeze_time(utc(23, 0)):
+            r = api.check_out(self.shima.id, "2468")
+            self.assertEqual(r["error"], "tasks_open")
+            self.assertEqual([(x["task_id"], x["part"]) for x in r["tasks"]], [(final.id, self.shima.slot)])   # not the shared ones
+            self.assertTrue(api.task_done(self.shima.id, "2468", final.id, self.shima.slot, self.photo())["ok"])
+            self.assertTrue(api.check_out(self.shima.id, "2468")["ok"])
+            # reem is the last one: her section and every shared end task
+            r = api.check_out(self.reem.id, "2468")
+            self.assertEqual(r["error"], "tasks_open")
+            self.assertEqual(sorted(x["title"] for x in r["tasks"]), sorted([
+                "Daily report and cash/card match", "Count the float at end of shift",
+                "Final arrangement of her section and the stockroom", "Lock the safe, lights off, doors locked"]))
+            self.assertEqual(self.api().tasks_state()["tasks"][0]["phase"], "start")
+            # the fingerprint device doesn't count her out punch either
+            dev = self.env["navitta.device"].create({"serial_number": "NVTASK", "branch_id": self.dwd.id, "state": "active"})
             self.reem.device_user_id = "8"
-            punch = self.env["navitta.device.punch"].create({"device_id": dev.id, "device_user_id": "8", "punched_at": utc(23, 31)})
+            punch = self.env["navitta.device.punch"].create({"device_id": dev.id, "device_user_id": "8", "punched_at": utc(23, 1)})
             punch._process()
             att = self.env["navitta.attendance"].search([("employee_id", "=", self.reem.id), ("day", "=", DAY)])
             self.assertEqual((punch.state, bool(att.check_out)), ("tasks", False))
-            self.assertIn("Closing cash not counted", punch.message)
-            self.api().cash_count(self.reem.id, "2468", "close", {"500": 3})
+            self.assertIn("End-of-shift tasks not done", punch.message)
+            self.assertIn("Lock the safe", punch.message)
+            self.assertTrue(api.task_done(self.reem.id, "2468", final.id, self.reem.slot, self.photo())["ok"])
+            self.assertTrue(api.task_done(self.reem.id, "2468", lock.id, 0)["ok"])
+            r = api.check_out(self.reem.id, "2468")
+            self.assertEqual(sorted(x["auto"] for x in r["tasks"]), ["float_end", "report"])   # marked by the float and the report
+            self.assertTrue(api.float_count(self.reem.id, "2468", "end", {"100": 10})["ok"])
+            self.assertTrue(api.report_save({"employee_name": "ريم", "sales": 500})["ok"])
             punch.action_reprocess()
             self.assertEqual((punch.state, bool(att.check_out)), ("out", True))
-        # management: every count, and the employee's own buttons
-        self.assertEqual(self.env["navitta.cash.count"].with_user(self.boss).search_count([("day", "=", DAY)]), 3)
-        self.assertEqual(self.env["navitta.cash.count"].with_user(self.dev_qsm).search_count([]), 0)
-        self.assertEqual(self.shima.action_sales()["domain"], [("employee_id", "=", self.shima.id)])
-        # switched off: the counter opens right away and only open visits block the check-out
-        self.company.navitta_cash_tasks = False
+        # an open visit still comes first
         with freeze_time(utc(15, 20, d=DAY + timedelta(days=1))):
+            self.assertTrue(api.check_in(self.reem.id, "2468")["ok"])
+            self.assertTrue(api.visit_start(self.reem.id)["ok"])                  # the counter doesn't wait for the float
+            self.assertEqual(api.check_out(self.reem.id, "2468")["error"], "open_visits")
+
+    def test_missed_tasks_alert_once(self):
+        """When a period is over with tasks not done, management gets one alert per branch, day and period."""
+        T = self.tasks_on()
+        Alert, Notif = self.env["navitta.task.alert"], self.env["navitta.notification"]
+        missed = lambda: Notif.search([("subject", "like", "Missed tasks")])
+        with freeze_time(utc(15, 20)):
             self.assertTrue(self.api().check_in(self.reem.id, "2468")["ok"])
-            self.assertTrue(self.api().visit_start(self.reem.id)["ok"])
+            self.assertEqual(Alert._cron_check(), 0)                               # the start period is still open
+        with freeze_time(utc(16, 40)):
+            self.assertEqual(Alert._cron_check(), 1)
+            self.assertEqual(Alert._cron_check(), 0)                               # once only
+            a = Alert.search([("branch_id", "=", self.dwd.id), ("day", "=", DAY), ("phase", "=", "start")])
+            self.assertIn("• Uniform and name badge (ريم)", a.missed)
+            self.assertIn("• Count the float and colleague confirms", a.missed)
+            self.assertEqual(len(missed()), 1)
+            self.assertIn("Start-of-shift tasks that were not done:", missed().body)
+            self.assertIn(self.dwd.name, missed().subject)
+        # a period with nothing left: checked, no email
+        T["Re-arrange her section after try-ons"].active = False
+        T["Bring missing items from the stockroom to her section with barcodes"].active = False
+        T["Log shortages"].active = False
+        with freeze_time(utc(21, 0)):
+            self.assertEqual(Alert._cron_check(), 0)
+            self.assertFalse(Alert.search([("day", "=", DAY), ("phase", "=", "mid")]).missed)
+        # the end period (open until 23:59) is checked after midnight
+        with freeze_time(utc(23, 50)):
+            self.assertEqual(Alert._cron_check(), 0)
+        with freeze_time("2026-10-13 21:10:00"):                              # 00:10 the next day in Riyadh
+            self.assertEqual(Alert._cron_check(), 1)
+            self.assertEqual(Alert._cron_check(), 0)
+        self.assertEqual(Alert.search_count([("branch_id", "=", self.dwd.id), ("day", "=", DAY)]), 3)
+        self.assertEqual(len(missed()), 2)
+        self.assertFalse(Alert.search([("branch_id", "=", self.qsm.id)]))      # nobody attended there
+        self.assertEqual(Alert.with_user(self.dev_qsm).search_count([]), 0)
+
+    def test_admin_day_log_tasks_and_reopen(self):
+        """The day log shows each branch's float and tasks (n of m done, who and when, missed); management can re-open
+        a task marked done by mistake."""
+        T = self.tasks_on()
+        uniform = T["Uniform and name badge"]
+        with freeze_time(utc(15, 0)):
+            self.assertTrue(self.api().check_in(self.reem.id, "2468")["ok"])
+            self.assertTrue(self.api().task_done(self.reem.id, "2468", uniform.id, self.reem.slot)["ok"])
+        with freeze_time(utc(18, 0)):
+            day = self.admin().admin_day("2026-10-13")
+            T1 = day["daily"][self.dwd.id]["tasks"]
+            self.assertEqual(T1["now"], 18 * 60)
+            row = [x for x in T1["tasks"] if x["task_id"] == uniform.id and x["for_emp"] == self.reem.id][0]
+            self.assertEqual((row["done_name"], bool(row["done_id"])), ("ريم", True))
+            self.assertEqual(len(T1["tasks"]), 19)     # 13 tasks: «both» ×2 employees, 5 «sections» ×2
+            with self.assertRaises(AccessError):
+                self.api().admin_task_reopen(row["done_id"])
+            self.assertTrue(self.admin().admin_task_reopen(row["done_id"])["ok"])
+            self.assertEqual(self.admin().admin_task_reopen(row["done_id"])["error"], "not_found")
+            row = [x for x in self.api().tasks_state()["tasks"] if x["task_id"] == uniform.id and x["for_emp"] == self.reem.id][0]
+            self.assertFalse(row["done_at"])
+            self.assertEqual(self.api().task_done(self.reem.id, "2468", uniform.id, self.reem.slot)["error"], "task_missed")
+            # a past day: everything not done counts as missed
+            past = self.admin().admin_day("2026-10-12")["daily"][self.dwd.id]["tasks"]
+            self.assertEqual(past["now"], 1440)
+            # the summary PDF renders the float and tasks columns
+            html = self.env["ir.actions.report"].with_user(self.boss)._render_qweb_html(
+                "navitta_ops.report_daily_summary", [], data={"day": "2026-10-13"})[0].decode()
+            self.assertIn("Not counted", html)
+            self.assertIn("0/19", html)
 
     def test_arabic_translation(self):
         """English is the source; i18n/ar.po gives Arabic users the module in Arabic (messages, labels, menus)."""
@@ -197,7 +434,7 @@ class NavittaCase(TransactionCase):
         self.assertEqual(ar.check_in(self.reem.id, "0000")["message"], "الرمز غير صحيح")
         self.assertEqual(self.env["navitta.api"].with_user(self.dev).check_in(self.reem.id, "0000")["message"], "Wrong PIN")
         self.assertEqual(self.env.ref("navitta_ops.menu_root").with_context(lang="ar_001").name, "فروع نافيتا")
-        self.assertEqual(self.env["navitta.cash.count"].with_context(lang="ar_001")._fields["kind"]._description_string(
+        self.assertEqual(self.env["navitta.leave.request"].with_context(lang="ar_001")._fields["type"]._description_string(
             self.env(context={"lang": "ar_001"})), "النوع")
 
     def test_device_sees_branch_screen_only(self):
@@ -369,6 +606,7 @@ class NavittaCase(TransactionCase):
         self.assertFalse(att.check_out)
 
     def test_daily_report_sales_cash_and_supplies(self):
+        self.end_float()
         with freeze_time(utc(23, 30)):
             self.dwd.write({"cash_opening_balance": 1000, "cash_opening_date": date(2026, 10, 1)})
             self.dwd._supply_adjust("bags", 20)
@@ -876,8 +1114,8 @@ class NavittaHttp(HttpCase):
     def test_fingerprint_device_push(self):
         """A ZKTeco terminal in cloud (ADMS) mode: unknown -> pending, approved -> punches become attendance."""
         env = self.env
-        env.company.write({"navitta_tz": "Asia/Riyadh", "navitta_shift_start": 15.5, "navitta_shift_end": 23.5, "navitta_grace": 5,
-                           "navitta_cash_tasks": False})
+        env.company.write({"navitta_tz": "Asia/Riyadh", "navitta_shift_start": 15.5, "navitta_shift_end": 23.5, "navitta_grace": 5})
+        env["navitta.task.def"].search([]).write({"active": False})     # end-of-shift tasks are tested in NavittaCase
         dwd = env.ref("navitta_ops.branch_dwd")
         emp = env["navitta.employee"].create({"name": "تجربة البصمة", "branch_id": dwd.id, "device_user_id": "5"})
         y = (fields.Datetime.now() + timedelta(hours=3)).date() - timedelta(days=1)   # yesterday, Riyadh

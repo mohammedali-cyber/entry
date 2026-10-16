@@ -57,9 +57,22 @@
                         <setting string="Photo with iPad punch" help="When the employee enters her PIN to check in or out, the iPad takes her photo with the front camera, and Management compares it with her reference photo. If the iPad blocks the camera, the punch is still recorded and marked &quot;No photo&quot;.">
                             <field name="navitta_checkin_photo"/>
                         </setting>
-                        <setting string="Opening cash count and closing tasks" help="The first employee to check in counts the cash float by denomination before the visit counter opens. Each employee only gets the check-out punch after she closes her visits, the daily report is sent and she counts the closing cash. Any difference in the amount is emailed to Management.">
-                            <field name="navitta_cash_tasks"/>
-                            <div class="mt-2"><button name="%(navitta_ops.action_cash_counts)d" type="action" string="Cash count log" class="btn-link" icon="fa-money"/></div>
+                        <setting string="💰 Branch floats" help="The amount the employees count at the start of the shift (with a photo and a colleague's confirmation) and at the end (in the daily report), and where it is kept. Set per branch; a difference needs a note and is emailed to Management.">
+                            <button name="%(navitta_ops.action_branches)d" type="action" string="Branches" class="btn-link" icon="fa-money"/>
+                            <button name="%(navitta_ops.action_floats)d" type="action" string="Float counts" class="btn-link" icon="fa-list"/>
+                        </setting>
+                        <setting string="📋 Daily tasks" help="Each period opens at its time. The start opens an hour before the earliest shift and the end closes an hour after the evening shift. An employee can't check out before her end-of-shift tasks are done; the shared ones are required from the last one leaving.">
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <span>Start until</span><field name="navitta_task_start_to" widget="float_time" class="w-25"/>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <span>Mid from</span><field name="navitta_task_mid_from" widget="float_time" class="w-25"/>
+                                <span>to</span><field name="navitta_task_mid_to" widget="float_time" class="w-25"/>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <span>End from</span><field name="navitta_task_end_from" widget="float_time" class="w-25"/>
+                            </div>
+                            <div class="mt-2"><button name="%(navitta_ops.action_task_defs)d" type="action" string="Daily tasks" class="btn-link" icon="fa-check-square-o"/></div>
                         </setting>
                         <setting string="Fingerprint devices (ZKTeco)" help="Physical fingerprint devices that send attendance straight to the system over the internet, using the device's &quot;Cloud Server&quot; feature.">
                             <button name="%(navitta_ops.action_devices)d" type="action" string="Fingerprint devices" class="btn-link" icon="fa-hand-pointer-o"/>

@@ -82,7 +82,7 @@
 
                 <h2>Branch comparison</h2>
                 <table class="t">
-                    <thead><tr><th>Branch</th><th>Sales</th><th>Invoices</th><th>Customers</th><th>Purchase rate</th><th>Satisfaction</th><th>Late</th><th>Break overrun</th><th>Lost sales</th><th>Report</th></tr></thead>
+                    <thead><tr><th>Branch</th><th>Sales</th><th>Invoices</th><th>Customers</th><th>Purchase rate</th><th>Satisfaction</th><th>Late</th><th>Break overrun</th><th>Lost sales</th><th>Float</th><th>Tasks</th><th>Report</th></tr></thead>
                     <tbody>
                         <tr t-foreach="s['branches']" t-as="b">
                             <td><b t-esc="b['name']"/></td><td class="num" t-esc="f0(b['sales'])"/><td class="num" t-esc="b['invoices']"/>
@@ -90,11 +90,15 @@
                             <td><span t-if="b['late']" class="chip warn" t-esc="b['late']"/><t t-else="">—</t></td>
                             <td><span t-if="b['over']" class="chip warn" t-esc="b['over']"/><t t-else="">—</t></td>
                             <td class="num" t-esc="b['lost']"/>
+                            <td><t t-foreach="(b['float_start'], b['float_end'])" t-as="fs">
+                                <span t-if="fs == 'ok'" class="chip good">✓</span><span t-elif="fs == 'short'" class="chip bad">⚠️ Short</span>
+                                <span t-elif="fs == 'pending'" class="chip warn">⏳</span><span t-else="" class="chip warn">Not counted</span></t></td>
+                            <td class="num"><t t-if="b['tasks_all']"><t t-esc="b['tasks_done']"/>/<t t-esc="b['tasks_all']"/></t><t t-else="">—</t></td>
                             <td><span t-if="b['sent']" class="chip good">✓ Sent</span><span t-else="" class="chip bad">Not sent</span></td>
                         </tr>
                     </tbody>
                     <tfoot><tr><td>Total</td><td class="num" t-esc="f0(s['sales'])"/><td class="num" t-esc="s['invoices']"/><td class="num" t-esc="s['visits']"/>
-                        <td class="num" t-esc="pct(s['buy_pct'])"/><td/><td class="num" t-esc="s['late']"/><td class="num" t-esc="s['over']"/><td/><td/></tr></tfoot>
+                        <td class="num" t-esc="pct(s['buy_pct'])"/><td/><td class="num" t-esc="s['late']"/><td class="num" t-esc="s['over']"/><td/><td class="num"><t t-if="s['float_short']">⚠️ <t t-esc="s['float_short']"/></t></td><td/><td/></tr></tfoot>
                 </table>
 
                 <div class="two">

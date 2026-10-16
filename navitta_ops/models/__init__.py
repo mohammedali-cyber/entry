@@ -11,10 +11,11 @@ from . import sales
 from . import request
 from . import catalog
 from . import device
-from . import cash
+from . import float_task
 from . import rules
 from . import ir_ui_menu
 from . import api_branch
 from . import api_admin
 from . import api_rules
+from . import api_tasks
 from . import report_summary

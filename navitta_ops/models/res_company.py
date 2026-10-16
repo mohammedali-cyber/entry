@@ -31,9 +31,12 @@ class ResCompany(models.Model):
                                     help="Recorded sales include VAT. Used only to compute VAT and net amounts in sales reports.")
     navitta_checkin_photo = fields.Boolean("Photo with punch", default=True,
                                            help="The iPad takes a photo of the employee with the front camera when she enters her PIN for check-in and check-out")
-    navitta_cash_tasks = fields.Boolean("Opening cash count and closing tasks", default=True,
-                                        help="The first employee counts the cash float after check-in before opening the counter, and no employee "
-                                             "can check out before closing her visits, sending the daily report and counting the closing cash")
+    # today's tasks («مهام اليوم»): the periods in local time; the start opens an hour before the earliest shift and the
+    # end closes an hour after the evening shift
+    navitta_task_start_to = fields.Float("Start-of-shift tasks until", default=16.5)
+    navitta_task_mid_from = fields.Float("Mid-shift tasks from", default=19.5)
+    navitta_task_mid_to = fields.Float("Mid-shift tasks until", default=20.5)
+    navitta_task_end_from = fields.Float("End-of-shift tasks from", default=22.75)
 
     @api.constrains("navitta_shift_start", "navitta_shift_end", "navitta_am_start", "navitta_am_end", "navitta_grace",
                     "navitta_break_max", "navitta_chances")
@@ -43,6 +46,13 @@ class ResCompany(models.Model):
                 raise ValidationError(_("The shift start must be before its end"))
             if min(c.navitta_grace, c.navitta_break_max, c.navitta_chances) < 0:
                 raise ValidationError(_("Values cannot be negative"))
+
+    @api.constrains("navitta_task_start_to", "navitta_task_mid_from", "navitta_task_mid_to", "navitta_task_end_from")
+    def _check_navitta_task_windows(self):
+        for c in self:
+            hours = (c.navitta_task_start_to, c.navitta_task_mid_from, c.navitta_task_mid_to, c.navitta_task_end_from)
+            if not all(0 <= h <= 24 for h in hours) or c.navitta_task_mid_from >= c.navitta_task_mid_to:
+                raise ValidationError(_("Check the task period times: each period must start before it ends"))
 
     def _navitta_no_am(self):
         """Weekdays without a morning shift (0 = Sunday … 6 = Saturday)."""

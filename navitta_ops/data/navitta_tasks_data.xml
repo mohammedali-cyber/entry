@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- today's tasks (management edits them in Settings → Daily tasks; deactivate instead of deleting) -->
+    <record id="task_start_float" model="navitta.task.def"><field name="phase">start</field><field name="sequence">1</field><field name="who">any</field><field name="auto">float</field>
+        <field name="title">Count the float and colleague confirms</field></record>
+    <record id="task_start_uniform" model="navitta.task.def"><field name="phase">start</field><field name="sequence">2</field><field name="who">both</field>
+        <field name="title">Uniform and name badge</field></record>
+    <record id="task_start_till" model="navitta.task.def"><field name="phase">start</field><field name="sequence">3</field><field name="who">any</field>
+        <field name="title">Open the till and test the printer, card terminal and scanner</field></record>
+    <record id="task_start_supplies" model="navitta.task.def"><field name="phase">start</field><field name="sequence">4</field><field name="who">any</field>
+        <field name="title">Check bags and invoice/card rolls</field></record>
+    <record id="task_start_arrange" model="navitta.task.def"><field name="phase">start</field><field name="sequence">5</field><field name="who">side</field><field name="photo" eval="True"/>
+        <field name="title">Arrange her section by size and color</field></record>
+    <record id="task_start_barcodes" model="navitta.task.def"><field name="phase">start</field><field name="sequence">6</field><field name="who">side</field>
+        <field name="title">Check barcodes and defects in her section</field></record>
+    <record id="task_mid_rearrange" model="navitta.task.def"><field name="phase">mid</field><field name="sequence">1</field><field name="who">side</field><field name="photo" eval="True"/>
+        <field name="title">Re-arrange her section after try-ons</field></record>
+    <record id="task_mid_restock" model="navitta.task.def"><field name="phase">mid</field><field name="sequence">2</field><field name="who">side</field>
+        <field name="title">Bring missing items from the stockroom to her section with barcodes</field></record>
+    <record id="task_mid_shortages" model="navitta.task.def"><field name="phase">mid</field><field name="sequence">3</field><field name="who">any</field>
+        <field name="title">Log shortages</field></record>
+    <record id="task_end_report" model="navitta.task.def"><field name="phase">end</field><field name="sequence">1</field><field name="who">any</field><field name="auto">report</field>
+        <field name="title">Daily report and cash/card match</field></record>
+    <record id="task_end_float" model="navitta.task.def"><field name="phase">end</field><field name="sequence">2</field><field name="who">any</field><field name="auto">float_end</field>
+        <field name="title">Count the float at end of shift</field></record>
+    <record id="task_end_arrange" model="navitta.task.def"><field name="phase">end</field><field name="sequence">3</field><field name="who">side</field><field name="photo" eval="True"/>
+        <field name="title">Final arrangement of her section and the stockroom</field></record>
+    <record id="task_end_lock" model="navitta.task.def"><field name="phase">end</field><field name="sequence">4</field><field name="who">any</field>
+        <field name="title">Lock the safe, lights off, doors locked</field></record>
+</odoo>

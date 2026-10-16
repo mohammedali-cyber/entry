@@ -106,6 +106,8 @@ class NavittaPosCase(TransactionCase):
         api = self.env["navitta.api"].with_user(self.dev)
         got = api.report_get()["system"]
         self.assertEqual((got["sales"], got["invoices"], got["cash"]), (920, 4, 460))
+        self.assertEqual(api.report_save({"employee_name": "ريم", "sales": 99999, "cash": 1, "deposit": 300})["error"], "float_end_required")
+        self.env["navitta.float"].create({"branch_id": self.dwd.id, "day": self.day, "kind": "end", "expected": 1000, "amount": 1000, "state": "ok"})
         self.assertTrue(api.report_save({"employee_name": "ريم", "sales": 99999, "cash": 1, "deposit": 300})["ok"])
         ds.invalidate_recordset()
         self.assertEqual((ds.sales, ds.cash, ds.deposit, ds.source), (920, 460, 300, "pos"))

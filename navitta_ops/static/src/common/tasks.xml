@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- ============================================================ banknote counts -->
+    <t t-name="navitta_ops.Denoms">
+        <div class="dn">
+            <div t-foreach="DENOMS" t-as="d" t-key="d" class="dn-r">
+                <span class="dn-n num" t-esc="d"/><span class="dn-x">×</span>
+                <div class="stepper"><button type="button" aria-label="Decrease" t-on-click="() => this.step(d, -1)">−</button>
+                    <input type="number" min="0" inputmode="numeric" dir="ltr" t-att-value="c[d] || 0" t-att-aria-label="noteLabel(d)" t-on-input="(e) => this.set(d, e.target.value)"/>
+                    <button type="button" aria-label="Increase" t-on-click="() => this.step(d, 1)">+</button></div>
+                <span class="dn-s num">= <t t-esc="f0(d * (+c[d] || 0))"/></span>
+            </div>
+            <div t-att-class="'dn-t ' + cls">
+                <span>Total</span><b class="num"><t t-esc="f0(total)"/> / <t t-esc="f0(props.expected)"/> SAR</b>
+                <span t-esc="status"/>
+            </div>
+        </div>
+    </t>
+
+    <!-- ============================================================ today's float (counter) -->
+    <t t-name="navitta_ops.FloatCard">
+        <t t-if="show">
+            <div t-if="f and f.state !== 'pending'" t-att-class="'fl-bar ' + (f.state === 'ok' ? 'ok' : 'bad')">
+                <b>💰 Today's float</b>
+                <span class="num" t-esc="doneLine"/>
+                <span><t t-esc="counted"/><t t-esc="confirmedLine"/></span>
+                <span t-if="f.note">· <t t-esc="f.note"/></span>
+                <PhotoLink t-if="f.photo_id" id="f.photo_id" label="'📷'"/>
+            </div>
+            <div t-elif="f" class="nv-card fl">
+                <div class="nv-card-h"><div><h2>💰 Today's float</h2><p class="sub" t-esc="pendingSub"/></div>
+                    <PhotoLink t-if="f.photo_id" id="f.photo_id" label="'📷'"/></div>
+                <div t-foreach="mates" t-as="m" t-key="m.id" class="fl-ok">
+                    <p><b t-esc="lookText(m)"/></p>
+                    <textarea t-if="state.short === m.id" class="ctl" rows="2" placeholder="What's missing? How much did you find?" t-model="state.snote"/>
+                    <div class="vrow">
+                        <t t-if="state.short !== m.id">
+                            <button type="button" class="nv-btn primary" t-on-click="() => this.confirm(m)">🔒 Confirm with my PIN ✓</button>
+                            <button type="button" class="nv-btn" t-on-click="() => this.startShort(m)">⚠️ Something's missing</button>
+                        </t>
+                        <button t-else="" type="button" class="nv-btn primary" t-att-disabled="!state.snote.trim()" t-on-click="() => this.report(m)">🔒 Send to management with my PIN</button>
+                    </div>
+                </div>
+            </div>
+            <div t-else="" class="nv-card fl">
+                <div class="nv-card-h"><div><h2 class="num" t-esc="title"/><p class="sub" t-esc="sub"/></div></div>
+                <div class="fl-g">
+                    <div><b class="fl-s">① Count the money</b><Denoms c="state.c" expected="exp"/>
+                        <textarea t-if="total &gt; 0 and total !== exp" class="ctl" rows="2" placeholder="Write the reason for the difference *" t-model="state.note"/></div>
+                    <div><b class="fl-s">② Photograph the float in the safe drawer *</b>
+                        <PhotoPicker value="state.photo" onChange="(id) => state.photo = id" label="photoLabel"/></div>
+                    <div><b class="fl-s">③ Who counted?</b>
+                        <div class="who">
+                            <button t-foreach="present" t-as="e" t-key="e.id" type="button" class="who-b" t-att-disabled="!ready" t-on-click="() => this.sign(e)"><b t-esc="e.name"/><span>🔒 with my PIN</span></button>
+                        </div>
+                        <span t-if="!ready" class="hint" t-esc="hint"/>
+                    </div>
+                </div>
+            </div>
+            <NvModal t-if="state.pin" onClose="() => state.pin = null">
+                <PinPad title="pinTitle" onCancel="() => state.pin = null" onDone="(code) => state.pin.run(code)"/>
+            </NvModal>
+        </t>
+    </t>
+
+    <!-- ============================================================ end-of-shift float (daily report) -->
+    <t t-name="navitta_ops.FloatEnd">
+        <fieldset class="flend"><legend>💰 End-of-shift float <small>Count it before closing</small></legend>
+            <div t-if="f" t-att-class="'fl-bar fld full ' + (f.state === 'ok' ? 'ok' : 'bad')">
+                <b class="num" t-esc="line"/>
+                <span t-esc="counted"/><span t-if="f.note">· <t t-esc="f.note"/></span>
+                <button type="button" class="del" t-on-click="() => state.recount = true">Recount</button>
+            </div>
+            <div t-else="" class="fld full">
+                <Denoms c="state.c" expected="exp"/>
+                <textarea t-if="total &gt; 0 and total !== exp" class="ctl" rows="2" placeholder="Write the reason for the difference *" t-model="state.note"/>
+                <div><button type="button" class="nv-btn primary" t-att-disabled="!can" t-on-click="() => state.sign = true">🔒 Confirm the count with my PIN</button></div>
+            </div>
+            <SignModal t-if="state.sign" emps="props.emps" title="title" onClose="() => state.sign = false" onSign="(e, pin) => this.onSign(e, pin)"/>
+        </fieldset>
+    </t>
+
+    <!-- ============================================================ today's tasks (counter) -->
+    <t t-name="navitta_ops.TasksCard">
+        <div t-if="visible" t-att-class="'nv-card tk' + (open and openLeft ? ' ping' : '')">
+            <div t-if="open and openLeft &gt; 0 and !expanded" class="tk-alert">🔔 <b t-esc="alertText[0]"/> <t t-esc="alertText[1]"/></div>
+            <div class="tk-bar">
+                <span>📋 <b>Today's tasks</b></span>
+                <t t-foreach="phases" t-as="p" t-key="p[0]"><t t-set="pl" t-value="pill(p[0], p[1])"/><span t-att-class="pl.cls" t-esc="pl.txt"/></t>
+                <button type="button" class="tk-t" t-on-click="() => state.show = !expanded"><t t-if="expanded">Hide ⌃</t><t t-else="">Show ⌄</t></button>
+            </div>
+            <t t-if="expanded">
+                <div class="tk-prog"><span class="num" t-esc="progress"/><div class="tk-pbar"><i t-att-style="'width:' + (list.length ? doneN / list.length * 100 : 0) + '%'"/></div></div>
+                <div class="tk-ph">
+                    <t t-foreach="phases" t-as="p" t-key="p[0]">
+                        <t t-set="ph" t-value="p[0]"/><t t-set="s" t-value="st(ph)"/><t t-set="ch" t-value="chip(ph)"/>
+                        <div t-att-class="'tk-c ' + s">
+                            <div class="tk-h"><b t-esc="p[1]"/><span t-att-class="'chip ' + ch[0]" t-esc="ch[1]"/></div>
+                            <div t-foreach="groups(ph)" t-as="g" t-key="g.g">
+                                <div class="tk-g" t-esc="g.g"/>
+                                <div t-foreach="g.items" t-as="x" t-key="x.task_id + '-' + x.part" t-att-class="'tk-i' + (x.done_at ? ' d' : '') + (s === 'past' and !x.done_at ? ' miss' : '')">
+                                    <button type="button" class="tk-b" t-att-disabled="!can(x, ph)" t-on-click="() => this.start(x, ph)">
+                                        <span class="bx" aria-hidden="true" t-esc="x.done_at ? '✓' : ''"/>
+                                        <span class="tx"><span class="tt" t-esc="line(x)"/>
+                                            <span t-if="x.photo and !x.done_at" class="tg">📷 Photo</span>
+                                            <span t-if="x.auto === 'report' and !x.done_at" class="tg">🧾 From the daily report</span>
+                                            <span t-if="(x.auto === 'float' or x.auto === 'float_end') and !x.done_at" class="tg">💰 Marked with the float</span>
+                                            <span t-if="x.done_at" class="mt" t-esc="doneLine(x)"/>
+                                            <span t-if="s === 'past' and !x.done_at" class="mt bad">✕ Missed</span></span>
+                                    </button>
+                                    <PhotoLink t-if="x.photo_id" id="x.photo_id" label="'📷'"/>
+                                </div>
+                            </div>
+                            <div t-if="s === 'locked'" class="tk-l" t-esc="lockedText(ph)"/>
+                            <div t-if="ph === 'end'" class="tk-l">You can't check out before finishing your tasks</div>
+                        </div>
+                    </t>
+                </div>
+                <p class="tk-rule" t-esc="rules"/>
+            </t>
+            <NvModal t-if="state.act and state.step === 'photo'" onClose="() => this.close()">
+                <div class="qrm"><h2>📷 <t t-esc="state.act.title"/></h2><p class="sub" t-esc="groupOf(state.act)"/>
+                    <PhotoPicker value="state.photo" onChange="(id) => state.photo = id" label="photoLabel"/>
+                    <div class="vrow"><button type="button" class="nv-btn primary" t-att-disabled="!state.photo" t-on-click="() => state.step = 'pin'">Next: your PIN</button>
+                        <button type="button" class="nv-btn" t-on-click="() => this.close()">Cancel</button></div>
+                </div>
+            </NvModal>
+            <SignModal t-if="state.act and state.step === 'pin'" emps="signers" title="state.act.title" onClose="() => this.close()" onSign="(e, pin) => this.onSign(e, pin)"/>
+        </div>
+    </t>
+</templates>

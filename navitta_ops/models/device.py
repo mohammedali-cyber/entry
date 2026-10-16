@@ -178,7 +178,7 @@ class NavittaDevicePunch(models.Model):
     employee_id = fields.Many2one("navitta.employee", "Employee", index=True, ondelete="set null")
     attendance_id = fields.Many2one("navitta.attendance", "Attendance record", ondelete="set null")
     state = fields.Selection([("new", "New"), ("in", "Check-in"), ("out", "Check-out"), ("duplicate", "Duplicate"),
-                              ("unmatched", "No employee"), ("tasks", "Check-out before closing tasks"), ("error", "Error")], "Result", default="new", required=True, index=True)
+                              ("unmatched", "No employee"), ("tasks", "Check-out before end-of-shift tasks"), ("error", "Error")], "Result", default="new", required=True, index=True)
     message = fields.Char("Note")
     raw = fields.Char("Raw line")
 
@@ -202,7 +202,8 @@ class NavittaDevicePunch(models.Model):
                 p.write({"state": "unmatched", "employee_id": False,
                          "message": _("No employee at %(b)s has fingerprint ID %(u)s", b=dev.branch_id.name or "—", u=p.device_user_id)})
                 continue
-            day = pytz.utc.localize(p.punched_at).astimezone(dev._tz()).date()
+            local = pytz.utc.localize(p.punched_at).astimezone(dev._tz())
+            day = local.date()
             att = Att.search([("employee_id", "=", emp.id), ("day", "=", day)], limit=1)
             vals = {"employee_id": emp.id, "message": False}
             if not att:
@@ -217,11 +218,10 @@ class NavittaDevicePunch(models.Model):
                 vals.update(state="duplicate", attendance_id=att.id, message=_("Duplicate punch within two minutes"))
             elif att.check_out and p.punched_at <= att.check_out:
                 vals.update(state="duplicate", attendance_id=att.id, message=_("Before the last recorded check-out"))
-            elif not att.check_out and (tasks := self.env["navitta.api"]._tasks(emp, day)):
-                # the out punch only counts once her closing tasks are done: she finishes them and punches again
-                labels = {"visits": _("Open visits on the counter"), "report": _("Daily report not sent"),
-                          "cash_close": _("Closing cash not counted")}
-                vals.update(state="tasks", attendance_id=att.id, message=_(", ").join(labels[t] for t in tasks))
+            elif not att.check_out and (left := self.env["navitta.api"]._checkout_blockers(emp, day, local.hour * 60 + local.minute)):
+                # the out punch only counts once her open visits and her end-of-shift tasks are done (the shared ones
+                # when she is the last one in the branch): she finishes them and punches again
+                vals.update(state="tasks", attendance_id=att.id, message=" · ".join(left))
             else:
                 att._register_out(p.punched_at, "device", device=dev)
                 vals.update(state="out", attendance_id=att.id)

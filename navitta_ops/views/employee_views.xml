@@ -32,7 +32,6 @@
                     <div class="oe_button_box" name="button_box">
                         <button name="action_attendance" type="object" class="oe_stat_button" icon="fa-clock-o" string="Check-ins"/>
                         <button name="action_sales" type="object" class="oe_stat_button" icon="fa-shopping-bag" string="Sales"/>
-                        <button name="action_cash_counts" type="object" class="oe_stat_button" icon="fa-money" string="Opening cash count"/>
                     </div>
                     <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
                     <field name="photo" widget="image" class="oe_avatar" options="{'preview_image': 'photo'}"/>

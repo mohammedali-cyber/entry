@@ -123,11 +123,6 @@ class NavittaEmployee(models.Model):
         return {"type": "ir.actions.act_window", "name": _("Sales: %s", self.name), "res_model": "navitta.employee.sales",
                 "view_mode": "list,pivot", "domain": [("employee_id", "=", self.id)]}
 
-    def action_cash_counts(self):
-        self.ensure_one()
-        return {"type": "ir.actions.act_window", "name": _("Opening cash count: %s", self.name), "res_model": "navitta.cash.count",
-                "view_mode": "list,form", "domain": [("employee_id", "=", self.id)]}
-
     @api.depends("pin_hash")
     def _compute_has_pin(self):
         for e in self:

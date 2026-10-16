@@ -676,16 +676,72 @@ td .m,td.m{font-size:12px;color:var(--fg-2)}
 .sysbox .sys-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:10px}
 .sysbox .sys-kpis div{display:flex;flex-direction:column;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
 .sysbox .sys-kpis span{font-size:12px;color:var(--muted)}
-// cash custody and closing tasks
-.cashlock{border-color:var(--info);background:var(--info-bg)}
-.cashbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-size:13px}
+// tasks before check-out
 .nv-btn.tasks-btn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn);font-size:12.5px;padding:4px 10px}
-.cashcount{display:flex;flex-direction:column;gap:12px;min-width:420px;max-width:86vw}
-.cashcount h2{margin:0}
-.cc-tbl input.ctl{max-width:120px;text-align:center}
-.cc-tbl td,.cc-tbl th{padding:6px 8px}
-.cc-tbl tfoot td{border-top:2px solid var(--line)}
 .topnav a.logout{color:var(--muted)}
+// 26.3: today's float («عهدة اليوم»)
+.fl{margin-bottom:14px}
+.fl h2{margin:0}
+.fl-g{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,.8fr);gap:16px;align-items:start;margin-top:10px}
+@media (max-width:980px){.fl-g{grid-template-columns:1fr}}
+.fl-g>div{display:flex;flex-direction:column;gap:8px;min-width:0}
+.fl-s{font-size:13.5px}
+.fl .who{grid-template-columns:1fr;margin:0}
+.who-b:disabled{opacity:.45;cursor:not-allowed}
+.fl-ok{border:1px dashed var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--surface-2);margin-top:10px}
+.fl-ok p{margin:0}
+.fl-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;border-radius:12px;padding:9px 14px;margin-bottom:14px;font-size:13.5px;border:1px solid}
+.fl-bar.ok{background:var(--good-bg);color:var(--good);border-color:rgba(29,116,72,.35)}
+.fl-bar.bad{background:var(--bad-bg);color:var(--bad);border-color:rgba(163,36,43,.35)}
+.fl-bar .linkbtn{margin-inline-start:auto}
+.flend .fl-bar{margin-bottom:0}
+.dn{display:flex;flex-direction:column;gap:6px}
+.dn-r{display:grid;grid-template-columns:44px 14px auto 1fr;align-items:center;gap:6px}
+.dn-n{font-weight:800;font-size:16px;text-align:end}
+.dn-x{color:var(--muted)}
+.dn-s{color:var(--muted);font-size:13px}
+.dn .stepper input{width:56px;border:0;text-align:center;background:transparent;padding:7px 4px;-moz-appearance:textfield}
+.dn .stepper input::-webkit-outer-spin-button,.dn .stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.dn-t{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;border-radius:10px;padding:8px 12px;background:var(--surface-2);font-size:14px}
+.dn-t.ok{background:var(--good-bg);color:var(--good)}
+.dn-t.no{background:var(--bad-bg);color:var(--bad)}
+// 26.3: today's tasks («مهام اليوم»)
+.tk{margin-bottom:14px;display:flex;flex-direction:column;gap:10px}
+.tk.ping{border-color:var(--warn);box-shadow:inset 0 0 0 1px var(--warn)}
+.tk-alert{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:8px 12px;font-size:13.5px}
+.tk-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13.5px}
+.tk-p{border-radius:999px;padding:2px 10px;background:var(--surface-2);color:var(--fg-2);font-size:12.5px}
+.tk-p.all{background:var(--good-bg);color:var(--good)}
+.tk-p.open:not(.all){background:var(--warn-bg);color:var(--warn)}
+.tk-p.past:not(.all){background:var(--bad-bg);color:var(--bad)}
+.tk-t{margin-inline-start:auto;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--fg);padding:4px 12px;font:inherit;font-weight:700;cursor:pointer}
+.tk-prog{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.tk-pbar{flex:1;max-width:240px;height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden;border:1px solid var(--line)}
+.tk-pbar i{display:block;height:100%;background:var(--good);border-radius:999px}
+.tk-ph{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:980px){.tk-ph{grid-template-columns:1fr}}
+.tk-c{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px;background:var(--surface);min-width:0}
+.tk-c.open{border:2px solid var(--good)}
+.tk-c.locked{background:var(--surface-2)}
+.tk-h{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.tk-g{font-size:12px;font-weight:800;color:var(--fg-2);margin:8px 0 2px}
+.tk-i{display:flex;align-items:flex-start;gap:6px;border-radius:9px}
+.tk-i+.tk-i{border-top:1px dashed var(--line)}
+.tk-b{flex:1;display:flex;gap:8px;align-items:flex-start;border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;text-align:start;padding:7px 4px;cursor:pointer;min-width:0;line-height:1.5}
+.tk-b:disabled{cursor:default}
+.tk-b:not(:disabled):hover{background:var(--surface-2)}
+.tk-b .bx{flex:none;width:18px;height:18px;border-radius:5px;border:2px solid var(--mark-2);display:grid;place-items:center;font-size:12px;margin-top:2px}
+.tk-i.d .bx{background:var(--good);border-color:var(--good);color:#fff}
+.tk-i.d .tt{color:var(--muted);text-decoration:line-through}
+.tk-i.miss .bx{border-color:var(--bad)}
+.tk-b .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tk-b .tg{font-size:11.5px;color:var(--warn)}
+.tk-b .mt{font-size:11.5px;color:var(--good)}
+.tk-b .mt.bad{color:var(--bad);font-weight:700}
+.tk-i .linkbtn{flex:none;margin-top:6px}
+.tk-i .reopen{flex:none;margin-top:4px}
+.tk-l{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+.tk-rule{font-size:12px;color:var(--muted);margin:0;line-height:1.8}
 // 26.3: shifts, unread alerts, split break, violations and rules
 .nb{display:inline-grid;place-items:center;min-width:19px;height:19px;border-radius:10px;background:var(--bad);color:#fff;font-size:11.5px;font-weight:800;margin-inline-start:6px;padding:0 5px;vertical-align:middle;font-family:inherit;line-height:1}
 .topnav a.on .nb{box-shadow:0 0 0 2px var(--bg)}

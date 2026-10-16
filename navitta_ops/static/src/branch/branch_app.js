@@ -10,6 +10,7 @@ import {
     DIR, LANG, vlabel, WD,
 } from "../common/utils";
 import { Dots } from "../common/cases";
+import { FloatCard, FloatEnd, TasksCard, endLeft } from "../common/tasks";
 import {
     DailyQuote, FaceCam, ModelPicker, ModelSearch, NvModal, PhotoLink, PhotoPicker, PinPad, SignModal, TargetBar,
 } from "../common/components";
@@ -19,9 +20,7 @@ const newDraft = (buy = false) => ({
     buy, exch: false, no: false, reason: "", other: "", note: "", m: null, manual: "", color: "", colorOther: "", size: "", sizeOther: "",
     mfgNote: "", call: false, phone: "", cname: "", req: false, err: "",
 });
-// cash difference chip: "Short 50 SAR" / "Over 50 SAR"
-const diffTxt = (n) => (n < 0 ? _t("Short %s SAR", f0(Math.abs(n))) : _t("Over %s SAR", f0(Math.abs(n))));
-const H = { jn, f0, minuteNow, mmss, clock, longDate, h12, dTxt, days, ago, photoUrl, swatch, icon, dcsText, vlabel, diffTxt, LOSTL, LOST, LOSTFULL, SUP, EXPICON, RQST, EXST, CASEST, LEAVEST };
+const H = { jn, f0, minuteNow, mmss, clock, longDate, h12, dTxt, days, ago, photoUrl, swatch, icon, dcsText, vlabel, LOSTL, LOST, LOSTFULL, SUP, EXPICON, RQST, EXST, CASEST, LEAVEST };
 
 // ---------------------------------------------------------------- visit outcome (bought / exchange / didn't buy + lost sale)
 class Outcome extends Component {
@@ -115,67 +114,15 @@ class UndoOut extends Component {
     }
 }
 
-// ---------------------------------------------------------------- cash custody count, note by note
-class CashCount extends Component {
-    static template = "navitta_ops.CashCount";
-    static components = { PinPad };
-    static props = { emp: Object, kind: String, denoms: Array, expected: { optional: true }, onClose: Function, onDone: Function };
-    setup() {
-        this.orm = useService("orm");
-        Object.assign(this, H);
-        const counts = {};
-        for (const d of this.props.denoms) {
-            counts[d] = "";
-        }
-        this.state = useState({ counts, coins: "", note: "", step: "count", res: null });
-    }
-    n(v) {
-        const x = Number(String(v).replace(/[٠-٩]/g, (c) => "٠١٢٣٤٥٦٧٨٩".indexOf(c)));
-        return Number.isFinite(x) && x > 0 ? x : 0;
-    }
-    line(d) {
-        return d * Math.floor(this.n(this.state.counts[d]));
-    }
-    get total() {
-        return this.props.denoms.reduce((t, d) => t + this.line(d), 0) + Math.round(this.n(this.state.coins) * 100) / 100;
-    }
-    get title() {
-        const name = this.props.emp.name;
-        return this.props.kind === "open" ? _t("Opening cash count: %s", name) : _t("Closing cash count: %s", name);
-    }
-    get totalTxt() {
-        return _t("Total %s SAR", f0(this.total));
-    }
-    get savedTitle() {
-        return this.props.kind === "open" ? _t("Opening cash count saved") : _t("Closing cash count saved");
-    }
-    noteLabel(dn) {
-        return _t("Number of %s riyal notes", dn);
-    }
-    async pinDone(code) {
-        const s = this.state, counts = { coins: this.n(s.coins) };
-        for (const d of this.props.denoms) {
-            counts[d] = Math.floor(this.n(s.counts[d]));
-        }
-        const r = await api(this.orm, "cash_count", this.props.emp.id, code, this.props.kind, counts, s.note);
-        if (r.error) {
-            return r.message;
-        }
-        s.res = r;
-        s.step = "done";
-        return null;
-    }
-}
-
 // ---------------------------------------------------------------- counter
 class Counter extends Component {
     static template = "navitta_ops.Counter";
-    static components = { DailyQuote, TargetBar, ModelSearch, NvModal, PinPad, FaceCam, Outcome, EditReq, UndoOut, CashCount };
+    static components = { DailyQuote, TargetBar, ModelSearch, NvModal, PinPad, FaceCam, Outcome, EditReq, UndoOut, FloatCard, TasksCard };
     static props = { goto: Function };
     setup() {
         this.orm = useService("orm");
         this.notification = useService("notification");
-        this.state = useState({ d: null, tick: 0, pin: null, drafts: {}, editFor: null, search: false, block: null, undo: null, cash: null });
+        this.state = useState({ d: null, tick: 0, pin: null, drafts: {}, editFor: null, search: false, block: null, undo: null });
         Object.assign(this, H);
         this.OTHER = OTHER;
         onWillStart(() => this.load());
@@ -270,27 +217,16 @@ class Counter extends Component {
             lastBrk: this.lastBreak(emp),
             backRecently: !!this.lastBreak(emp) && now() - Date.parse(this.lastBreak(emp).ended_at) < 15 * 6e4,
             unread: +(d.unread[emp.id] || 0),
-            // closing tasks (server): open visits, the daily report, her closing cash count
-            tasks: (d.cash.required && d.cash.tasks[emp.id]) || [],
-            needOpen: d.cash.required && !d.cash.open,
-            close: d.cash.closes[emp.id],
+            // end-of-shift tasks that block her check-out: hers, and the shared ones when she is the last one in
+            tasks: endLeft(d.tasks, emp, d.attendance),
         };
-    }
-    empName(id) {
-        const e = this.state.d.employees.find((x) => x.id === id);
-        return e ? e.name : "";
-    }
-    countCash(emp, kind) {
-        this.state.block = null;
-        this.state.cash = { emp, kind, expected: kind === "open" ? this.state.d.cash.open_expected : null };
     }
     toReport() {
         this.state.block = null;
         this.props.goto("report");
     }
-    async cashDone() {
-        this.state.cash = null;
-        await this.load();
+    taskLine(x) {
+        return x.who === "any" ? x.title : `${x.title} (${x.for_name})`;
     }
     tasks(emp) {
         const p = this.pane(emp);
@@ -457,7 +393,7 @@ class Counter extends Component {
         const r = await api(this.orm, p.mode === "in" ? "check_in" : "check_out", p.emp.id, code, photo);
         if (r.error) {
             if (r.tasks) {
-                // closing tasks left (e.g. done on another screen meanwhile): show the list instead of the PIN
+                // end-of-shift tasks left (e.g. a colleague checked out meanwhile): show the list instead of the PIN
                 this.state.pin = null;
                 await this.load();
                 this.state.block = { emp: p.emp, open: this.mine(p.emp).filter((v) => !v.saved), tasks: r.tasks };
@@ -797,6 +733,7 @@ class Requests extends Component {
 // ---------------------------------------------------------------- daily report
 class Report extends Component {
     static template = "navitta_ops.Report";
+    static components = { FloatEnd };
     static props = {};
     setup() {
         this.orm = useService("orm");
@@ -846,6 +783,13 @@ class Report extends Component {
     empName(id) {
         return (this.state.d.employees.find((e) => e.id === id) || {}).name || "";
     }
+    async floatDone() {
+        const r = await api(this.orm, "float_get");
+        if (!r.error) {
+            this.state.d.float = r;
+            this.state.err = "";
+        }
+    }
     setExch(c) {
         const f = this.state.f;
         c = Math.max(0, Math.min(20, +c || 0));
@@ -880,6 +824,7 @@ class Report extends Component {
         if (bad > -1) return (this.state.err = _t("Exchange %s: give the detailed reason, who sold and who exchanged", bad + 1));
         const lb = f.lost.findIndex((x) => !x.color && !x.size);
         if (lb > -1) return (this.state.err = _t("Lost sale %s: enter the color or size", lb + 1));
+        if (!this.state.d.float.end) return (this.state.err = _t("Count the end-of-shift float and confirm it with your PIN first"));
         this.state.err = "";
         const r = await api(this.orm, "report_save", JSON.parse(JSON.stringify(f)));
         if (r.error) {

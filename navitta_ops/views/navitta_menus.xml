@@ -26,7 +26,9 @@
         <menuitem id="menu_rec_reports" name="Daily reports" action="action_daily_reports" sequence="10"/>
         <menuitem id="menu_rec_sales" name="Daily target &amp; sales" action="action_daily_sales" sequence="11"/>
         <menuitem id="menu_rec_emp_sales" name="Employee sales" action="action_employee_sales" sequence="12"/>
-        <menuitem id="menu_rec_cash" name="Cash float &amp; cash counts" action="action_cash_counts" sequence="12"/>
+        <menuitem id="menu_rec_floats" name="Today's float" action="action_floats" sequence="12"/>
+        <menuitem id="menu_rec_task_done" name="Done tasks" action="action_task_done" sequence="12"/>
+        <menuitem id="menu_rec_task_alerts" name="Missed tasks" action="action_task_alerts" sequence="12"/>
         <menuitem id="menu_rec_target_log" name="Target change log" action="action_target_log" sequence="13"/>
         <menuitem id="menu_rec_requests" name="Branch request log" action="action_branch_requests" sequence="14"/>
         <menuitem id="menu_rec_expenses" name="Expenses" action="action_expenses" sequence="15"/>
@@ -44,6 +46,7 @@
         <menuitem id="menu_cfg_devices" name="Fingerprint devices" action="action_devices" sequence="4"/>
         <menuitem id="menu_cfg_penalty" name="Penalty table" action="action_penalty_tiers" sequence="5"/>
         <menuitem id="menu_cfg_rules" name="Branch rules" action="action_rules" sequence="5"/>
+        <menuitem id="menu_cfg_tasks" name="Daily tasks" action="action_task_defs" sequence="5"/>
         <menuitem id="menu_cfg_catalog" name="Models file" action="action_catalog" sequence="6"/>
         <menuitem id="menu_cfg_catalog_import" name="Upload models file" action="action_catalog_import" sequence="7"/>
         <menuitem id="menu_cfg_summary" name="Daily branches summary (PDF)" action="action_summary_wizard" sequence="8"/>

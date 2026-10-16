@@ -152,16 +152,39 @@
         <field name="groups" eval="[(4, ref('group_navitta_branch'))]"/>
     </record>
 
-    <record id="rule_branch_cash_count" model="ir.rule">
-        <field name="name">Navitta: own branch cash counts</field>
-        <field name="model_id" ref="model_navitta_cash_count"/>
+    <record id="rule_branch_float" model="ir.rule">
+        <field name="name">Navitta: own branch floats</field>
+        <field name="model_id" ref="model_navitta_float"/>
         <field name="domain_force">[('branch_id', '=', user.navitta_branch_id.id)]</field>
         <field name="groups" eval="[(4, ref('group_navitta_branch'))]"/>
     </record>
-
-    <record id="rule_admin_navitta_cash_count" model="ir.rule">
-        <field name="name">Navitta admin: all (navitta_cash_count)</field>
-        <field name="model_id" ref="model_navitta_cash_count"/>
+    <record id="rule_admin_navitta_float" model="ir.rule">
+        <field name="name">Navitta admin: all (navitta_float)</field>
+        <field name="model_id" ref="model_navitta_float"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_admin'))]"/>
+    </record>
+    <record id="rule_branch_task_done" model="ir.rule">
+        <field name="name">Navitta: own branch done tasks</field>
+        <field name="model_id" ref="model_navitta_task_done"/>
+        <field name="domain_force">[('branch_id', '=', user.navitta_branch_id.id)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_branch'))]"/>
+    </record>
+    <record id="rule_admin_navitta_task_done" model="ir.rule">
+        <field name="name">Navitta admin: all (navitta_task_done)</field>
+        <field name="model_id" ref="model_navitta_task_done"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_admin'))]"/>
+    </record>
+    <record id="rule_branch_task_alert" model="ir.rule">
+        <field name="name">Navitta: own branch missed tasks checks</field>
+        <field name="model_id" ref="model_navitta_task_alert"/>
+        <field name="domain_force">[('branch_id', '=', user.navitta_branch_id.id)]</field>
+        <field name="groups" eval="[(4, ref('group_navitta_branch'))]"/>
+    </record>
+    <record id="rule_admin_navitta_task_alert" model="ir.rule">
+        <field name="name">Navitta admin: all (navitta_task_alert)</field>
+        <field name="model_id" ref="model_navitta_task_alert"/>
         <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('group_navitta_admin'))]"/>
     </record>

@@ -568,6 +568,30 @@
                             <tr t-foreach="k.rows" t-as="x" t-key="x.e.id"><td><b t-esc="x.e.name"/></td><td class="n" t-esc="x.a ? clock(x.a.check_in) : '—'"/><td class="n" t-esc="x.a and x.a.check_out ? clock(x.a.check_out) : '—'"/>
                                 <td class="n" t-esc="x.bm ? x.bm + ' ' + TX.min : '—'"/><td><span t-att-class="'chip ' + x.st[0]" t-esc="x.st[1]"/></td></tr>
                         </tbody></table></div>
+                        <h3>💰 Float</h3>
+                        <div class="tscroll"><table class="nv-tbl"><thead><tr><th/><th>Amount</th><th>Counted by</th><th>Confirmed by</th><th>Status</th><th>Photo</th></tr></thead><tbody>
+                            <tr t-foreach="k.floats" t-as="x" t-key="x.k"><t t-set="fs" t-value="floatState(x.f)"/>
+                                <td t-esc="x.label"/>
+                                <td class="n"><b t-if="x.f"><t t-esc="f0(x.f.amount)"/> / <t t-esc="f0(x.f.expected)"/></b><t t-else="">—</t></td>
+                                <td t-esc="floatWho(x.f, 'counted')"/>
+                                <td t-esc="floatWho(x.f, 'confirmed')"/>
+                                <td><span t-att-class="'chip ' + fs[0]" t-esc="fs[1]"/></td>
+                                <td><PhotoLink t-if="x.f and x.f.photo_id" id="x.f.photo_id" label="'📷'"/><t t-else="">—</t></td></tr>
+                        </tbody></table></div>
+                        <t t-if="k.T and k.T.tasks.length">
+                            <h3>📋 Tasks <span class="range-note num" t-esc="tasksDone(k.T)"/></h3>
+                            <div class="tk-ph">
+                                <div t-foreach="phases" t-as="p" t-key="p[0]" class="tk-c"><div class="tk-h"><b t-esc="p[1]"/></div>
+                                    <div t-foreach="taskOf(k.T, p[0])" t-as="x" t-key="x.task_id + '-' + x.part"
+                                         t-att-class="'tk-i' + (x.done_at ? ' d' : '') + (!x.done_at and past(k.T, p[0]) ? ' miss' : '')">
+                                        <div class="tk-b"><span class="bx" t-esc="x.done_at ? '✓' : ''"/><span class="tx"><span class="tt" t-esc="taskLine(x)"/><span class="tg" t-esc="groupOf(x)"/>
+                                            <span t-if="x.done_at" class="mt" t-esc="doneLine(x)"/><span t-elif="past(k.T, p[0])" class="mt bad">✕ Missed</span></span></div>
+                                        <PhotoLink t-if="x.photo_id" id="x.photo_id" label="'📷'"/>
+                                        <button t-if="x.done_id" type="button" class="linkbtn reopen" title="Reopen" t-on-click="() => this.reopen(x, b)">↩️ Reopen</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
                         <h3>Key events</h3>
                         <div class="nv-alerts">
                             <div t-foreach="k.ev" t-as="e" t-key="e_index" class="nv-alert"><span t-att-class="'chip ' + e[0]" t-esc="e[0] === 'bad' ? TX.important : e[0] === 'warn' ? TX.alert : TX.event"/><div class="what" t-esc="e[1]"/><span/></div>

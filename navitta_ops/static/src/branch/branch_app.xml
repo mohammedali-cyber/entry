@@ -65,12 +65,10 @@
                     <h2><t t-esc="state.block.emp.name"/>, you can't check out yet</h2>
                     <p class="why">You still have unfinished tasks. Complete them and the check-out punch will open.</p>
                     <ul>
-                        <li t-if="(state.block.tasks or []).includes('report')"><span class="e">📝</span>
-                            <div><b>Daily report not sent</b><small>Any employee in the branch can write it; once a day is enough</small></div>
-                            <button type="button" class="nv-btn primary" t-on-click="() => this.toReport()">Open the report</button></li>
-                        <li t-if="(state.block.tasks or []).includes('cash_close')"><span class="e">💵</span>
-                            <div><b>Count the closing cash</b><small>Count the cash in the cash box, note by note</small></div>
-                            <button type="button" class="nv-btn primary" t-on-click="() => this.countCash(state.block.emp, 'close')">Count cash</button></li>
+                        <li t-foreach="state.block.tasks or []" t-as="x" t-key="x.task_id + '-' + x.part"><span class="e" t-esc="x.auto ? (x.auto === 'report' ? '📝' : '💰') : '📋'"/>
+                            <div><b t-esc="taskLine(x)"/><small>Finish the end-of-shift tasks first</small></div>
+                            <button t-if="x.auto" type="button" class="nv-btn primary" t-on-click="() => this.toReport()">Open the report</button>
+                            <button t-else="" type="button" class="nv-btn primary" t-on-click="() => this.goTo('tasks-card')">Today's tasks</button></li>
                         <li t-foreach="state.block.open" t-as="v" t-key="v.id"><span class="e">⏱️</span>
                             <div><b class="num" t-esc="visitTitle(v)"/>
                                 <small t-esc="visitHint(v)"/></div>
@@ -80,10 +78,8 @@
                 </div>
             </NvModal>
             <TargetBar/>
-            <div t-if="d.cash.required and d.cash.open" class="cashbar num">💵 Today's cash float <b><t t-esc="f0(d.cash.open.total)"/> SAR</b> · counted by <t t-esc="d.cash.open.employee"/> <t t-esc="clock(d.cash.open.counted_at)"/>
-                <span t-if="d.cash.open.expected !== null and Math.abs(d.cash.open.difference) &gt;= 1" t-att-class="'chip ' + (d.cash.open.difference &lt; 0 ? 'bad' : 'warn')">
-                    <t t-esc="diffTxt(d.cash.open.difference)"/> vs. last closing</span>
-                <span t-elif="d.cash.open.expected !== null" class="chip good">Matches last closing</span></div>
+            <FloatCard fl="d.float" emps="d.employees" att="d.attendance" onChange="() => this.load()"/>
+            <div id="tasks-card"><TasksCard t="d.tasks" emps="d.employees" att="d.attendance" tick="state.tick" onChange="() => this.load()"/></div>
             <div class="split">
                 <t t-foreach="d.employees" t-as="emp" t-key="emp.id">
                     <t t-set="p" t-value="pane(emp)"/>
@@ -147,19 +143,7 @@
                             <button type="button" class="nv-btn primary" t-on-click="() => this.breakEnd(p.onBreak)">End break and return to work</button>
                         </div>
 
-                        <div t-if="p.isIn and !p.onBreak and p.needOpen" class="lock cashlock">
-                            <t t-if="d.cash.opener_id === emp.id">
-                                <p class="lock-t">💵 Your first task: count the cash float, note by note</p>
-                                <p class="hint">The counter opens for everyone after the opening cash count.<t t-if="d.cash.open_expected !== null"> Branch's last closing: <b class="num"><t t-esc="f0(d.cash.open_expected)"/> SAR</b></t></p>
-                                <button type="button" class="nv-btn primary" t-on-click="() => this.countCash(emp, 'open')">Opening cash count</button>
-                            </t>
-                            <t t-else="">
-                                <p class="lock-t">🔒 The counter is locked until the cash float is counted</p>
-                                <p class="hint">To be counted by <b t-esc="empName(d.cash.opener_id)"/>, the first to check in.</p>
-                                <button type="button" class="nv-btn" t-on-click="() => this.countCash(emp, 'open')">I'll count it</button>
-                            </t>
-                        </div>
-                        <div t-if="p.isIn and !p.onBreak and !p.needOpen" class="visits">
+                        <div t-if="p.isIn and !p.onBreak" class="visits">
                             <button type="button" class="start" t-on-click="() => this.startVisit(emp)">Customer in <kbd t-if="num &lt; 10" t-esc="num"/></button>
                             <t t-foreach="p.open" t-as="v" t-key="v.id">
                                 <t t-set="x" t-value="dr(v)"/>
@@ -204,63 +188,11 @@
                     </div>
                 </t>
             </div>
-            <NvModal t-if="state.cash" onClose="() => this.cashDone()">
-                <CashCount emp="state.cash.emp" kind="state.cash.kind" denoms="st.denoms" expected="state.cash.expected"
-                           onClose="() => this.cashDone()" onDone="() => this.cashDone()"/>
-            </NvModal>
             <NvModal t-if="state.pin" onClose="() => state.pin = null">
                 <FaceCam t-if="st.checkin_photo" register="(c) => this.cam = c"/>
                 <PinPad title="pinTitle(state.pin)" onCancel="() => state.pin = null" onDone="(code) => this.pinDone(code)"/>
             </NvModal>
         </t>
-    </t>
-
-    <t t-name="navitta_ops.CashCount">
-        <div class="cashcount">
-            <t t-if="state.step === 'count'">
-                <h2 t-esc="title"/>
-                <p class="hint" t-if="props.kind === 'open'">Enter the number of notes of each denomination in the cash float.<t t-if="props.expected !== null and props.expected !== undefined"> Branch's last closing: <b class="num"><t t-esc="f0(props.expected)"/> SAR</b></t></p>
-                <p class="hint" t-else="">Enter the number of notes of each denomination in the cash box now.</p>
-                <table class="nv-tbl cc-tbl">
-                    <thead><tr><th>Denomination</th><th>Count</th><th>Amount</th></tr></thead>
-                    <tbody>
-                        <tr t-foreach="props.denoms" t-as="dn" t-key="dn">
-                            <td class="num"><b t-esc="dn"/> riyals</td>
-                            <td><input class="ctl num" type="number" inputmode="numeric" min="0" step="1" dir="ltr" t-model="state.counts[dn]" t-att-aria-label="noteLabel(dn)"/></td>
-                            <td class="num" t-esc="f0(line(dn))"/>
-                        </tr>
-                        <tr>
-                            <td>Coins and halalas</td>
-                            <td><input class="ctl num" type="number" inputmode="decimal" min="0" step="0.01" dir="ltr" t-model="state.coins" aria-label="Coins and halalas amount"/></td>
-                            <td class="num" t-esc="f0(n(state.coins))"/>
-                        </tr>
-                    </tbody>
-                    <tfoot><tr><td colspan="2"><b>Total</b></td><td class="num"><b><t t-esc="f0(total)"/> SAR</b></td></tr></tfoot>
-                </table>
-                <label class="lr-l">Note (optional)<input class="ctl" t-model="state.note" placeholder="e.g. one damaged 50 note"/></label>
-                <div class="vrow">
-                    <button type="button" class="nv-btn primary" t-on-click="() => state.step = 'pin'">Confirm with my PIN</button>
-                    <button type="button" class="nv-btn" t-on-click="props.onClose">Cancel</button>
-                </div>
-            </t>
-            <t t-elif="state.step === 'pin'">
-                <PinPad title="title" sub="totalTxt" onCancel="() => state.step = 'count'" onDone="(code) => this.pinDone(code)"/>
-            </t>
-            <t t-else="">
-                <t t-set="r" t-value="state.res"/>
-                <div class="blk">
-                    <div class="bi" aria-hidden="true" t-esc="r.expected === null or Math.abs(r.difference) &lt; 1 ? '✅' : '⚠️'"/>
-                    <h2 t-esc="savedTitle"/>
-                    <p class="why num">Counted <b><t t-esc="f0(r.total)"/> SAR</b>
-                        <t t-if="r.expected !== null"> · Expected <b><t t-esc="f0(r.expected)"/> SAR</b></t></p>
-                    <p t-if="r.expected !== null and Math.abs(r.difference) &gt;= 1" class="why">
-                        <span t-att-class="'chip ' + (r.difference &lt; 0 ? 'bad' : 'warn')"><t t-esc="diffTxt(r.difference)"/></span>
-                        Management has been alerted.</p>
-                    <p t-elif="r.expected !== null" class="why"><span class="chip good">Matches</span></p>
-                    <button type="button" class="nv-btn primary" t-on-click="props.onDone">Done</button>
-                </div>
-            </t>
-        </div>
     </t>
 
     <t t-name="navitta_ops.Outcome">
@@ -685,6 +617,7 @@
                 <div t-if="!d.system" class="fld"><label class="lab">Card sales (SAR)</label><input class="ctl num" type="number" min="0" t-model.number="f.card"/></div>
                 <div class="fld"><label class="lab">Bank deposit from the Cash box (SAR)</label><input class="ctl num" type="number" min="0" t-model.number="f.deposit"/></div>
             </fieldset>
+            <FloatEnd fl="d.float" emps="d.employees" onDone="() => this.floatDone()"/>
             <fieldset t-if="!d.system"><legend>💰 Sales per employee <small>from the Cashier report at the end of the shift</small></legend>
                 <div class="es fld full">
                     <div t-foreach="f.emp" t-as="x" t-key="x.employee_id" class="es-c"><div class="es-h"><b t-esc="empName(x.employee_id)"/>

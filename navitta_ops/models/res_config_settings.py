@@ -28,7 +28,10 @@ class ResConfigSettings(models.TransientModel):
     navitta_min_bags = fields.Integer(related="company_id.navitta_min_bags", readonly=False)
     navitta_vat_rate = fields.Float(related="company_id.navitta_vat_rate", readonly=False)
     navitta_checkin_photo = fields.Boolean(related="company_id.navitta_checkin_photo", readonly=False)
-    navitta_cash_tasks = fields.Boolean(related="company_id.navitta_cash_tasks", readonly=False)
+    navitta_task_start_to = fields.Float(related="company_id.navitta_task_start_to", readonly=False)
+    navitta_task_mid_from = fields.Float(related="company_id.navitta_task_mid_from", readonly=False)
+    navitta_task_mid_to = fields.Float(related="company_id.navitta_task_mid_to", readonly=False)
+    navitta_task_end_from = fields.Float(related="company_id.navitta_task_end_from", readonly=False)
     navitta_admin_pw_set = fields.Boolean(compute="_compute_navitta_admin_pw_set")
 
     @api.model

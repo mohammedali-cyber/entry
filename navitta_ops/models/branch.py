@@ -23,6 +23,12 @@ class NavittaBranch(models.Model):
                                 help="The branch works a morning and an evening shift. Each employee then has her own shift "
                                      "(morning or evening); otherwise everyone works the evening shift.")
 
+    # today's float («عهدة اليوم»): counted at the start of the day on the counter and at the end in the daily report
+    float_amount = fields.Float("Float amount (SAR)", digits=(12, 2), default=1000.0,
+                                help="The fixed amount of cash the employees count at the start and at the end of the shift")
+    float_place = fields.Char("Float location", default=lambda self: self.with_context(lang=self.env.company._navitta_lang()).env._("First cashier drawer"),
+                              help="Where the float is kept in the branch (shown to the employee who counts it)")
+
     cash_opening_balance = fields.Float("Cash box opening balance", digits=(12, 2))
     cash_opening_date = fields.Date("As of", help="The balance after this date is computed automatically from cash sales, bank deposits and approved expenses")
 

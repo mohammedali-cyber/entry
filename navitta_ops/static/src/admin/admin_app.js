@@ -10,6 +10,7 @@ import {
 } from "../common/utils";
 import { DailyQuote, EmpBoard, NvModal, PhotoLink, TargetEditor } from "../common/components";
 import { CaseDecide, Dots } from "../common/cases";
+import { groupOf, phases } from "../common/tasks";
 
 const LEAVEADM = { pending: _t("Awaiting your approval"), cover: _t("Awaiting colleague"), cover_no: _t("Colleague declined"), approved: _t("Approved"), rejected: _t("Rejected") };
 // the new PIN's email (sent right away, then wiped)
@@ -550,6 +551,7 @@ class Lost extends AdminBase {
 // ---------------------------------------------------------------- day log
 class Day extends AdminBase {
     static template = "navitta_ops.AdminDay";
+    static components = { PhotoLink };
     setup() {
         super.setup();
         this.state = useState({ d: null, day: today() });
@@ -592,10 +594,50 @@ class Day extends AdminBase {
             const st = a ? ["good", _t("Attended")] : d.off[e.id] ? ["neutral", _t("🌙 Day off")] : ["bad", _t("Not checked in")];
             return { e, a, bm, st };
         });
+        // today's float (start and end of the shift) and today's tasks
+        const daily = (d.daily || {})[b.id] || {};
+        const fl = daily.float || {}, T = daily.tasks || null;
+        const floats = [["start", _t("Start of shift")], ["end", _t("End of shift")]].map(([k, label]) => ({ k, label, f: fl[k] || null }));
+        floats.filter((x) => x.f && x.f.state === "short").forEach((x) => ev.unshift(["bad", _t("Float short (%(when)s): %(a)s SAR of %(x)s SAR",
+            { when: x.label, a: f0(x.f.amount), x: f0(x.f.expected) }) + (x.f.note ? " · " + x.f.note : "")]));
         return {
             r, vs, buyPct: vs.length ? Math.round((buys / vs.length) * 100) + "%" : "—",
-            avg: vs.length ? mmss(vs.reduce((t, v) => t + (v.duration_sec || 0), 0) / vs.length) : "—", ev, rows,
+            avg: vs.length ? mmss(vs.reduce((t, v) => t + (v.duration_sec || 0), 0) / vs.length) : "—", ev, rows, floats, T,
         };
+    }
+    get phases() {
+        return phases();
+    }
+    floatState(f) {
+        return !f ? ["warn", _t("Not counted")] : f.state === "ok" ? ["good", "✓ " + _t("Complete")] : f.state === "pending"
+            ? ["neutral", _t("Waiting for confirmation")] : ["bad", "⚠️ " + _t("Short") + (f.note ? ": " + f.note : "")];
+    }
+    floatWho(f, k) {
+        return f && f[k + "_by"] ? `${f[k + "_name"] || "—"} ${clock(f[k + "_at"])}` : k === "confirmed" && f && f.confirm_needed ? "⏳" : "—";
+    }
+    tasksDone(T) {
+        return _t("%(n)s of %(m)s done", { n: T.tasks.filter((x) => x.done_at).length, m: T.tasks.length });
+    }
+    past(T, ph) {
+        return T.now > T.windows[ph][1];
+    }
+    taskOf(T, ph) {
+        return T.tasks.filter((x) => x.phase === ph);
+    }
+    groupOf(x) {
+        return groupOf(x);
+    }
+    taskLine(x) {
+        return (x.who === "both" ? `${x.for_name}: ` : "") + x.title;
+    }
+    doneLine(x) {
+        return "✓ " + (x.done_name || "") + " " + clock(x.done_at);
+    }
+    async reopen(x, b) {
+        if (!window.confirm(_t("Re-open “%(t)s” at %(b)s? It shows as not done again.", { t: x.title, b: b.name }))) {
+            return;
+        }
+        await this.act("admin_task_reopen", [x.done_id], _t("Task re-opened"));
     }
 }
 
