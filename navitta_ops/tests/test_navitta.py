@@ -69,6 +69,10 @@ class NavittaCase(TransactionCase):
     def admin(self):
         return self.api(self.boss)
 
+    def rep(self, branch=None, **vals):
+        """Daily report data with the two required end-of-shift photos."""
+        return dict({"employee_name": "ريم", "photo_card": self.photo(branch), "photo_inv": self.photo(branch)}, **vals)
+
     # ------------------------------------------------------------------ security
     def test_security_branch_isolation(self):
         """A branch device can't act on another branch's employee and can't change records directly."""
@@ -115,8 +119,12 @@ class NavittaCase(TransactionCase):
             self.end_float(b)
             self.env["navitta.task.done"].create({"branch_id": b.id, "day": DAY, "task_id": self.tasks[1].id, "part": 1})
             self.env["navitta.task.alert"].create({"branch_id": b.id, "day": DAY, "phase": "start", "missed": "• x"})
+            self.env["navitta.sales.edit.log"].create({"branch_id": b.id, "day": DAY, "field": "sales", "new_value": 1, "reason": "x"})
+            self.env["navitta.sales.change.log"].create({"branch_id": b.id, "day": DAY, "field": "sales", "new_value": 1, "source": "pos"})
         admin_only = {"navitta.leave.request", "navitta.thread", "navitta.message", "navitta.notification",
-                      "navitta.device", "navitta.device.punch", "navitta.upload.token"}
+                      "navitta.device", "navitta.device.punch", "navitta.upload.token",
+                      # 26.3: a day's corrections and changes after closing are management-only, as on the site
+                      "navitta.sales.edit.log", "navitta.sales.change.log"}
         models = [m for m in self.env if m.startswith("navitta.") and not self.env[m]._abstract and not self.env[m]._transient]
         for m in models:
             with self.subTest(model=m):
@@ -218,7 +226,7 @@ class NavittaCase(TransactionCase):
         total that differs from the float amount needs a note."""
         with freeze_time(utc(23, 0)):
             api = self.api()
-            self.assertEqual(api.report_save({"employee_name": "ريم", "sales": 900})["error"], "float_end_required")
+            self.assertEqual(api.report_save(self.rep(sales=900))["error"], "float_end_required")
             self.assertEqual(api.report_get()["float"]["end"], False)
             self.assertEqual(api.float_count(self.shima.id, "2468", "end", {"100": 9})["error"], "float_mismatch")
             r = api.float_count(self.shima.id, "2468", "end", {"100": 9}, None, "  ناقص 100  ")
@@ -229,7 +237,7 @@ class NavittaCase(TransactionCase):
             self.assertEqual(data["float_short"], 1)
             self.assertTrue([e for e in data["events"] if e["title"] == "Float short"])
             self.assertEqual([b["float_end"] for b in data["branches"] if b["name"] == self.dwd.name], ["short"])
-            self.assertTrue(api.report_save({"employee_name": "ريم", "sales": 900})["ok"])
+            self.assertTrue(api.report_save(self.rep(sales=900))["ok"])
             # counted again: one end count for the day
             r = api.float_count(self.reem.id, "2468", "end", {"100": 10})
             self.assertEqual(r["state"], "ok")
@@ -351,7 +359,7 @@ class NavittaCase(TransactionCase):
             r = api.check_out(self.reem.id, "2468")
             self.assertEqual(sorted(x["auto"] for x in r["tasks"]), ["float_end", "report"])   # marked by the float and the report
             self.assertTrue(api.float_count(self.reem.id, "2468", "end", {"100": 10})["ok"])
-            self.assertTrue(api.report_save({"employee_name": "ريم", "sales": 500})["ok"])
+            self.assertTrue(api.report_save(self.rep(sales=500))["ok"])
             punch.action_reprocess()
             self.assertEqual((punch.state, bool(att.check_out)), ("out", True))
         # an open visit still comes first
@@ -612,11 +620,11 @@ class NavittaCase(TransactionCase):
             self.dwd._supply_adjust("bags", 20)
             bad = self.api().report_save({"employee_name": "ريم", "exch": [{"detail": "", "soldBy": "ريم", "by": "شيمة"}]})
             self.assertEqual(bad["error"], "bad_exchange")
-            ok = self.api().report_save({
-                "employee_name": "ريم", "sales": 5000, "invoices": 10, "items": 14, "cash": 1200, "card": 3800, "deposit": 500,
+            ok = self.api().report_save(self.rep(**{
+                "sales": 5000, "invoices": 10, "items": 14, "cash": 1200, "card": 3800, "deposit": 500,
                 "exch": [{"reason": "size", "detail": "مقاس أكبر", "soldBy": "ريم", "by": "شيمة"}],
                 "emp": [{"employee_id": self.reem.id, "amount": 3000, "invoices": 6}, {"employee_id": self.shima.id, "amount": 2000, "invoices": 4}],
-                "used": {"bags": 12}, "sat": 5, "complaint": True, "complaint_text": "تأخير"})
+                "used": {"bags": 12}, "sat": 5, "complaint": True, "complaint_text": "تأخير"}))
             self.assertTrue(ok["ok"])
             self.assertTrue(self.api().create_expense(self.reem.id, "2468", 200, "cleaning", "منظفات")["ok"])
             x = self.env["navitta.expense"].search([("branch_id", "=", self.dwd.id)])
@@ -628,13 +636,210 @@ class NavittaCase(TransactionCase):
             self.assertEqual(cash["balance"], 1000 + 1200 - 500 - 200)
             self.assertEqual(self.dwd._stock_summary()[self.dwd.id]["bags"]["balance"], 8)
             # saving again replaces the day (no double counting)
-            self.api().report_save({"employee_name": "ريم", "sales": 5100, "used": {"bags": 12}})
+            self.api().report_save(self.rep(sales=5100, used={"bags": 12}))
             self.assertEqual(self.dwd._stock_summary()[self.dwd.id]["bags"]["balance"], 8)
             summ = self.admin().employee_summary("2026-10-01", "2026-10-31")
             self.assertEqual(summ["rows"], [])          # the second save had no employee lines
             data = self.env["navitta.api"]._summary_data(DAY)
             self.assertEqual(data["sales"], 5100)
             self.assertIn("فرع القصيم", data["missing"])
+
+    # ------------------------------------------------------------------ daily report, sales days, target file, auto visits (26.3)
+    def test_report_photos_required(self):
+        """The daily report needs the card-terminal settlement photo and the invoices photo (from the branch)."""
+        self.end_float()
+        with freeze_time(utc(23, 0)):
+            api = self.api()
+            self.assertEqual(api.report_save({"employee_name": "ريم", "sales": 100})["error"], "photo_card_required")
+            self.assertEqual(api.report_save({"employee_name": "ريم", "photo_card": self.photo()})["error"], "photo_inv_required")
+            with self.assertRaises(AccessError):
+                api.report_save({"employee_name": "ريم", "photo_card": self.photo(), "photo_inv": self.photo(self.qsm)})
+            # without a cash register system the cash and card are typed, nothing to compare
+            self.assertTrue(api.report_save(self.rep(sales=100, cash=70, card=30))["ok"])
+            rep = self.env["navitta.daily.report"].search([("branch_id", "=", self.dwd.id), ("day", "=", DAY)])
+            self.assertTrue(rep.photo_card_id and rep.photo_inv_id and rep.photo_card_id != rep.photo_inv_id)
+            self.assertEqual((rep.has_system, rep.cash_diff, rep.card_diff), (False, 0, 0))
+            self.assertFalse(self.env["navitta.notification"].search([("subject", "like", "Cash or card difference")]))
+            got = api.report_get()["report"]
+            self.assertEqual((got["photo_card"], got["photo_inv"]), (rep.photo_card_id.id, rep.photo_inv_id.id))
+            ds = self.env["navitta.daily.sales"].search([("branch_id", "=", self.dwd.id), ("day", "=", DAY)])
+            self.assertEqual((ds.cash, ds.card, ds.source), (70, 30, "report"))
+            day = self.admin().admin_day("2026-10-13")
+            r = [x for x in day["reports"] if x["branch_id"] == self.dwd.id][0]
+            self.assertEqual((r["photo_card"], r["check"]), (rep.photo_card_id.id, None))
+
+    def test_report_cash_card_against_system(self):
+        """With a cash register system: sales, invoices and items are locked to it; the counted cash and the card
+        settlement are compared (rounded to the riyal), a difference needs a reason and alerts management once."""
+        from unittest.mock import patch
+        self.end_float()
+        Branch = type(self.env["navitta.branch"])
+        Sales = self.env["navitta.daily.sales"]
+        with freeze_time(utc(23, 0)), patch.object(Branch, "_has_system", lambda b: True), \
+                patch.object(type(Sales), "_is_system", lambda r: r.source == "report"):
+            # a day whose figures come from a cash register system (navitta_ops_pos tests it with real orders)
+            Sales._row(self.dwd, DAY).write({"sales": 1000, "invoices": 4, "items": 6, "cash": 600, "card": 400, "source": "report"})
+            api = self.api()
+            sys = api.report_get()["system"]
+            self.assertEqual((sys["sales"], sys["cash"], sys["card"]), (1000, 600, 400))
+            self.assertEqual(api.report_save(self.rep(sales=1, cash=580, card=400.4))["error"], "cash_reason_required")
+            self.assertEqual(api.report_save(self.rep(cash=600.3, card=380, cash_note="x"))["error"], "card_reason_required")
+            self.assertTrue(api.report_save(self.rep(sales=1, invoices=99, cash=580, card=400.4, cash_note="  فكة للعميلة  "))["ok"])
+            rep = self.env["navitta.daily.report"].search([("branch_id", "=", self.dwd.id), ("day", "=", DAY)])
+            self.assertEqual((rep.sales, rep.invoices, rep.cash, rep.has_system, rep.sys_cash, rep.cash_diff, rep.cash_note, rep.card_note),
+                             (1000, 4, 580, True, 600, -20, "فكة للعميلة", False))
+            alerts = self.env["navitta.notification"].search([("subject", "like", "Cash or card difference")])
+            self.assertEqual(len(alerts), 1)
+            self.assertIn("difference -20", alerts.body)
+            self.assertIn("فكة للعميلة", alerts.body)
+            ds = Sales.search([("branch_id", "=", self.dwd.id), ("day", "=", DAY)])
+            self.assertEqual(ds.cash, 600)                       # the system's figure stays on the day
+            self.assertTrue(api.report_save(self.rep(cash=580, card=400, cash_note="فكة"))["ok"])        # same count: no new alert
+            self.assertEqual(len(self.env["navitta.notification"].search([("subject", "like", "Cash or card difference")])), 1)
+            row = [x for x in self.admin().admin_sales(self.dwd.id, "2026-10-01", "2026-10-31", 2026, "2026-10-01", "2026-10-31")["daily"]
+                   if x["day"] == "2026-10-13"][0]
+            self.assertEqual((row["check"]["cash_diff"], row["check"]["card_diff"], row["check"]["cash_note"]), (-20, 0, "فكة"))
+            self.assertTrue(api.report_save(self.rep(cash=600, card=400))["ok"])        # matches now: the note is dropped
+            rep.invalidate_recordset()
+            self.assertEqual((rep.cash_diff, rep.cash_note), (0, False))
+
+    def test_day_edit_and_change_log(self):
+        """Management corrects a day with a reason (edit log); the correction pins the figures. After the report closed the
+        day, any change of its figures (management, file, system) is logged; the report's own saves are not."""
+        self.end_float()
+        adm = self.admin()
+        with freeze_time(utc(22, 0)):
+            self.assertEqual(adm.admin_day_edit(self.dwd.id, "2026-10-13", {"sales": 900}, " ")["error"], "reason_required")
+            self.assertEqual(adm.admin_day_edit(self.dwd.id, "2026-10-13", {"sales": 0}, "x")["error"], "nothing_changed")
+            self.assertEqual(adm.admin_day_edit(self.dwd.id, "2026-10-13", {"sales": -5}, "x")["error"], "bad_amount")
+            self.assertTrue(adm.admin_day_edit(self.dwd.id, "2026-10-13", {"sales": 900, "invoices": 3, "target": 1200, "cash": 0}, "فاتورة مكررة")["ok"])
+            got = adm.admin_day_get(self.dwd.id, "2026-10-13")
+            self.assertEqual((got["source"], got["values"]["sales"], got["values"]["target"]), ("admin", 900, 1200))
+            self.assertEqual(sorted(x["field"] for x in got["log"]), ["invoices", "sales", "target"])
+            self.assertEqual({x["reason"] for x in got["log"]}, {"فاتورة مكررة"})
+            self.assertEqual(self.env["navitta.target.log"].search([("branch_id", "=", self.dwd.id)], limit=1).new_amount, 1200)
+            self.assertFalse(self.env["navitta.sales.change.log"].search([]))           # the day wasn't closed yet
+            # the report doesn't overwrite a corrected day's sales (its counted cash still goes in without a system)
+            self.assertTrue(self.api().report_save(self.rep(sales=5000, invoices=9, cash=700, deposit=100))["ok"])
+            ds = self.env["navitta.daily.sales"].search([("branch_id", "=", self.dwd.id), ("day", "=", DAY)])
+            self.assertEqual((ds.sales, ds.invoices, ds.cash, ds.deposit, ds.source), (900, 3, 700, 100, "admin"))
+            self.assertFalse(self.env["navitta.sales.change.log"].search([]))           # the report's own writes
+            self.assertTrue(self.api().report_save(self.rep(sales=5000, cash=650, deposit=50))["ok"])
+            self.assertFalse(self.env["navitta.sales.change.log"].search([]))
+            # after closing: a management edit is logged as such
+            self.assertTrue(adm.admin_day_edit(self.dwd.id, "2026-10-13", {"sales": 950, "deposit": 60}, "تصحيح")["ok"])
+            ch = self.env["navitta.sales.change.log"].search([], order="field")
+            self.assertEqual([(c.field, c.old_value, c.new_value, c.source) for c in ch], [("deposit", 50, 60, "admin"), ("sales", 900, 950, "admin")])
+            # and a target file with sales
+            self.assertEqual(adm.admin_targets_load([{"branch_id": self.dwd.id, "day": "2026-10-13", "target": 1300, "sales": 990}], "t.csv")["rows"], 1)
+            self.assertEqual(self.env["navitta.sales.change.log"].search([("source", "=", "file")]).mapped("field"), ["sales"])
+            self.assertEqual(ds.source, "file")
+            changes = adm.admin_day_changes("2026-10-13", self.dwd.id)["rows"]
+            self.assertEqual(len(changes), 3)
+            self.assertTrue(all(c["label"] and c["source_label"] for c in changes))
+            row = [x for x in adm.admin_sales(self.dwd.id, "2026-10-01", "2026-10-31", 2026, "2026-10-01", "2026-10-31")["daily"]
+                   if x["day"] == "2026-10-13"][0]
+            self.assertEqual((row["changed"], row["edited"]), (3, False))
+            self.assertEqual(adm.admin_day("2026-10-13")["marks"][self.dwd.id]["changed"], 3)
+            # a branch device can't read the logs nor call the screens
+            with self.assertRaises(AccessError):
+                self.env["navitta.sales.edit.log"].with_user(self.dev).search([])
+            with self.assertRaises(AccessError):
+                self.api().admin_day_edit(self.dwd.id, "2026-10-13", {"sales": 1}, "x")
+
+    def test_target_file_preview_and_apply(self):
+        """Target file (CSV or Excel): headers in Arabic or English, branch by name (with or without «فرع») or code, dates in
+        several formats; the preview compares with the current targets and lists the bad rows; only good rows are saved."""
+        import io
+        import openpyxl
+        adm = self.admin()
+        self.env["navitta.daily.sales"]._row(self.dwd, date(2026, 11, 2)).target = 500
+        csv = "\ufeff" + "\n".join([
+            "ملف تارقت نوفمبر,,,",
+            "الفرع,التاريخ,التارقت,المبيعات",
+            "فرع الدوادمي,2026-11-01,1000,",
+            "الدوادمي,02/11/2026,1500,",            # changes 500 -> 1500
+            "dwd;2026/11/03; 1200 ;",
+            "فرع مجهول,2026-11-04,100,",
+            "فرع القصيم,2026-02-30,100,",
+            "فرع القصيم,2026-11-05,-1,",
+            "فرع القصيم,2026-11-06,,",
+            "فرع القصيم,2026-11-07,700,abc",
+            ",,,",
+        ])
+        b64 = base64.b64encode(csv.encode("utf-8")).decode()
+        r = adm.admin_targets_preview(b64, "nov.csv")
+        rows = r["rows"]
+        ok = [x for x in rows if not x["err"]]
+        self.assertEqual([(x["day"], x["target"], x["old"]) for x in ok], [("2026-11-01", "1000", None), ("2026-11-02", "1500", 500), ("2026-11-03", "1200", None)])
+        self.assertEqual([x["err"] for x in rows if x["err"]], ["Branch not found", "Wrong date", "Wrong target", "Wrong target", "Wrong sales figure"])
+        self.assertFalse(self.env["navitta.target.log"].search([("scope", "=", "file")]))        # preview saves nothing
+        self.assertEqual(adm.admin_targets_load(rows, "nov.csv")["rows"], 3)
+        Sales = self.env["navitta.daily.sales"]
+        self.assertEqual(Sales.search([("branch_id", "=", self.dwd.id), ("day", "=", date(2026, 11, 2))]).target, 1500)
+        self.assertFalse(Sales.search([("branch_id", "=", self.qsm.id), ("day", ">=", date(2026, 11, 1))]))
+        logs = self.env["navitta.target.log"].search([("scope", "=", "file")])
+        self.assertEqual(len(logs), 3)
+        self.assertIn("2026-11-02 · nov.csv", logs.mapped("ref"))
+        # Excel with English headers, Excel dates and sales
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append(["Branch", "Date", "Target", "Sales", "Invoices"])
+        ws.append(["فرع القصيم", datetime(2026, 11, 8), 800, 750, 5])
+        buf = io.BytesIO()
+        wb.save(buf)
+        r = adm.admin_targets_preview(base64.b64encode(buf.getvalue()).decode(), "nov.xlsx")
+        self.assertEqual([(x["bname"], x["day"], x["target"], x["sales"], x["err"]) for x in r["rows"]],
+                         [("فرع القصيم", "2026-11-08", "800", "750", False)])
+        adm.admin_targets_load(r["rows"], "nov.xlsx")
+        x = Sales.search([("branch_id", "=", self.qsm.id), ("day", "=", date(2026, 11, 8))])
+        self.assertEqual((x.target, x.sales, x.invoices, x.source), (800, 750, 5, "file"))
+        # bad files
+        b = lambda t: base64.b64encode(t.encode()).decode()
+        self.assertEqual(adm.admin_targets_preview(b("a,b,c\n1,2,3"), "x.csv")["error"], "no_target_columns")
+        self.assertEqual(adm.admin_targets_preview(b("الفرع,التاريخ,التارقت\n"), "x.csv")["error"], "empty_file")
+        self.assertEqual(adm.admin_targets_preview(b("not a zip"), "x.xlsx")["error"], "bad_target_file")
+        ole = base64.b64encode(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"0" * 50).decode()
+        self.assertEqual(adm.admin_targets_preview(ole, "x.xlsx")["error"], "file_locked")
+        with freeze_time(utc(12, 0)):
+            t = adm.admin_targets_template()
+        self.assertEqual((t["name"], t["rows"][0][:3]), ("targets-2026-11.csv", ["الفرع", "التاريخ", "التارقت"]))
+        self.assertEqual(len(t["rows"]) - 1, 30 * len(self.env["navitta.branch"].search([])))
+        with self.assertRaises(AccessError):
+            self.api().admin_targets_preview(b64, "nov.csv")
+
+    def test_auto_visit_ack_blocks_checkout(self):
+        """A sale the cash register recorded without a counter visit becomes an automatic visit: she confirms it (optional
+        note) before she can check out; the fingerprint device holds her out punch the same way."""
+        api = self.api()
+        with freeze_time(utc(15, 20)):
+            self.assertTrue(api.check_in(self.reem.id, "2468")["ok"])
+        Visit = self.env["navitta.visit"]
+        with freeze_time(utc(21, 0)):
+            v = Visit.create({"branch_id": self.dwd.id, "employee_id": self.reem.id, "day": DAY, "started_at": utc(20, 50),
+                              "ended_at": utc(20, 50), "saved": True, "bought": True, "amount": 230, "auto": True})
+            st = api.branch_state()
+            x = [y for y in st["visits"] if y["id"] == v.id][0]
+            self.assertEqual((x["auto"], x["auto_ack"], x["amount"]), (True, False, 230))
+            r = api.check_out(self.reem.id, "2468")
+            self.assertEqual(r["error"], "auto_unacked")
+            self.assertEqual([a["id"] for a in r["autos"]], [v.id])
+            self.assertEqual(api.visit_edit_request(v.id, 60, "x")["error"], "not_found")      # no duration to change
+            dev = self.env["navitta.device"].create({"serial_number": "NVAUTO", "branch_id": self.dwd.id, "state": "active"})
+            self.reem.device_user_id = "9"
+            punch = self.env["navitta.device.punch"].create({"device_id": dev.id, "device_user_id": "9", "punched_at": utc(21, 1)})
+            punch._process()
+            self.assertEqual(punch.state, "tasks")
+            self.assertIn("without the counter", punch.message)
+            with self.assertRaises(AccessError):
+                self.api(self.dev_qsm).auto_visit_ack(v.id)
+            self.assertTrue(api.auto_visit_ack(v.id, "  العميلة كانت مستعجلة ")["ok"])
+            self.assertEqual((v.auto_ack, v.note), (True, "العميلة كانت مستعجلة"))
+            self.assertEqual(api.auto_visit_ack(v.id)["error"], "not_found")
+            punch.action_reprocess()
+            self.assertEqual(punch.state, "out")
+            att = self.env["navitta.attendance"].search([("employee_id", "=", self.reem.id), ("day", "=", DAY)])
+            self.assertTrue(att.check_out)
 
     def test_requests_and_receive(self):
         r = self.api().create_request(self.reem.id, "2468", {"kind": "supply", "supply": "bags", "qty": 50})

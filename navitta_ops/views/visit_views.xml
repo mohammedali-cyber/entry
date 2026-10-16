@@ -18,6 +18,9 @@
                 <field name="lost_size" optional="hide"/>
                 <field name="note" optional="hide"/>
                 <field name="saved" optional="hide"/>
+                <field name="auto" optional="show"/>
+                <field name="auto_ack" optional="hide"/>
+                <field name="amount" optional="hide" sum="Total"/>
             </list>
         </field>
     </record>
@@ -28,7 +31,8 @@
             <form create="0">
                 <sheet>
                     <group>
-                        <group><field name="branch_id"/><field name="employee_id"/><field name="day"/><field name="started_at"/><field name="ended_at"/><field name="duration_sec"/></group>
+                        <group><field name="branch_id"/><field name="employee_id"/><field name="day"/><field name="started_at"/><field name="ended_at"/><field name="duration_sec"/>
+                            <field name="auto"/><field name="auto_ack" invisible="not auto"/><field name="auto_ack_at" invisible="not auto_ack"/><field name="amount"/></group>
                         <group><field name="bought"/><field name="exchanged"/><field name="lost_reason"/><field name="other_text"/>
                             <field name="lost_model"/><field name="lost_color"/><field name="lost_size"/><field name="saved"/></group>
                     </group>
@@ -47,6 +51,7 @@
                 <filter name="saved" string="Saved" domain="[('saved', '=', True)]"/>
                 <filter name="bought" string="Bought" domain="[('bought', '=', True)]"/>
                 <filter name="lost" string="Didn't buy" domain="[('lost_reason', '!=', False)]"/>
+                <filter name="auto" string="Sold without the counter" domain="[('auto', '=', True)]"/>
                 <filter name="f_day" string="Day" date="day"/>
                 <group>
                     <filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/>

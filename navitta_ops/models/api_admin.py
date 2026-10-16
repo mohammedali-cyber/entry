@@ -308,11 +308,17 @@ class NavittaApiAdmin(models.AbstractModel):
              GROUP BY 1 ORDER BY 1""", [today, int(year), branch_id or None, branch_id or None])
         monthly = [{"month": m, "target": t or 0, "target_to_date": ttd or 0, "sales": s or 0} for m, t, ttd, s in cr.fetchall()]
         dom = self._day_filter(m0, m1, weekdays) + ([("branch_id", "=", int(branch_id))] if branch_id else [])
-        daily = [{"day": fields.Date.to_string(r.day), "branch_id": r.branch_id.id, "target": r.target,
-                  "sales": r.sales if r.has_sales else None, "invoices": r.invoices, "items": r.items, "returns": r.returns,
-                  "tax": r.vat_amount, "cash": r.cash, "card": r.card, "closed_by": r.closed_by or "",
-                  "system": r._is_system()}
-                 for r in self.env["navitta.daily.sales"].sudo().search(dom, order="day, branch_id")]
+        marks = self._day_marks(m0, m1, branch_id)
+        daily = []
+        for r in self.env["navitta.daily.sales"].sudo().search(dom, order="day, branch_id"):
+            mk = marks.get((r.branch_id.id, r.day)) or {}
+            daily.append({"day": fields.Date.to_string(r.day), "branch_id": r.branch_id.id, "target": r.target,
+                          "sales": r.sales if r.has_sales else None, "invoices": r.invoices, "items": r.items, "returns": r.returns,
+                          "returns_amount": r.returns_amount, "tax": r.vat_amount, "cash": r.cash, "card": r.card,
+                          "closed_by": r.closed_by or "", "system": r._is_system(), "source": r.source or False,
+                          "edited": r.source == "admin", "changed": mk.get("changed", 0),
+                          # the counted cash and card of the daily report against the system (only once the report is in)
+                          "check": self._cash_check(mk.get("report"), r)})
         return {"branches": self._branches(), "summary": summary, "monthly": monthly, "daily": daily,
                 "employees": self.employee_summary(date_from, date_to, branch_id, weekdays), "settings": self._settings(),
                 "day": fields.Date.to_string(today)}
@@ -459,10 +465,15 @@ class NavittaApiAdmin(models.AbstractModel):
         visits = S["navitta.visit"].sudo().search([("day", "=", d), ("saved", "=", True)])
         att, brk = self._today_bits(emps, d)
         cases = S["navitta.late.case"].sudo().search([("day", "=", d)])
+        S["navitta.branch"].sudo().search([])._system_sync([d])
+        sales = {r.branch_id.id: r for r in S["navitta.daily.sales"].sudo().search([("day", "=", d)])}
+        changed = {}
+        for c in S["navitta.sales.change.log"].sudo().search_read([("day", "=", d)], ["branch_id"]):
+            changed[c["branch_id"][0]] = changed.get(c["branch_id"][0], 0) + 1
         return {
             "day": fields.Date.to_string(d), "today": fields.Date.to_string(app_today(self.env)), "branches": self._branches(),
             "employees": self._employees(), "off": {e.id: e._is_off(d) for e in emps},
-            "reports": [dict(self._report_dict(r), branch_id=r.branch_id.id,
+            "reports": [dict(self._report_dict(r), branch_id=r.branch_id.id, check=self._cash_check(r, sales.get(r.branch_id.id)),
                              events=[{"level": lv, "title": t, "text": x} for lv, t, x in r._events()],
                              exch_labels=[{"reason": sel_label(self.env, "navitta.daily.report.exchange", "reason", x.reason), "detail": x.detail,
                                            "soldBy": x.sold_by, "by": x.exchanged_by} for x in r.exchange_ids]) for r in reps],
@@ -470,6 +481,9 @@ class NavittaApiAdmin(models.AbstractModel):
             "attendance": att, "breaks": brk, "cases": [self._case_dict(c) for c in cases],
             # today's float and tasks per branch (26.3)
             "daily": self._day_floats_tasks(d),
+            # figures corrected by management, or changed after the report closed the day
+            "marks": {b: {"edited": r.source == "admin", "changed": changed.get(b, 0), "system": r._is_system(),
+                          "returns_amount": r.returns_amount} for b, r in sales.items()},
         }
 
     # ------------------------------------------------------------------ nightly summary

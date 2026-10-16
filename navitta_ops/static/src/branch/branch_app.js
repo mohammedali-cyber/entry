@@ -122,7 +122,7 @@ class Counter extends Component {
     setup() {
         this.orm = useService("orm");
         this.notification = useService("notification");
-        this.state = useState({ d: null, tick: 0, pin: null, drafts: {}, editFor: null, search: false, block: null, undo: null });
+        this.state = useState({ d: null, tick: 0, pin: null, drafts: {}, editFor: null, search: false, block: null, undo: null, autoNote: {} });
         Object.assign(this, H);
         this.OTHER = OTHER;
         onWillStart(() => this.load());
@@ -166,6 +166,11 @@ class Counter extends Component {
                 }
             }
         }
+        for (const v of d.visits) {
+            if (v.auto && !v.auto_ack && !this.state.autoNote[v.id]) {
+                this.state.autoNote[v.id] = { open: false, note: "" };
+            }
+        }
         this.state.d = d;
         for (const id of Object.keys(this.state.drafts)) {
             if (!open.has(id)) {
@@ -205,7 +210,9 @@ class Counter extends Component {
         const d = this.state.d, mine = this.mine(emp);
         const saved = mine.filter((v) => v.saved), open = mine.filter((v) => !v.saved);
         const buys = saved.filter((v) => v.outcomes.includes("buy")).length;
-        const avg = saved.length ? saved.reduce((t, v) => t + (v.duration_sec || 0), 0) / saved.length : 0;
+        // sales made without the counter have no duration: the average is of the timed visits
+        const timed = saved.filter((v) => !v.auto);
+        const avg = timed.length ? timed.reduce((t, v) => t + (v.duration_sec || 0), 0) / timed.length : 0;
         return {
             att: this.att(emp), isIn: this.isIn(emp), onBreak: this.onBreak(emp), left: this.breakLeft(emp), open, saved,
             buys, avg, buyPct: saved.length ? Math.round((buys / saved.length) * 100) : 0,
@@ -219,6 +226,8 @@ class Counter extends Component {
             unread: +(d.unread[emp.id] || 0),
             // end-of-shift tasks that block her check-out: hers, and the shared ones when she is the last one in
             tasks: endLeft(d.tasks, emp, d.attendance),
+            // sales the Point of Sale recorded without a counter visit, not confirmed yet (they block her check-out)
+            autos: saved.filter((v) => v.auto && !v.auto_ack),
         };
     }
     toReport() {
@@ -230,7 +239,24 @@ class Counter extends Component {
     }
     tasks(emp) {
         const p = this.pane(emp);
-        this.state.block = { emp, open: p.open, tasks: p.tasks };
+        this.state.block = { emp, open: p.open, tasks: p.tasks, autos: p.autos };
+    }
+    autoText(v) {
+        return _t("An invoice of %(a)s SAR was made under your name at %(t)s while the counter was off. It was added automatically as a visit.",
+            { a: f0(v.amount || 0), t: clock(v.started_at) });
+    }
+    autoLine(v) {
+        return _t("Invoice %(a)s SAR from Point of Sale · %(t)s", { a: f0(v.amount || 0), t: clock(v.started_at) });
+    }
+    an(v) {
+        return this.state.autoNote[v.id] || { open: false, note: "" };
+    }
+    async ackAuto(v) {
+        const n = this.an(v);
+        if (await this.call("auto_visit_ack", v.id, n.note || null)) {
+            delete this.state.autoNote[v.id];
+            await this.load();
+        }
     }
     secs(v) {
         return ((v.ended_at ? Date.parse(v.ended_at) : now()) - Date.parse(v.started_at)) / 1000;
@@ -366,9 +392,9 @@ class Counter extends Component {
         await this.load();
     }
     out(emp) {
-        const open = this.mine(emp).filter((v) => !v.saved), tasks = this.pane(emp).tasks;
-        if (open.length || tasks.length) {
-            this.state.block = { emp, open, tasks };
+        const p = this.pane(emp), open = p.open, tasks = p.tasks, autos = p.autos;
+        if (open.length || tasks.length || autos.length) {
+            this.state.block = { emp, open, tasks, autos };
             return;
         }
         this.state.pin = { emp, mode: "out" };
@@ -392,11 +418,12 @@ class Counter extends Component {
         const photo = this.cam && this.state.d.settings.checkin_photo ? await this.cam.capture() : null;
         const r = await api(this.orm, p.mode === "in" ? "check_in" : "check_out", p.emp.id, code, photo);
         if (r.error) {
-            if (r.tasks) {
-                // end-of-shift tasks left (e.g. a colleague checked out meanwhile): show the list instead of the PIN
+            if (r.tasks || r.autos) {
+                // end-of-shift tasks left (e.g. a colleague checked out meanwhile), or sales made without the counter
+                // that the Point of Sale just sent: show the list instead of the PIN
                 this.state.pin = null;
                 await this.load();
-                this.state.block = { emp: p.emp, open: this.mine(p.emp).filter((v) => !v.saved), tasks: r.tasks };
+                this.state.block = { emp: p.emp, open: this.mine(p.emp).filter((v) => !v.saved), tasks: r.tasks || [], autos: r.autos || [] };
                 return null;
             }
             return r.message;
@@ -733,7 +760,7 @@ class Requests extends Component {
 // ---------------------------------------------------------------- daily report
 class Report extends Component {
     static template = "navitta_ops.Report";
-    static components = { FloatEnd };
+    static components = { FloatEnd, PhotoPicker };
     static props = {};
     setup() {
         this.orm = useService("orm");
@@ -769,7 +796,7 @@ class Report extends Component {
             type: TYPES[0], color: COLORS[0], size: "38", tried_model: "", tried_reason: TRIED[0], sat: 4, phrase: "", tone: "positive",
             complaint: false, complaint_text: "", influ: false, influ_text: "", short: false, short_text: "", shelf: "good", damage: false,
             damage_text: "", emergency: "none", improve: "", suggest: "", cash: 0, card: 0, deposit: 0, emp: empRows,
-            used: { roll_invoice: 0, roll_card: 0, bags: 0 },
+            used: { roll_invoice: 0, roll_card: 0, bags: 0 }, photo_card: null, photo_inv: null, cash_note: "", card_note: "",
         };
         if (d.report) {
             const rep = d.report;
@@ -804,6 +831,33 @@ class Report extends Component {
     get salesLegend() {
         return this.state.d.system ? _t("Exchanges") : _t("Sales");
     }
+    get photoCardLabel() {
+        return _t("💳 Card-terminal settlement photo *");
+    }
+    get photoInvLabel() {
+        return _t("🧾 Sales invoices photo *");
+    }
+    /** The counted cash / card settlement against the Point of Sale (rounded to the riyal, as on the site). */
+    box(k) {
+        const sy = this.state.d.system, f = this.state.f;
+        const o = sy ? +sy[k] || 0 : null, v = +f[k] || 0;
+        const off = o !== null && Math.round(v) !== Math.round(o);
+        return { k, o, v, off, diff: o === null ? 0 : Math.round((v - o) * 100) / 100 };
+    }
+    get boxes() {
+        return [
+            { ...this.box("cash"), title: _t("💵 Cash"), lab: _t("✋ Cash you counted in the drawer (SAR)") },
+            { ...this.box("card"), title: _t("💳 Card"), lab: _t("✋ Card terminal settlement total (SAR)") },
+        ];
+    }
+    diffText(b) {
+        return _t("⚠️ Difference: %(w)s %(n)s SAR", { w: b.diff < 0 ? _t("short") : _t("over"), n: f0(Math.abs(b.diff)) });
+    }
+    get totals() {
+        const sy = this.state.d.system, f = this.state.f;
+        const ot = (+sy.cash || 0) + (+sy.card || 0), mt = (+f.cash || 0) + (+f.card || 0), df = Math.round(mt - ot);
+        return { ot, mt, df, text: df ? _t("Difference: %s · goes to Management with the reason", f0(df)) : _t("✓ No difference") };
+    }
     get submitLabel() {
         return this.state.saved ? _t("Update report") : _t("Send report");
     }
@@ -824,6 +878,14 @@ class Report extends Component {
         if (bad > -1) return (this.state.err = _t("Exchange %s: give the detailed reason, who sold and who exchanged", bad + 1));
         const lb = f.lost.findIndex((x) => !x.color && !x.size);
         if (lb > -1) return (this.state.err = _t("Lost sale %s: enter the color or size", lb + 1));
+        if (!f.photo_card) return (this.state.err = _t("Attach the card-terminal settlement photo"));
+        if (!f.photo_inv) return (this.state.err = _t("Attach the sales invoices photo"));
+        if (this.box("cash").off && !String(f.cash_note || "").trim()) {
+            return (this.state.err = _t("The cash doesn't match the Point of Sale: state the reason for the difference"));
+        }
+        if (this.box("card").off && !String(f.card_note || "").trim()) {
+            return (this.state.err = _t("The card total doesn't match the Point of Sale: state the reason for the difference"));
+        }
         if (!this.state.d.float.end) return (this.state.err = _t("Count the end-of-shift float and confirm it with your PIN first"));
         this.state.err = "";
         const r = await api(this.orm, "report_save", JSON.parse(JSON.stringify(f)));

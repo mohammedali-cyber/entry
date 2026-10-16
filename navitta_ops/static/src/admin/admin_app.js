@@ -11,6 +11,7 @@ import {
 import { DailyQuote, EmpBoard, NvModal, PhotoLink, TargetEditor } from "../common/components";
 import { CaseDecide, Dots } from "../common/cases";
 import { groupOf, phases } from "../common/tasks";
+import { DayChanges, DayEdit, TargetFile } from "./sales_tools";
 
 const LEAVEADM = { pending: _t("Awaiting your approval"), cover: _t("Awaiting colleague"), cover_no: _t("Colleague declined"), approved: _t("Approved"), rejected: _t("Rejected") };
 // the new PIN's email (sent right away, then wiped)
@@ -66,6 +67,8 @@ const TX = {
     alert: _t("Alert"),
     event: _t("Event"),
     negative: _t("negative"),
+    settlement: _t("💳 Settlement"),
+    invoicesPhoto: _t("🧾 Invoices"),
     positive: _t("positive"),
     nAwaitDecision: (n) => _t("%s awaiting your decision", n),
     daysNoReport: (n) => _t("%s days without a report", n),
@@ -357,10 +360,10 @@ class Dashboard extends AdminBase {
 // ---------------------------------------------------------------- sales and targets
 class Sales extends AdminBase {
     static template = "navitta_ops.AdminSales";
-    static components = { EmpBoard, TargetEditor };
+    static components = { EmpBoard, TargetEditor, TargetFile, DayEdit, DayChanges };
     setup() {
         super.setup();
-        this.state = useState({ d: null, edit: null, editRows: null });
+        this.state = useState({ d: null, edit: null, editRows: null, dayEdit: null, changes: null });
         this.watchFilter = true;
         onWillStart(() => this.load());
     }
@@ -400,15 +403,41 @@ class Sales extends AdminBase {
     get dayRows() {
         const byDay = {};
         for (const r of this.state.d.daily) {
-            const x = (byDay[r.day] ||= { day: r.day, target: 0, sales: 0, invoices: 0, items: 0, returns: 0, cash: 0, card: 0, tax: 0, has: false, closed_by: r.closed_by });
-            for (const k of ["target", "sales", "invoices", "items", "returns", "cash", "card", "tax"]) {
+            const x = (byDay[r.day] ||= { day: r.day, target: 0, sales: 0, invoices: 0, items: 0, returns: 0, returns_amount: 0, cash: 0, card: 0,
+                tax: 0, has: false, closed_by: r.closed_by, edited: false, changed: 0, checked: false, diff: 0, notes: [] });
+            for (const k of ["target", "sales", "invoices", "items", "returns", "returns_amount", "cash", "card", "tax"]) {
                 x[k] += +(r[k] || 0);
             }
             if (r.sales !== null && r.sales !== false) {
                 x.has = true;
             }
+            x.edited = x.edited || r.edited;
+            x.changed += r.changed || 0;
+            // counted cash + card (daily report) minus the Point of Sale's, once the report is in
+            if (r.check) {
+                x.checked = true;
+                x.diff += (r.check.cash + r.check.card) - (r.check.sys_cash + r.check.sys_card);
+                const n = [r.check.cash_note && "💵 " + r.check.cash_note, r.check.card_note && "💳 " + r.check.card_note].filter(Boolean).join(" · ");
+                if (n) {
+                    x.notes.push(this.br ? n : this.bName(r.branch_id) + ": " + n);
+                }
+            }
         }
         return Object.values(byDay).sort((a, b) => (a.day < b.day ? -1 : 1));
+    }
+    diffCell(x) {
+        if (!x.checked) {
+            return { cls: "", text: "—", title: "" };
+        }
+        if (Math.round(x.diff) === 0) {
+            return { cls: "good-t", text: "✓", title: "" };
+        }
+        return { cls: "bad-t", text: (x.diff > 0 ? "+" : "−") + f0(Math.abs(x.diff)) + (x.notes.length ? " 💬" : ""),
+            title: x.notes.join("\n") || _t("No reason") };
+    }
+    async daySaved() {
+        this.state.dayEdit = null;
+        await this.load();
     }
     async openEdit(id) {
         const rows = await api(this.orm, "admin_target_rows", id);
@@ -551,10 +580,10 @@ class Lost extends AdminBase {
 // ---------------------------------------------------------------- day log
 class Day extends AdminBase {
     static template = "navitta_ops.AdminDay";
-    static components = { PhotoLink };
+    static components = { PhotoLink, DayChanges };
     setup() {
         super.setup();
-        this.state = useState({ d: null, day: today() });
+        this.state = useState({ d: null, day: today(), changes: null });
         onWillStart(() => this.load());
     }
     async load() {
@@ -600,9 +629,23 @@ class Day extends AdminBase {
         const floats = [["start", _t("Start of shift")], ["end", _t("End of shift")]].map(([k, label]) => ({ k, label, f: fl[k] || null }));
         floats.filter((x) => x.f && x.f.state === "short").forEach((x) => ev.unshift(["bad", _t("Float short (%(when)s): %(a)s SAR of %(x)s SAR",
             { when: x.label, a: f0(x.f.amount), x: f0(x.f.expected) }) + (x.f.note ? " · " + x.f.note : "")]));
+        // end of the shift (26.3): the counted cash / card against the Point of Sale, with the employee's reasons
+        const chk = r && r.check;
+        if (chk) {
+            [["cash", _t("💵 Cash")], ["card", _t("💳 Card")]].filter(([k]) => chk[k + "_diff"]).forEach(([k, label]) => ev.unshift(["bad",
+                _t("%(what)s differs from the Point of Sale: counted %(c)s · Point of Sale %(o)s · difference %(d)s", {
+                    what: label, c: f0(chk[k]), o: f0(chk["sys_" + k]), d: (chk[k + "_diff"] > 0 ? "+" : "−") + f0(Math.abs(chk[k + "_diff"])) })
+                + " · " + (chk[k + "_note"] ? _t("Reason: %s", chk[k + "_note"]) : _t("No reason"))]));
+        }
+        const autos = vs.filter((v) => v.auto);
+        if (autos.length) {
+            ev.push(["warn", _t("🧾 %(n)s invoices sold without the counter (%(a)s not confirmed)", { n: autos.length, a: autos.filter((v) => !v.auto_ack).length })]);
+        }
+        const timed = vs.filter((v) => !v.auto);
         return {
             r, vs, buyPct: vs.length ? Math.round((buys / vs.length) * 100) + "%" : "—",
-            avg: vs.length ? mmss(vs.reduce((t, v) => t + (v.duration_sec || 0), 0) / vs.length) : "—", ev, rows, floats, T,
+            avg: timed.length ? mmss(timed.reduce((t, v) => t + (v.duration_sec || 0), 0) / timed.length) : "—", ev, rows, floats, T,
+            mk: (d.marks || {})[b.id] || {}, chk,
         };
     }
     get phases() {

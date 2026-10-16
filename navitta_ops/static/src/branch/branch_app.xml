@@ -73,6 +73,10 @@
                             <div><b class="num" t-esc="visitTitle(v)"/>
                                 <small t-esc="visitHint(v)"/></div>
                             <button type="button" class="nv-btn primary" t-on-click="() => this.goTo('visit-' + v.id)">Finish</button></li>
+                        <li t-foreach="state.block.autos or []" t-as="v" t-key="v.id"><span class="e">🧾</span>
+                            <div><b class="num" t-esc="autoLine(v)"/>
+                                <small>Sold without the counter and not confirmed yet</small></div>
+                            <button type="button" class="nv-btn primary" t-on-click="() => this.goTo('auto-' + v.id)">Confirm</button></li>
                     </ul>
                     <button type="button" class="nv-btn" t-on-click="() => state.block = null">Back</button>
                 </div>
@@ -117,6 +121,16 @@
                         </div>
 
                         <div t-if="p.isIn and !p.onBreak and p.backRecently and p.left &gt; 0" class="brk-left" t-esc="backText(p)"/>
+                        <div t-foreach="p.autos" t-as="v" t-key="v.id" class="nfy warnbox autov" t-att-id="'auto-' + v.id">
+                            <t t-set="nt" t-value="an(v)"/>
+                            <p>⚠️ <b>Invoice without the counter:</b> <t t-esc="autoText(v)"/></p>
+                            <input t-if="nt.open" class="ctl" placeholder="Note (optional)" t-model="nt.note"/>
+                            <div class="vrow">
+                                <button t-if="nt.open" type="button" class="nv-btn primary" t-on-click="() => this.ackAuto(v)">Save</button>
+                                <button t-else="" type="button" class="nv-btn primary" t-on-click="() => nt.open = true">Add a note</button>
+                                <button type="button" class="nv-btn" t-on-click="() => this.ackAuto(v)">OK, no details</button>
+                            </div>
+                        </div>
                         <div t-if="p.mySales &gt; 0" class="emp-t">💰 Her sales today <b class="num"><t t-esc="f0(p.mySales)"/> SAR</b>
                             <span t-if="d.day_target">· <bdi dir="ltr"><t t-esc="Math.round(p.mySales / d.day_target * 100)"/>%</bdi> of the Branch target</span></div>
                         <div t-foreach="p.covers" t-as="c" t-key="c.id" class="nfy coverbox"><p>🏖️ <b t-esc="c.requester"/> asks you to cover from <t t-esc="c.from_day"/> to <t t-esc="c.to_day"/>. Reply from “My alerts”.</p>
@@ -167,19 +181,20 @@
                             <div class="log">
                                 <t t-foreach="p.saved.slice(0, 6)" t-as="v" t-key="v.id">
                                     <t t-set="rq" t-value="editReq(v)"/>
-                                    <div class="log-i">
-                                        <div><div class="d num" t-esc="mmss(v.duration_sec)"/><div class="tm num" t-esc="clock(v.started_at)"/></div>
+                                    <div t-att-class="'log-i' + (v.auto ? ' auto' : '')">
+                                        <div><div class="d num" t-esc="v.auto ? '—' : mmss(v.duration_sec)"/><div class="tm num" t-esc="clock(v.started_at)"/></div>
                                         <div>
                                             <div class="vrow">
                                                 <t t-foreach="outcomeChips(v)" t-as="o" t-key="o.k"><span t-att-class="'chip ' + o.cls" t-esc="o.text"/></t>
                                                 <span t-if="v.lost_color or v.lost_size" class="chip warn" t-esc="lostChip(v)"/>
+                                                <span t-if="v.auto" class="chip warn">⚠️ No counter</span>
                                                 <span t-if="rq" t-att-class="'chip ' + (rq.state === 'pending' ? 'warn' : rq.state === 'approved' ? 'good' : 'bad')"
                                                       t-esc="editReqLabel(rq)"/>
                                             </div>
                                             <div t-if="v.note" class="nt"><span t-esc="v.note"/></div>
                                             <EditReq t-if="state.editFor === v.id" v="v" done="() => this.editDone()"/>
                                         </div>
-                                        <div class="lacts"><button t-if="!rq or rq.state !== 'pending'" type="button" class="del" t-on-click="() => state.editFor = (state.editFor === v.id ? null : v.id)">Request duration edit</button></div>
+                                        <div class="lacts"><button t-if="!v.auto and (!rq or rq.state !== 'pending')" type="button" class="del" t-on-click="() => state.editFor = (state.editFor === v.id ? null : v.id)">Request duration edit</button></div>
                                     </div>
                                 </t>
                                 <div t-if="!p.saved.length" class="empty">No visits yet</div>
@@ -611,11 +626,33 @@
                     <label>Employee who sold *<select class="ctl" t-model="x.soldBy"><option value="">Choose</option><t t-foreach="d.employees" t-as="e" t-key="e.id"><option t-att-value="e.name" t-esc="e.name"/></t></select></label>
                     <label>Employee who exchanged *<select class="ctl" t-model="x.by"><option value="">Choose</option><t t-foreach="d.employees" t-as="e" t-key="e.id"><option t-att-value="e.name" t-esc="e.name"/></t></select></label>
                 </div></div>
+                <div class="pp2 fld full">
+                    <div t-att-class="'slot ' + (f.photo_card ? 'ok' : 'req')"><PhotoPicker label="photoCardLabel" value="f.photo_card" onChange="(id) => f.photo_card = id"/>
+                        <span t-if="!f.photo_card" class="er">⚠️ The settlement photo is required before sending the report</span></div>
+                    <div t-att-class="'slot ' + (f.photo_inv ? 'ok' : 'req')"><PhotoPicker label="photoInvLabel" value="f.photo_inv" onChange="(id) => f.photo_inv = id"/>
+                        <span t-if="!f.photo_inv" class="er">⚠️ The invoices photo is required before sending the report</span></div>
+                </div>
             </fieldset>
-            <fieldset><legend>💵 Cash and deposit</legend>
-                <div t-if="!d.system" class="fld"><label class="lab">Cash sales (SAR)</label><input class="ctl num" type="number" min="0" t-model.number="f.cash"/></div>
-                <div t-if="!d.system" class="fld"><label class="lab">Card sales (SAR)</label><input class="ctl num" type="number" min="0" t-model.number="f.card"/></div>
-                <div class="fld"><label class="lab">Bank deposit from the Cash box (SAR)</label><input class="ctl num" type="number" min="0" t-model.number="f.deposit"/></div>
+            <fieldset><legend>💵 Cash <small t-if="d.system">From the Point of Sale + your own count</small></legend>
+                <div class="mx fld full">
+                    <div t-foreach="boxes" t-as="b" t-key="b.k" class="mbox"><h4 t-esc="b.title"/>
+                        <div t-if="b.o !== null" class="oline"><div><div class="lk">🔒 Per Point of Sale</div><div class="v num"><t t-esc="f0(b.o)"/> SAR</div></div><span class="lk">Filled in automatically</span></div>
+                        <label class="lab" t-esc="b.lab"/>
+                        <input class="ctl num" type="number" min="0" t-model.number="f[b.k]"/>
+                        <t t-if="b.o !== null">
+                            <div t-if="!b.off" class="res ok">✅ Matches, no difference</div>
+                            <t t-else="">
+                                <div class="res bad" t-esc="diffText(b)"/>
+                                <label class="lab">State the reason for the difference *</label>
+                                <textarea class="ctl" rows="2" t-model="f[b.k + '_note']"/>
+                            </t>
+                        </t>
+                    </div>
+                </div>
+                <t t-if="d.system"><t t-set="tt" t-value="totals"/>
+                    <div class="sumx fld full"><span>Point of Sale total: <b class="num" t-esc="f0(tt.ot)"/></span><span>Your count total: <b class="num" t-esc="f0(tt.mt)"/></span>
+                        <span t-att-class="tt.df ? 'bad' : 'ok'" t-esc="tt.text"/></div></t>
+                <div class="fld"><label class="lab">✋ Bank deposit from the Cash box (SAR)</label><input class="ctl num" type="number" min="0" t-model.number="f.deposit"/></div>
             </fieldset>
             <FloatEnd fl="d.float" emps="d.employees" onDone="() => this.floatDone()"/>
             <fieldset t-if="!d.system"><legend>💰 Sales per employee <small>from the Cashier report at the end of the shift</small></legend>

@@ -335,8 +335,10 @@
         <t t-else="">
             <t t-set="d" t-value="state.d"/>
             <t t-set="rg" t-value="range"/>
-            <div t-if="br" class="filters">
-                <button type="button" class="nv-btn" t-on-click="() => this.openEdit(br)">✏️ Edit target</button>            </div>
+            <div class="filters">
+                <button t-if="br" type="button" class="nv-btn" t-on-click="() => this.openEdit(br)">✏️ Edit target</button>
+                <TargetFile onDone="() => this.load()"/>
+            </div>
             <t t-set="T" t-value="tot('target_to_date')"/><t t-set="S" t-value="tot('sales')"/><t t-set="I" t-value="tot('invoices')"/><t t-set="IT" t-value="tot('items')"/><t t-set="R" t-value="tot('returns')"/>
             <div class="kpis k7">
                 <div class="kpi"><span class="lbl">Target to date</span><span class="val num"><t t-esc="f0(T)"/><small>SAR</small></span><span class="small">Full-period target <t t-esc="f0(tot('target'))"/></span></div>
@@ -379,22 +381,29 @@
                 </div>
 
                 <div class="nv-card c12"><h2><t t-esc="br ? bName(br) : TX.allBranches"/>: <t t-esc="TX.fromTo(dmy(rg.from), dmy(rg.to))"/> day by day</h2>
-                    <div class="tscroll"><table class="nv-tbl dt"><thead><tr><th>Date</th><th>Day</th><th>Target</th><th>Sales</th><th>Achieved</th><th>Invoices</th><th>Average invoice</th><th>Items</th><th>Returns</th><th>Cash</th><th>Card</th><th>VAT</th><th>Net</th><th t-if="br">Closed by</th></tr></thead><tbody>
+                    <div class="tscroll"><table class="nv-tbl dt"><thead><tr><th>Date</th><th>Day</th><th>Target</th><th>Sales</th><th>Achieved</th><th>Invoices</th><th>Average invoice</th><th>Items</th><th>Returns</th><th>Refund (SAR)</th><th>Cash</th><th>Card</th><th>Difference</th><th>VAT</th><th>Net</th><t t-if="br"><th>Closed by</th><th/></t></tr></thead><tbody>
                         <t t-foreach="dayRows" t-as="x" t-key="x.day"><t t-set="p2" t-value="pc(x.sales, x.target)"/>
-                            <tr><td class="num" t-esc="x.day.slice(5)"/><td t-esc="weekday(x.day)"/><td class="n" t-esc="f0(x.target)"/>
+                            <tr><td class="num"><t t-esc="x.day.slice(5)"/><t t-if="x.changed"> <button type="button" class="chg" title="Changed after closing" aria-label="Changed after closing" t-on-click="() => state.changes = {day: x.day}">⚠️</button></t></td>
+                                <td t-esc="weekday(x.day)"/><td class="n" t-esc="f0(x.target)"/>
                                 <td class="n"><b t-if="x.has" t-esc="f0(x.sales)"/><t t-else="">—</t></td>
                                 <td><span t-if="x.has and x.target" t-att-class="'chip ' + (p2 &gt;= 100 ? 'good' : p2 &gt;= 50 ? 'neutral' : 'warn')"><bdi dir="ltr"><t t-esc="p2"/>%</bdi></span><t t-else="">—</t></td>
                                 <td class="n" t-esc="x.has ? x.invoices : '—'"/><td class="n" t-esc="x.has and x.invoices ? f0(x.sales / x.invoices) : '—'"/>
-                                <td class="n" t-esc="x.has ? x.items : '—'"/><td class="n" t-esc="x.has ? x.returns : '—'"/><td class="n" t-esc="x.has ? f0(x.cash) : '—'"/>
-                                <td class="n" t-esc="x.has ? f0(x.card) : '—'"/><td class="n" t-esc="x.has ? f0(x.tax) : '—'"/><td class="n"><b t-if="x.has" t-esc="f0(x.sales - x.tax)"/><t t-else="">—</t></td>
-                                <td t-if="br" t-esc="x.closed_by or '—'"/></tr>
+                                <td class="n" t-esc="x.has ? x.items : '—'"/><td class="n" t-esc="x.has ? x.returns : '—'"/>
+                                <td class="n" t-esc="x.returns_amount ? f0(x.returns_amount) : '—'"/><td class="n" t-esc="x.has ? f0(x.cash) : '—'"/>
+                                <td class="n" t-esc="x.has ? f0(x.card) : '—'"/>
+                                <t t-set="dc" t-value="diffCell(x)"/><td t-att-class="'n ' + dc.cls" t-att-title="dc.title" t-esc="dc.text"/>
+                                <td class="n" t-esc="x.has ? f0(x.tax) : '—'"/><td class="n"><b t-if="x.has" t-esc="f0(x.sales - x.tax)"/><t t-else="">—</t></td>
+                                <t t-if="br"><td><t t-esc="x.closed_by or '—'"/> <span t-if="x.edited" class="chip info">✏️ Edited</span></td>
+                                    <td><button type="button" class="del" t-on-click="() => state.dayEdit = {day: x.day}">✏️ Edit</button></td></t></tr>
                         </t>
-                        <tr t-if="!dayRows.length"><td colspan="14" class="empty" t-esc="rg.custom ? TX.noDataPeriod : TX.noDataMonth"/></tr>
+                        <tr t-if="!dayRows.length"><td colspan="18" class="empty" t-esc="rg.custom ? TX.noDataPeriod : TX.noDataMonth"/></tr>
                     </tbody></table></div></div>
 
                 <EmpBoard from="rg.from" to="rg.to" wd="props.f.wd" branchId="br" branches="d.branches"/>
             </div>
             <TargetEditor t-if="state.edit" branchId="state.edit.id" branchName="state.edit.name" admin="true" rows="state.editRows" onClose="() => state.edit = null" onSaved="() => this.saved()"/>
+            <DayEdit t-if="state.dayEdit and br" branchId="br" day="state.dayEdit.day" onClose="() => state.dayEdit = null" onSaved="() => this.daySaved()"/>
+            <DayChanges t-if="state.changes" day="state.changes.day" branchId="br or false" onClose="() => state.changes = null"/>
         </t>
     </t>
 
@@ -555,7 +564,9 @@
                 <t t-foreach="shownBranches" t-as="b" t-key="b.id">
                     <t t-set="k" t-value="block(b)"/>
                     <div class="nv-card c12">
-                        <div class="nv-card-h"><h2 t-esc="b.name"/><span t-if="k.r" class="chip good">Report by <t t-esc="k.r.employee_name"/></span><span t-else="" class="chip warn">No report sent</span></div>
+                        <div class="nv-card-h"><h2 t-esc="b.name"/><div class="vrow"><span t-if="k.r" class="chip good">Report by <t t-esc="k.r.employee_name"/></span><span t-else="" class="chip warn">No report sent</span>
+                            <span t-if="k.mk.edited" class="chip info">✏️ Edited</span>
+                            <button t-if="k.mk.changed" type="button" class="chg" t-on-click="() => state.changes = {day: state.day, branchId: b.id}">⚠️ Changed after closing (<t t-esc="k.mk.changed"/>)</button></div></div>
                         <div class="kpis mini">
                             <div class="kpi"><span class="lbl">Sales</span><span class="val num" t-esc="k.r ? f0(k.r.sales) + ' ' + TX.sar : '—'"/></div>
                             <div class="kpi"><span class="lbl">Invoices</span><span class="val num" t-esc="k.r ? k.r.invoices : '—'"/></div>
@@ -568,6 +579,17 @@
                             <tr t-foreach="k.rows" t-as="x" t-key="x.e.id"><td><b t-esc="x.e.name"/></td><td class="n" t-esc="x.a ? clock(x.a.check_in) : '—'"/><td class="n" t-esc="x.a and x.a.check_out ? clock(x.a.check_out) : '—'"/>
                                 <td class="n" t-esc="x.bm ? x.bm + ' ' + TX.min : '—'"/><td><span t-att-class="'chip ' + x.st[0]" t-esc="x.st[1]"/></td></tr>
                         </tbody></table></div>
+                        <t t-if="k.r">
+                            <h3>📸 End-of-shift photos</h3>
+                            <div class="eod">
+                                <span class="ph"><t t-if="k.r.photo_card"><PhotoLink id="k.r.photo_card" label="TX.settlement"/></t><span t-else="" class="chip bad">⚠️ No settlement photo</span></span>
+                                <span class="ph"><t t-if="k.r.photo_inv"><PhotoLink id="k.r.photo_inv" label="TX.invoicesPhoto"/></t><span t-else="" class="chip bad">⚠️ No invoices photo</span></span>
+                                <span class="num">💳 Card <b t-esc="f0(k.r.card)"/> · 💵 Cash <b t-esc="f0(k.r.cash)"/><t t-if="k.chk"> · Point of Sale <t t-esc="f0(k.chk.sys_card)"/> / <t t-esc="f0(k.chk.sys_cash)"/></t></span>
+                                <span t-if="k.r.cash_note" class="chip warn">💵 <t t-esc="k.r.cash_note"/></span>
+                                <span t-if="k.r.card_note" class="chip warn">💳 <t t-esc="k.r.card_note"/></span>
+                                <span t-if="k.mk.returns_amount" class="chip neutral">🔄 Refund <t t-esc="f0(k.mk.returns_amount)"/> SAR</span>
+                            </div>
+                        </t>
                         <h3>💰 Float</h3>
                         <div class="tscroll"><table class="nv-tbl"><thead><tr><th/><th>Amount</th><th>Counted by</th><th>Confirmed by</th><th>Status</th><th>Photo</th></tr></thead><tbody>
                             <tr t-foreach="k.floats" t-as="x" t-key="x.k"><t t-set="fs" t-value="floatState(x.f)"/>
@@ -605,6 +627,7 @@
                     </div>
                 </t>
             </div>
+            <DayChanges t-if="state.changes" day="state.changes.day" branchId="state.changes.branchId" onClose="() => state.changes = null"/>
         </t>
     </t>
 

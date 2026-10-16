@@ -30,6 +30,12 @@ class NavittaVisit(models.Model):
     visit_count = fields.Integer("Number of visits", default=1, readonly=True, help="For reports")
     bought_count = fields.Integer("Bought (count)", compute="_compute_outcome", store=True)
     lost_sale_id = fields.One2many("navitta.lost.sale", "visit_id")
+    # a sale recorded by the cash register system while the counter was off (navitta_ops_pos): added as a visit, the
+    # employee confirms it on the counter (with an optional note) before she can check out
+    auto = fields.Boolean("Sold without the counter", readonly=True, index=True)
+    auto_ack = fields.Boolean("Confirmed by the employee", readonly=True)
+    auto_ack_at = fields.Datetime("Confirmed at", readonly=True)
+    amount = fields.Float("Invoice amount", digits=(12, 2), readonly=True, help="Total of the cash register invoices linked to this visit")
 
     @api.depends("duration_sec")
     def _compute_duration_min(self):
@@ -42,6 +48,19 @@ class NavittaVisit(models.Model):
             v.outcome = ("buy_exchange" if v.bought and v.exchanged else "buy" if v.bought else
                          "exchange" if v.exchanged else "lost" if v.lost_reason else False)
             v.bought_count = 1 if v.bought else 0
+
+    def _ack_auto(self, note=None):
+        """The employee saw the sale made without the counter (and may add a note)."""
+        self.ensure_one()
+        v = self.sudo()
+        if not v.auto or v.auto_ack:
+            return "not_found"
+        v.write({"auto_ack": True, "auto_ack_at": fields.Datetime.now(), "note": (note or "").strip() or v.note or False})
+        return None
+
+    @api.model
+    def _unacked_autos(self, employee, day):
+        return self.sudo().search([("employee_id", "=", employee.id), ("day", "=", day), ("auto", "=", True), ("auto_ack", "=", False)])
 
     def _outcome_list(self):
         """Values used by the screens: 'buy', 'exchange' and/or the lost reason key."""

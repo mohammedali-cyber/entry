@@ -1,4 +1,5 @@
 """Shared helpers: local time in the company time zone, PIN hashing and the fixed choice lists."""
+import math
 import secrets
 from datetime import datetime, timedelta
 
@@ -156,3 +157,9 @@ def new_pin():
         down = all(d[i - 1] - d[i] == 1 for i in range(1, 4))
         if len(set(d)) >= 3 and not up and not down and not c.startswith(("19", "20")):
             return c
+
+
+def differs(counted, system):
+    """The counted cash / card settlement doesn't match the system's figure: as on the site, both rounded to the riyal
+    (a difference under half a riyal is no difference)."""
+    return math.floor((counted or 0.0) + 0.5) != math.floor((system or 0.0) + 0.5)

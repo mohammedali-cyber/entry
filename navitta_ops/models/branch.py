@@ -66,7 +66,7 @@ class NavittaBranch(models.Model):
         """True when the branch's sales come from a linked cash register system (e.g. Odoo POS)."""
         return False
 
-    def _system_sync(self, days):
+    def _system_sync(self, days, force=False):
         """Refreshes the sales of these days from the cash register system. Nothing without one."""
         return True
 

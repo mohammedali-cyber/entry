@@ -13,6 +13,7 @@
                 <field name="invoices" sum="Total"/>
                 <field name="items" string="Items" sum="Total"/>
                 <field name="returns" string="Returns" sum="Total"/>
+                <field name="returns_amount" string="Refund (SAR)" sum="Total" optional="hide"/>
                 <field name="cash" sum="Total" optional="show"/>
                 <field name="card" sum="Total" optional="show"/>
                 <field name="deposit" sum="Total" optional="hide"/>
@@ -30,6 +31,7 @@
             <search>
                 <field name="branch_id"/>
                 <filter name="with_sales" string="With sales" domain="[('has_sales', '=', True)]"/>
+                <filter name="edited" string="Corrected by management" domain="[('source', '=', 'admin')]"/>
                 <filter name="f_day" string="Today" date="day"/>
                 <group>
                     <filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/>
@@ -89,6 +91,76 @@
         <field name="view_mode">list</field>
     </record>
 
+    <!-- 26.3: management's corrections of a day, and changes after the day was closed -->
+    <record id="view_sales_edit_log_list" model="ir.ui.view">
+        <field name="name">navitta.sales.edit.log.list</field>
+        <field name="model">navitta.sales.edit.log</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0">
+                <field name="create_date" string="Time"/>
+                <field name="branch_id"/>
+                <field name="day"/>
+                <field name="field"/>
+                <field name="old_value"/>
+                <field name="new_value"/>
+                <field name="reason"/>
+                <field name="user_id"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_sales_edit_log_search" model="ir.ui.view">
+        <field name="name">navitta.sales.edit.log.search</field>
+        <field name="model">navitta.sales.edit.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="branch_id"/>
+                <field name="reason"/>
+                <filter name="f_day" string="Day" date="day"/>
+                <group><filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_day" string="Day" context="{'group_by': 'day'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="action_sales_edit_log" model="ir.actions.act_window">
+        <field name="name">Sales day edits</field>
+        <field name="res_model">navitta.sales.edit.log</field>
+        <field name="view_mode">list</field>
+    </record>
+    <record id="view_sales_change_log_list" model="ir.ui.view">
+        <field name="name">navitta.sales.change.log.list</field>
+        <field name="model">navitta.sales.change.log</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0">
+                <field name="create_date" string="Time"/>
+                <field name="branch_id"/>
+                <field name="day"/>
+                <field name="field"/>
+                <field name="old_value"/>
+                <field name="new_value"/>
+                <field name="source"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_sales_change_log_search" model="ir.ui.view">
+        <field name="name">navitta.sales.change.log.search</field>
+        <field name="model">navitta.sales.change.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="branch_id"/>
+                <filter name="f_pos" string="Point of Sale" domain="[('source', '=', 'pos')]"/>
+                <filter name="f_day" string="Day" date="day"/>
+                <group><filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/>
+                    <filter name="g_day" string="Day" context="{'group_by': 'day'}"/>
+                    <filter name="g_source" string="Source" context="{'group_by': 'source'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="action_sales_change_log" model="ir.actions.act_window">
+        <field name="name">Changes after the day was closed</field>
+        <field name="res_model">navitta.sales.change.log</field>
+        <field name="view_mode">list</field>
+    </record>
+
     <!-- daily reports -->
     <record id="view_daily_report_list" model="ir.ui.view">
         <field name="name">navitta.daily.report.list</field>
@@ -102,6 +174,8 @@
                 <field name="invoices" sum="Total"/>
                 <field name="visitors" sum="Total"/>
                 <field name="sat" avg="Average"/>
+                <field name="cash_diff" sum="Total" optional="show" decoration-danger="cash_diff != 0"/>
+                <field name="card_diff" sum="Total" optional="show" decoration-danger="card_diff != 0"/>
                 <field name="complaint" optional="show"/>
                 <field name="emergency" optional="hide"/>
             </list>
@@ -116,11 +190,22 @@
                     <div class="oe_title"><h2><field name="branch_id" readonly="1"/> – <field name="day" readonly="1"/></h2></div>
                     <group>
                         <group string="Sales"><field name="employee_name"/><field name="sales"/><field name="invoices"/><field name="items"/>
-                            <field name="cash"/><field name="card"/><field name="deposit"/></group>
+                            <field name="cash"/><field name="card"/><field name="deposit"/>
+                            <field name="has_system"/>
+                            <field name="sys_cash" invisible="not has_system"/><field name="cash_diff" invisible="not has_system"/>
+                            <field name="cash_note" invisible="not cash_note"/>
+                            <field name="sys_card" invisible="not has_system"/><field name="card_diff" invisible="not has_system"/>
+                            <field name="card_note" invisible="not card_note"/></group>
                         <group string="Customers"><field name="visitors"/><field name="non_buy"/>
                             <field name="product_type"/><field name="top_color"/><field name="top_size"/><field name="tried_model"/><field name="tried_reason"/></group>
                     </group>
                     <notebook>
+                        <page string="End-of-shift photos">
+                            <group>
+                                <group><field name="photo_card_id"/><field name="photo_card_image" widget="image" nolabel="1" colspan="2" invisible="not photo_card_id"/></group>
+                                <group><field name="photo_inv_id"/><field name="photo_inv_image" widget="image" nolabel="1" colspan="2" invisible="not photo_inv_id"/></group>
+                            </group>
+                        </page>
                         <page string="Employee sales">
                             <field name="employee_line_ids"><list editable="bottom"><field name="employee_id"/><field name="amount" sum="Total"/>
                                 <field name="invoices" sum="Total"/><field name="items" sum="Total"/><field name="exchanged" sum="Total"/></list></field>
@@ -153,6 +238,7 @@
             <search>
                 <field name="branch_id"/>
                 <filter name="complaint" string="With complaint" domain="[('complaint', '=', True)]"/>
+                <filter name="diff" string="Cash or card difference" domain="['|', ('cash_diff', '!=', 0), ('card_diff', '!=', 0)]"/>
                 <filter name="f_day" string="Today" date="day"/>
                 <group><filter name="g_branch" string="Branch" context="{'group_by': 'branch_id'}"/></group>
             </search>

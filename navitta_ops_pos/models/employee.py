@@ -26,6 +26,12 @@ class NavittaEmployee(models.Model):
     def write(self, vals):
         before = self.mapped("branch_id")
         res = super().write(vals)
+        if {"branch_id", "active"} & set(vals):
+            # her own device stays in her old branch: it no longer belongs to her
+            Cfg = self.env["pos.config"].sudo()
+            for e in self:
+                Cfg.search([("navitta_employee_id", "=", e.id)]).filtered(
+                    lambda c: not e.active or c.navitta_branch_id != e.branch_id).with_context(navitta_skip=True).write({"navitta_employee_id": False})
         if {"hr_employee_id", "branch_id", "active"} & set(vals):
             (before | self.mapped("branch_id"))._navitta_sync_cashiers()
         return res

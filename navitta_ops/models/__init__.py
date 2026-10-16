@@ -18,4 +18,5 @@ from . import api_branch
 from . import api_admin
 from . import api_rules
 from . import api_tasks
+from . import api_sales
 from . import report_summary

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!-- ============================================================ a day corrected by management -->
+    <t t-name="navitta_ops.DayEdit">
+        <NvModal onClose="props.onClose" wide="true">
+            <div class="dedit">
+                <t t-if="state.d">
+                    <h2>✏️ Edit a day · <t t-esc="state.d.branch"/></h2>
+                    <p class="sub" t-esc="subtitle"/>
+                    <div class="dedit-g">
+                        <label t-foreach="FIELDS" t-as="fl" t-key="fl[0]" t-att-class="changed(fl[0]) ? 'ch' : ''"><t t-esc="fl[1]"/>
+                            <input class="ctl num" type="number" min="0" t-att-value="state.v[fl[0]]" t-on-input="(ev) => this.setV(fl[0], ev.target.value)"/>
+                            <small class="num" t-esc="beforeText(fl[0])"/>
+                        </label>
+                    </div>
+                    <label class="lab">Reason for the edit *<input class="ctl" t-model="state.why" placeholder="e.g. an invoice was recorded twice in the Point of Sale"/></label>
+                </t>
+                <span class="hint err" role="alert" t-esc="state.err"/>
+                <div class="vrow">
+                    <button t-if="state.d" type="button" class="nv-btn primary" t-att-disabled="state.busy" t-on-click="() => this.save()">Save the edit</button>
+                    <button type="button" class="nv-btn" t-on-click="props.onClose">Cancel</button>
+                </div>
+                <div t-if="state.d and state.d.log.length" class="elog"><b>📜 Edit log</b>
+                    <div t-foreach="log" t-as="x" t-key="x_index" class="num"><t t-esc="ago(x.at)"/> · <t t-esc="x.lines.join(' · ')"/> · «<t t-esc="x.reason"/>»<t t-if="x.by"> · <t t-esc="x.by"/></t></div>
+                </div>
+            </div>
+        </NvModal>
+    </t>
+
+    <!-- ============================================================ changes after the day was closed -->
+    <t t-name="navitta_ops.DayChanges">
+        <NvModal onClose="props.onClose" wide="true">
+            <div class="dedit">
+                <h2>⚠️ Changed after closing</h2>
+                <p class="sub"><t t-esc="longDate(props.day)"/> · Figures that changed after the employee sent the day's report</p>
+                <div t-if="!state.rows" class="empty">Loading…</div>
+                <div t-else="" class="tscroll"><table class="nv-tbl"><thead><tr><th t-if="!props.branchId">Branch</th><th>Figure</th><th>Was</th><th>Became</th><th>Source</th><th>When</th></tr></thead><tbody>
+                    <tr t-foreach="state.rows" t-as="c" t-key="c_index"><td t-if="!props.branchId" t-esc="c.branch"/><td t-esc="c.label"/><td class="n" t-esc="f0(c.old)"/><td class="n"><b t-esc="f0(c.new)"/></td>
+                        <td t-esc="c.source_label"/><td class="num" t-esc="ago(c.at)"/></tr>
+                    <tr t-if="!state.rows.length"><td colspan="6" class="empty">No changes</td></tr>
+                </tbody></table></div>
+                <div class="vrow"><button type="button" class="nv-btn" t-on-click="props.onClose">Close</button></div>
+            </div>
+        </NvModal>
+    </t>
+
+    <!-- ============================================================ target file -->
+    <t t-name="navitta_ops.TargetFile">
+        <button type="button" class="nv-btn" t-on-click="() => state.open = true">📤 Upload target file</button>
+        <NvModal t-if="state.open" onClose="() => this.close()" wide="true">
+            <div class="tfile">
+                <div class="nv-card-h"><h2>📤 Upload target and sales file</h2><button type="button" class="nv-btn" t-on-click="() => this.close()">Close</button></div>
+                <div class="tf-s">
+                    <div><b>① Download the template</b>A ready file with every branch and every day of next month.<button type="button" class="nv-btn" t-on-click="() => this.template()">⬇️ Download the template</button></div>
+                    <div><b>② Fill it in</b>One row per branch and day: branch, date and target; sales, invoices and items are optional.</div>
+                    <div><b>③ Upload it</b>You see the result before saving, and nothing changes until you press “Approve”.</div>
+                </div>
+                <label class="tf-up"><span aria-hidden="true">📗</span><div><b t-esc="fileLabel"/><small t-if="state.rows" class="num" t-esc="rowsCount"/></div>
+                    <span class="nv-btn" style="margin-inline-start:auto" t-esc="pickLabel"/>
+                    <input t-ref="file" type="file" accept=".xlsx,.csv" hidden="1" t-on-change="read"/></label>
+                <p t-if="state.msg" class="hint" role="status" t-esc="state.msg"/>
+                <t t-if="state.rows">
+                    <t t-set="sm" t-value="sums"/>
+                    <div class="tf-sum">
+                        <span t-if="sm.fresh" class="ok" t-esc="sm.fresh"/>
+                        <span t-if="sm.changed" class="rp" t-esc="sm.changed"/>
+                        <span t-if="sm.same" class="same" t-esc="sm.same"/>
+                        <span t-if="sm.bad" class="er" t-esc="sm.bad"/>
+                    </div>
+                    <div class="tscroll"><table class="nv-tbl"><thead><tr><th>Branch</th><th>Date</th><th>Target</th><th>Sales</th><th>Status</th></tr></thead><tbody>
+                        <tr t-foreach="shown" t-as="r" t-key="r_index" t-att-class="rowCls(r)"><td t-esc="r.bname"/><td class="num" t-esc="r.day"/>
+                            <td class="n" t-esc="num(r.target)"/><td class="n" t-esc="num(r.sales)"/><td t-esc="status(r)"/></tr>
+                        <tr t-if="hiddenCount &gt; 0"><td colspan="5"><button type="button" class="linkbtn" t-on-click="() => state.all = !state.all" t-esc="moreLabel"/></td></tr>
+                    </tbody></table></div>
+                    <div class="tf-tot"><div t-foreach="byBranch" t-as="bt" t-key="bt[0]"><span t-esc="bt[0]"/><b class="num"><t t-esc="f0(bt[1])"/> SAR</b></div></div>
+                    <div class="vrow"><button type="button" class="nv-btn primary" t-att-disabled="!ok.length or state.busy" t-on-click="() => this.save()" t-esc="approveLabel"/>
+                        <button type="button" class="nv-btn" t-on-click="() => this.close()">Cancel</button></div>
+                    <span class="hint">Saved in the target change log with the file name and upload time.</span>
+                </t>
+            </div>
+        </NvModal>
+    </t>
+</templates>

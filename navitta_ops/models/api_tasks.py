@@ -147,6 +147,11 @@ class NavittaApiTasks(models.AbstractModel):
         out = []
         if self.env["navitta.visit"].sudo().search_count([("employee_id", "=", employee.id), ("day", "=", day), ("saved", "=", False)]):
             out.append(_("Open visits on the counter"))
+        # sales the cash register recorded without a counter visit, not confirmed yet (navitta_ops_pos)
+        employee.branch_id._system_sync([day], force=True)
+        autos = self.env["navitta.visit"]._unacked_autos(employee, day)
+        if autos:
+            out.append(_("Invoices sold without the counter not confirmed yet: %s", len(autos)))
         left = self.env["navitta.task.def"]._end_left(employee, day, minute)
         if left:
             out.append(_("End-of-shift tasks not done: %s", _(", ").join(

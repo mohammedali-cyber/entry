@@ -12,7 +12,7 @@ from odoo.exceptions import AccessError
 from odoo.tools.translate import LazyTranslate
 
 from .float_task import DENOMS
-from .common import (EXCHANGE_REASONS, LEAVE_TYPES, LOST_REASONS, OUT_OF_STOCK, TOPICS, SUPPLIES,
+from .common import (differs, EXCHANGE_REASONS, LEAVE_TYPES, LOST_REASONS, OUT_OF_STOCK, TOPICS, SUPPLIES,
                      EXPENSE_CATEGORIES, GOODS_REASONS, EMERGENCIES, SHELF, app_minute, app_today, cashier_text, choices,
                      fmt_time, hours_to_min, iso, label, sel_label, selection)
 
@@ -76,7 +76,25 @@ ERRORS = {
     "not_yours": _lt("This task is your colleague's; she signs it with her PIN"),
     "tasks_open": _lt("Finish the end-of-shift tasks first"),
     "float_end_required": _lt("Count the end-of-shift float and confirm it with your PIN first"),
+    # daily report, sales and auto visits (26.3)
+    "auto_unacked": _lt("Confirm the invoices sold without the counter first"),
+    "photo_card_required": _lt("Attach the card-terminal settlement photo"),
+    "photo_inv_required": _lt("Attach the sales invoices photo"),
+    "cash_reason_required": _lt("The cash doesn't match the Point of Sale: state the reason for the difference"),
+    "card_reason_required": _lt("The card total doesn't match the Point of Sale: state the reason for the difference"),
+    "nothing_changed": _lt("You didn't change anything"),
+    "bad_target_file": _lt("Couldn't read the file"),
+    "no_target_columns": _lt("The columns weren't found at the top of the file: branch, date, target"),
+    "empty_file": _lt("The file is empty"),
+    "file_locked": _lt("The file is password-protected. Open it in Excel, save it without a password and upload it again"),
 }
+
+
+def _amount(n, sign=False):
+    """1200.0 -> '1,200', -0.5 -> '-0.50'; with sign: '+20' / '-20' (amounts in alert texts)."""
+    n = round(n or 0.0, 2)
+    text = "{:,.0f}".format(n) if float(n).is_integer() else "{:,.2f}".format(n)
+    return ("+" + text) if sign and n > 0 else text
 
 
 class NavittaApi(models.AbstractModel):
@@ -158,7 +176,8 @@ class NavittaApi(models.AbstractModel):
         return {"id": v.id, "employee_id": v.employee_id.id, "branch_id": v.branch_id.id, "day": fields.Date.to_string(v.day),
                 "started_at": iso(v.started_at), "ended_at": iso(v.ended_at), "duration_sec": v.duration_sec,
                 "saved": v.saved, "outcomes": v._outcome_list(), "other_text": v.other_text or "", "note": v.note or "",
-                "lost_model": v.lost_model or "", "lost_color": v.lost_color or "", "lost_size": v.lost_size or ""}
+                "lost_model": v.lost_model or "", "lost_color": v.lost_color or "", "lost_size": v.lost_size or "",
+                "auto": v.auto, "auto_ack": v.auto_ack, "amount": v.amount}
 
     @api.model
     def _case_dict(self, c):
@@ -200,6 +219,7 @@ class NavittaApi(models.AbstractModel):
     def branch_state(self):
         b = self._branch()
         day = app_today(self.env)
+        b._system_sync([day])           # sales made without the counter show up as visits to confirm
         emps = self.env["navitta.employee"].sudo().search([("branch_id", "=", b.id), ("active", "=", True)], order="slot")
         att, brk = self._today_bits(emps, day)
         visits = self.env["navitta.visit"].sudo().search([("branch_id", "=", b.id), ("day", "=", day)], order="started_at desc")
@@ -260,6 +280,11 @@ class NavittaApi(models.AbstractModel):
             return self._err("on_break")
         if self.env["navitta.visit"].sudo().search_count([("employee_id", "=", e.id), ("day", "=", day), ("saved", "=", False)]):
             return self._err("open_visits")
+        # sales the cash register recorded without a counter visit: she confirms them first
+        e.branch_id._system_sync([day], force=True)
+        autos = self.env["navitta.visit"]._unacked_autos(e, day)
+        if autos:
+            return dict(self._err("auto_unacked"), autos=[self._visit_dict(v) for v in autos])
         # her own end-of-shift tasks, and the shared ones when she is the last one leaving
         left = self.env["navitta.task.def"]._end_left(e, day, app_minute(self.env))
         if left:
@@ -422,7 +447,7 @@ class NavittaApi(models.AbstractModel):
         v = self._rec("navitta.visit", visit_id, self._branch())
         new_sec = int(new_sec or 0)
         reason = (reason or "").strip()
-        if not v.saved:
+        if not v.saved or v.auto:
             return self._err("not_found")
         if not reason:
             return self._err("reason_required")
@@ -434,6 +459,14 @@ class NavittaApi(models.AbstractModel):
         Req.create({"visit_id": v.id, "employee_id": v.employee_id.id, "old_sec": v.duration_sec or 0,
                     "new_sec": new_sec, "reason": reason})
         return {"ok": True}
+
+    @api.model
+    def auto_visit_ack(self, visit_id, note=None):
+        """A sale made without the counter: the employee saw it (optionally with a note), so it no longer blocks her
+        check-out. Like the site, no PIN: the card is in her own pane."""
+        v = self._rec("navitta.visit", visit_id, self._branch())
+        err = v._ack_auto(note)
+        return self._err(err) if err else {"ok": True}
 
     # ------------------------------------------------------------------ employee inbox (PIN)
     @api.model
@@ -824,6 +857,8 @@ class NavittaApi(models.AbstractModel):
             "influ": r.influ, "influ_text": r.influ_text or "", "short": r.short, "short_text": r.short_text or "",
             "shelf": r.shelf or "good", "damage": r.damage, "damage_text": r.damage_text or "",
             "emergency": r.emergency or "none", "improve": r.improve or "", "suggest": r.suggest or "",
+            "photo_card": r.photo_card_id.id or None, "photo_inv": r.photo_inv_id.id or None,
+            "cash_note": r.cash_note or "", "card_note": r.card_note or "",
         }
 
     @api.model
@@ -838,7 +873,7 @@ class NavittaApi(models.AbstractModel):
             "day": fields.Date.to_string(day),
             "employees": [{"id": e.id, "slot": e.slot, "name": e.name} for e in emps],
             "report": self._report_dict(rep) if rep else False,
-            "system": self._system_day(b, day),
+            "system": self._system_day(b, day, force=True),
             "float": self._float_state(b, day),
             "from_visits": {
                 "visitors": len(visits), "invoices": buys, "nonBuy": len(visits) - buys,
@@ -852,12 +887,12 @@ class NavittaApi(models.AbstractModel):
         }
 
     @api.model
-    def _system_day(self, branch, day):
+    def _system_day(self, branch, day, force=False):
         """The day's figures from the cash register system (synced now), or False when the branch has none.
         The daily report then shows them read-only and saves them instead of what was typed."""
         if not branch._has_system():
             return False
-        branch._system_sync([day])
+        branch._system_sync([day], force=force)
         row = self.env["navitta.daily.sales"].sudo().search([("branch_id", "=", branch.id), ("day", "=", day)], limit=1)
         lines = self.env["navitta.employee.sales"]._preferred_domain(day, day, branch.id).filtered(lambda l: l.source != "report")
         return {
@@ -872,39 +907,55 @@ class NavittaApi(models.AbstractModel):
         b = self._branch()
         day = app_today(self.env)
         data = dict(data or {})
-        system = self._system_day(b, day)
+        system = self._system_day(b, day, force=True)       # the latest figures: the cash / card are compared with them
         if system:
-            # sales, cash and each employee's sales are taken from the system, not from what was typed
+            # sales, invoices, items and each employee's sales are taken from the system, not from what was typed; the
+            # cash and the card-terminal settlement are counted by the employee and compared with the system's figures
             data.update({"sales": system["sales"], "invoices": system["invoices"], "items": system["items"],
-                         "cash": system["cash"], "card": system["card"],
                          "emp": [{"employee_id": x["employee_id"], "amount": x["amount"], "invoices": x["invoices"],
                                   "items": x["items"], "exchanged": x["returns"]} for x in system["emp"] if x["employee_id"]]})
         name = (data.get("employee_name") or "").strip()
         if not name:
             return self._err("name_required")
-        # the end-of-shift float is counted (and signed) inside the report before it can be sent
-        if not self.env["navitta.float"].sudo().search_count([("branch_id", "=", b.id), ("day", "=", day), ("kind", "=", "end")]):
-            return self._err("float_end_required")
         exch = data.get("exch") or []
         if any(not (str(x.get("detail") or "").strip() and x.get("soldBy") and x.get("by")) for x in exch):
             return self._err("bad_exchange")
         lost = data.get("lost") or []
         if any(not (x.get("color") or x.get("size")) for x in lost):
             return self._err("bad_lost")
-        emps = self.env["navitta.employee"].sudo().search([("branch_id", "=", b.id)])
+        photo_card = self._photo(b, data.get("photo_card"))
+        if not photo_card:
+            return self._err("photo_card_required")
+        photo_inv = self._photo(b, data.get("photo_inv"))
+        if not photo_inv:
+            return self._err("photo_inv_required")
 
         def num(k, f=float):
             try:
                 return f(data.get(k) or 0)
             except (TypeError, ValueError):
                 return f(0)
-
+        cash, card = num("cash"), num("card")
+        cash_note, card_note = (data.get("cash_note") or "").strip()[:500], (data.get("card_note") or "").strip()[:500]
+        cash_off = bool(system) and differs(cash, system["cash"])
+        card_off = bool(system) and differs(card, system["card"])
+        if cash_off and not cash_note:
+            return self._err("cash_reason_required")
+        if card_off and not card_note:
+            return self._err("card_reason_required")
+        # the end-of-shift float is counted (and signed) inside the report before it can be sent
+        if not self.env["navitta.float"].sudo().search_count([("branch_id", "=", b.id), ("day", "=", day), ("kind", "=", "end")]):
+            return self._err("float_end_required")
+        emps = self.env["navitta.employee"].sudo().search([("branch_id", "=", b.id)])
         used = data.get("used") or {}
         emp_by_name = {e.name: e for e in emps}
         vals = {
             "branch_id": b.id, "day": day, "employee_name": name, "employee_id": emp_by_name.get(name, emps[:0]).id or False,
             "sales": num("sales"), "invoices": num("invoices", int), "items": num("items", int),
-            "cash": num("cash"), "card": num("card"), "deposit": num("deposit"),
+            "cash": cash, "card": card, "deposit": num("deposit"),
+            "photo_card_id": photo_card.id, "photo_inv_id": photo_inv.id,
+            "has_system": bool(system), "sys_cash": system["cash"] if system else 0.0, "sys_card": system["card"] if system else 0.0,
+            "cash_note": cash_note if cash_off else False, "card_note": card_note if card_off else False,
             "used_roll_invoice": int(used.get("roll_invoice") or 0), "used_roll_card": int(used.get("roll_card") or 0),
             "used_bags": int(used.get("bags") or 0),
             "visitors": num("visitors", int), "non_buy": num("nonBuy", int),
@@ -932,11 +983,30 @@ class NavittaApi(models.AbstractModel):
         }
         Rep = self.env["navitta.daily.report"].sudo()
         rep = Rep.search([("branch_id", "=", b.id), ("day", "=", day)], limit=1)
+        # a difference from the system alerts management (when sent, and again when the counted figures change)
+        alert = (cash_off or card_off) and (not rep or differs(rep.cash, cash) or differs(rep.card, card))
         if rep:
             rep.write(vals)
         else:
-            Rep.create(vals)
+            rep = Rep.create(vals)
+        if alert:
+            self._alert_cash_diff(rep, system)
         return {"ok": True}
+
+    @api.model
+    def _alert_cash_diff(self, rep, system):
+        lines = [_("%s sent the report with a difference from the Point of Sale:", rep.employee_name)]
+        if differs(rep.cash, system["cash"]):
+            lines.append(_("• 💵 Cash: Point of Sale %(o)s · counted %(c)s · difference %(d)s", o=_amount(system["cash"]), c=_amount(rep.cash),
+                           d=_amount(rep.cash - system["cash"], True)))
+            if rep.cash_note:
+                lines.append(_("  Reason: %s", rep.cash_note))
+        if differs(rep.card, system["card"]):
+            lines.append(_("• 💳 Card: Point of Sale %(o)s · settlement %(c)s · difference %(d)s", o=_amount(system["card"]), c=_amount(rep.card),
+                           d=_amount(rep.card - system["card"], True)))
+            if rep.card_note:
+                lines.append(_("  Reason: %s", rep.card_note))
+        self.env["navitta.notification"]._notify_admin(_("⚠️ Cash or card difference: %s", rep.branch_id.name), "\n".join(lines))
 
     # ------------------------------------------------------------------ models file
     @api.model

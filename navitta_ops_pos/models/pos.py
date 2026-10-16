@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from odoo import _, api, fields, models
 from odoo.addons.navitta_ops.models.common import iso, local_dt
+from odoo.exceptions import ValidationError
 from odoo.tools.translate import LazyTranslate
 
 _lt = LazyTranslate(__name__)
@@ -21,7 +22,20 @@ class PosConfig(models.Model):
 
     navitta_branch_id = fields.Many2one("navitta.branch", "Navitta branch", index=True, ondelete="set null",
                                         help="This point of sale's sales count for this branch, and its cashiers are the branch's employees")
+    navitta_employee_id = fields.Many2one("navitta.employee", "Owner employee (her own device)", index=True, ondelete="set null",
+                                          domain="[('branch_id', '=', navitta_branch_id)]",
+                                          help="This point of sale is this employee's own device: every sale on it counts for her, "
+                                               "whoever is picked as cashier, and she is its only cashier")
     navitta_session_label = fields.Char("Current session status", compute="_compute_navitta_session_label")
+
+    @api.constrains("navitta_employee_id", "navitta_branch_id")
+    def _check_navitta_owner(self):
+        for c in self.filtered("navitta_employee_id"):
+            if c.navitta_employee_id.branch_id != c.navitta_branch_id:
+                raise ValidationError(_("The owner of “%(c)s” must be an employee of its Navitta branch", c=c.name))
+            other = self.sudo().search([("id", "!=", c.id), ("navitta_employee_id", "=", c.navitta_employee_id.id)], limit=1)
+            if other:
+                raise ValidationError(_("%(e)s already owns the point of sale “%(o)s”", e=c.navitta_employee_id.name, o=other.name))
 
     @api.depends("current_session_state")
     def _compute_navitta_session_label(self):
@@ -38,9 +52,17 @@ class PosConfig(models.Model):
     def write(self, vals):
         before = self.mapped("navitta_branch_id")
         res = super().write(vals)
-        if "navitta_branch_id" in vals and not self.env.context.get("navitta_skip"):
+        if {"navitta_branch_id", "navitta_employee_id"} & set(vals) and not self.env.context.get("navitta_skip"):
             (before | self.mapped("navitta_branch_id")).with_context(navitta_skip=True)._navitta_sync_cashiers()
         return res
+
+
+class PosOrder(models.Model):
+    _inherit = "pos.order"
+
+    navitta_visit_id = fields.Many2one("navitta.visit", "Counter visit", index=True, ondelete="set null", copy=False, readonly=True,
+                                       help="The counter visit this sale belongs to (or the automatic visit «sold without the counter»)")
+    navitta_checked = fields.Boolean("Matched with the counter", copy=False, readonly=True)
 
 
 class PosSession(models.Model):
@@ -73,8 +95,10 @@ class PosSession(models.Model):
             e = nav.search([("hr_employee_id", "=", hr.id)], limit=1)
             return e.name if e else hr.name
         opener = self.navitta_opened_by_id
-        linked = bool(opener) and bool(nav.search_count([("hr_employee_id", "=", opener.id)], limit=1))
+        owner = self.config_id.navitta_employee_id
+        linked = bool(owner) or (bool(opener) and bool(nav.search_count([("hr_employee_id", "=", opener.id)], limit=1)))
         return {"name": self.config_id.name, "session": self.name, "state": self.state, "state_label": _state_label(self.env, self.state),
                 "opened_at": iso(self.start_at), "closed_at": iso(self.stop_at),
                 "opened_by": who(opener) or self.user_id.name, "cashier": who(self.employee_id) or "",
-                "general": not linked}
+                # an employee's own device: every sale counts for her, so nothing is «shared account»
+                "owner": owner.name or "", "general": not linked}

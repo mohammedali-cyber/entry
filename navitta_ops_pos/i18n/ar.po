@@ -10,6 +10,12 @@ msgstr ""
 
 #. module: navitta_ops_pos
 #. odoo-python
+#: code:addons/navitta_ops_pos/models/pos.py:0
+msgid "%(e)s already owns the point of sale “%(o)s”"
+msgstr "%(e)s عندها نقطة البيع «%(o)s» من قبل"
+
+#. module: navitta_ops_pos
+#. odoo-python
 #: code:addons/navitta_ops_pos/models/branch.py:0
 msgid ""
 "%s employees linked to a cashier account, and the cashier lists of the "
@@ -58,6 +64,20 @@ msgstr "مغلقة"
 #: code:addons/navitta_ops_pos/models/pos.py:0
 msgid "Closing"
 msgstr "قيد الإغلاق"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,help:navitta_ops_pos.field_navitta_daily_sales__source
+msgid ""
+"Corrected by management: the day was edited in Sales → Edit; the cash "
+"register system no longer overwrites its figures"
+msgstr ""
+"معدّل من الإدارة: انعدّل اليوم من المبيعات ← تعديل، ونظام الكاشير ما عاد "
+"يغيّر أرقامه"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_pos_order__navitta_visit_id
+msgid "Counter visit"
+msgstr "زيارة العدّاد"
 
 #. module: navitta_ops_pos
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_pos_config__navitta_session_label
@@ -124,6 +144,11 @@ msgid "Link employees to cashier accounts"
 msgstr "ربط الموظفات بحسابات الكاشير"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_pos_order__navitta_checked
+msgid "Matched with the counter"
+msgstr "انطابقت مع العدّاد"
+
+#. module: navitta_ops_pos
 #: model:ir.model,name:navitta_ops_pos.model_navitta_branch
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_pos_config__navitta_branch_id
 msgid "Navitta branch"
@@ -158,6 +183,16 @@ msgid "Opening"
 msgstr "قيد الفتح"
 
 #. module: navitta_ops_pos
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_branch_form_pos
+msgid "Owner employee"
+msgstr "الموظفة صاحبة الجهاز"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_pos_config__navitta_employee_id
+msgid "Owner employee (her own device)"
+msgstr "الموظفة صاحبة الجهاز (جهازها الخاص)"
+
+#. module: navitta_ops_pos
 #: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_daily_sales__source__pos
 #: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_employee_sales__source__pos
 #: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_branch_form_pos
@@ -187,11 +222,13 @@ msgstr "مزامنة المبيعات (آخر 60 يوم)"
 msgid ""
 "The branch's sales, VAT, cash and each employee's sales are computed from the (paid) orders of these points of sale, every 10 minutes and when a session is closed.\n"
 "                        To link a point of sale: open it from \"Point of Sale → Configuration → Point of Sales\" and choose the \"Navitta branch\".\n"
-"                        Each employee's sales are counted by the cashier account she sold with (Change Cashier); sales without a cashier show as \"Shared account\"."
+"                        Each employee's sales are counted by the cashier account she sold with (Change Cashier); sales without a cashier show as \"Shared account\".\n"
+"                        A point of sale with an \"Owner employee\" is her own device: every sale on it counts for her whoever is picked as cashier, and she is its only cashier."
 msgstr ""
-"مبيعات الفرع وضريبتها ونقديتها ومبيعات كل موظفة تنحسب من فواتير نقاط البيع هذه (المدفوعة)، كل 10 دقائق وعند إغلاق الجلسة.\n"
+"مبيعات الفرع وضريبتها والنقدي ومبيعات كل موظفة تنحسب من الطلبات (المدفوعة) في نقاط البيع هذي، كل 10 دقائق وعند إغلاق الجلسة.\n"
 "                        لربط نقطة بيع: افتحها من «نقطة البيع ← الإعدادات ← نقاط البيع» واختر «فرع نافيتا».\n"
-"                        مبيعات كل موظفة بحساب الكاشير اللي باعت به (Change Cashier)، والمبيعات بدون كاشير تظهر «الحساب العام»."
+"                        مبيعات كل موظفة تنحسب بحساب الكاشير اللي باعت به (Change Cashier)، والمبيعات بدون كاشير تظهر «الحساب العام».\n"
+"                        نقطة البيع اللي لها «الموظفة صاحبة الجهاز» هي جهازها الخاص: كل بيعة عليه تنحسب لها مهما كان الكاشير المختار، وهي الكاشير الوحيد فيه."
 
 #. module: navitta_ops_pos
 #. odoo-python
@@ -215,10 +252,34 @@ msgid "The cashier who opened the session"
 msgstr "الكاشير اللي فتحت الجلسة"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields,help:navitta_ops_pos.field_pos_order__navitta_visit_id
+msgid ""
+"The counter visit this sale belongs to (or the automatic visit «sold without"
+" the counter»)"
+msgstr ""
+"زيارة العدّاد اللي تتبعها هذي البيعة (أو الزيارة التلقائية «انباعت بدون "
+"عداد»)"
+
+#. module: navitta_ops_pos
 #. odoo-python
 #: code:addons/navitta_ops_pos/models/branch.py:0
 msgid "The last 60 days were synced from the Point of Sale"
 msgstr "تمت مزامنة آخر 60 يوم من نقطة البيع"
+
+#. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/pos.py:0
+msgid "The owner of “%(c)s” must be an employee of its Navitta branch"
+msgstr "صاحبة «%(c)s» لازم تكون موظفة في فرع نافيتا حقه"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,help:navitta_ops_pos.field_pos_config__navitta_employee_id
+msgid ""
+"This point of sale is this employee's own device: every sale on it counts "
+"for her, whoever is picked as cashier, and she is its only cashier"
+msgstr ""
+"نقطة البيع هذي جهاز الموظفة الخاص: كل بيعة عليه تنحسب لها مهما كان الكاشير "
+"المختار، وهي الكاشير الوحيد فيه"
 
 #. module: navitta_ops_pos
 #: model:ir.model.fields,help:navitta_ops_pos.field_pos_config__navitta_branch_id

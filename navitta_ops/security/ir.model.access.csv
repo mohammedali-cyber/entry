@@ -68,3 +68,5 @@ access_rule_branch,navitta.rule.branch,model_navitta_rule,group_navitta_branch,1
 access_rule_admin,navitta.rule.admin,model_navitta_rule,group_navitta_admin,1,1,1,1
 access_rule_ack_branch,navitta.rule_ack.branch,model_navitta_rule_ack,group_navitta_branch,1,0,0,0
 access_rule_ack_admin,navitta.rule_ack.admin,model_navitta_rule_ack,group_navitta_admin,1,1,1,1
+access_sales_edit_log_admin,navitta.sales_edit_log.admin,model_navitta_sales_edit_log,group_navitta_admin,1,0,0,0
+access_sales_change_log_admin,navitta.sales_change_log.admin,model_navitta_sales_change_log,group_navitta_admin,1,0,0,0

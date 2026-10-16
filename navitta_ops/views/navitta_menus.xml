@@ -30,6 +30,8 @@
         <menuitem id="menu_rec_task_done" name="Done tasks" action="action_task_done" sequence="12"/>
         <menuitem id="menu_rec_task_alerts" name="Missed tasks" action="action_task_alerts" sequence="12"/>
         <menuitem id="menu_rec_target_log" name="Target change log" action="action_target_log" sequence="13"/>
+        <menuitem id="menu_rec_sales_edit_log" name="Sales day edits" action="action_sales_edit_log" sequence="13"/>
+        <menuitem id="menu_rec_sales_change_log" name="Changes after the day was closed" action="action_sales_change_log" sequence="13"/>
         <menuitem id="menu_rec_requests" name="Branch request log" action="action_branch_requests" sequence="14"/>
         <menuitem id="menu_rec_expenses" name="Expenses" action="action_expenses" sequence="15"/>
         <menuitem id="menu_rec_supply" name="Supply moves" action="action_supply_moves" sequence="16"/>

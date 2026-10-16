@@ -14,13 +14,15 @@
                         <button name="action_pos_sync_month" type="object" string="Sync sales (last 60 days)" class="btn-secondary"/>
                     </div>
                     <field name="pos_config_ids" context="{'default_navitta_branch_id': id}">
-                        <list create="0"><field name="name"/><field name="navitta_session_label"/></list>
+                        <list create="0" editable="bottom"><field name="name" readonly="1"/><field name="navitta_branch_id" column_invisible="1"/>
+                            <field name="navitta_employee_id" string="Owner employee"/><field name="navitta_session_label"/></list>
                     </field>
                     <group><field name="pos_last_sync"/></group>
                     <div class="text-muted">
                         The branch's sales, VAT, cash and each employee's sales are computed from the (paid) orders of these points of sale, every 10 minutes and when a session is closed.
                         To link a point of sale: open it from "Point of Sale → Configuration → Point of Sales" and choose the "Navitta branch".
                         Each employee's sales are counted by the cashier account she sold with (Change Cashier); sales without a cashier show as "Shared account".
+                        A point of sale with an "Owner employee" is her own device: every sale on it counts for her whoever is picked as cashier, and she is its only cashier.
                     </div>
                 </page>
             </xpath>
@@ -59,7 +61,7 @@
         <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//div[@id='title']" position="after">
-                <group><field name="navitta_branch_id"/></group>
+                <group><field name="navitta_branch_id"/><field name="navitta_employee_id" invisible="not navitta_branch_id"/></group>
             </xpath>
         </field>
     </record>
