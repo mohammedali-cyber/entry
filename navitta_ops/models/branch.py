@@ -70,6 +70,10 @@ class NavittaBranch(models.Model):
         """Refreshes the sales of these days from the cash register system. Nothing without one."""
         return True
 
+    def _system_backfill(self, d0=None, d1=None):
+        """Syncs every day of [d0, d1] from the cash register system (the history too, once). Nothing without one."""
+        return 0
+
     def _system_status(self, day):
         """{branch_id: [{"name", "opened_at", "opened_by", "cashier", "state"}]}: the registers of the day."""
         return {}

@@ -21,11 +21,11 @@ class PosConfig(models.Model):
     _inherit = "pos.config"
 
     navitta_branch_id = fields.Many2one("navitta.branch", "Navitta branch", index=True, ondelete="set null",
-                                        help="This point of sale's sales count for this branch, and its cashiers are the branch's employees")
+                                        help="This point of sale's sales count for this Navitta branch")
     navitta_employee_id = fields.Many2one("navitta.employee", "Owner employee (her own device)", index=True, ondelete="set null",
                                           domain="[('branch_id', '=', navitta_branch_id)]",
                                           help="This point of sale is this employee's own device: every sale on it counts for her, "
-                                               "whoever is picked as cashier, and she is its only cashier")
+                                               "whoever is picked as cashier. The cashier list of the point of sale is not changed")
     navitta_session_label = fields.Char("Current session status", compute="_compute_navitta_session_label")
 
     @api.constrains("navitta_employee_id", "navitta_branch_id")
@@ -46,15 +46,34 @@ class PosConfig(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         recs = super().create(vals_list)
-        recs.mapped("navitta_branch_id")._navitta_sync_cashiers()
+        linked = recs.filtered("navitta_branch_id")
+        if linked:
+            self.env.registry.clear_cache()         # the branch devices' access rules (their cashiers)
+            self.env["navitta.branch"].sudo()._pos_backfill(configs=linked, force=True)
         return recs
 
     def write(self, vals):
-        before = self.mapped("navitta_branch_id")
+        before = {c.id: c.navitta_branch_id for c in self}
+        owners = {c.id: c.navitta_employee_id for c in self}
         res = super().write(vals)
-        if {"navitta_branch_id", "navitta_employee_id"} & set(vals) and not self.env.context.get("navitta_skip"):
-            (before | self.mapped("navitta_branch_id")).with_context(navitta_skip=True)._navitta_sync_cashiers()
+        if {"navitta_branch_id", "basic_employee_ids", "advanced_employee_ids"} & set(vals):
+            self.env.registry.clear_cache()         # the branch devices' access rules (their cashiers)
+        if {"navitta_branch_id", "navitta_employee_id"} & set(vals):
+            # linked to a branch, moved, or a new owner: every day of its orders is counted again (the history too)
+            moved = self.filtered(lambda c: before[c.id] != c.navitta_branch_id or owners[c.id] != c.navitta_employee_id)
+            if moved:
+                old = self.env["navitta.branch"].sudo().browse({before[c.id].id for c in moved if before[c.id]})
+                self.env["navitta.branch"].sudo()._pos_backfill(configs=moved, force=True, old_branches=old - moved.navitta_branch_id)
         return res
+
+
+class ResConfigSettings(models.TransientModel):
+    """Point of Sale → Settings: the Navitta branch and the owner of the selected point of sale."""
+    _inherit = "res.config.settings"
+
+    pos_navitta_branch_id = fields.Many2one(related="pos_config_id.navitta_branch_id", readonly=False)
+    pos_navitta_employee_id = fields.Many2one(related="pos_config_id.navitta_employee_id", readonly=False,
+                                              domain="[('branch_id', '=', pos_navitta_branch_id)]")
 
 
 class PosOrder(models.Model):

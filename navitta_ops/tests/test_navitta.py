@@ -131,7 +131,9 @@ class NavittaCase(TransactionCase):
                       # 26.3: a day's corrections and changes after closing are management-only, as on the site
                       "navitta.sales.edit.log", "navitta.sales.change.log",
                       # the delete log and the ideas backlog are management-only, as on the site
-                      "navitta.delete.log", "navitta.idea"}
+                      "navitta.delete.log", "navitta.idea",
+                      # navitta_ops_pos: the sales of each point of sale (device) per day, management-only
+                      "navitta.pos.day"}
         models = [m for m in self.env if m.startswith("navitta.") and not self.env[m]._abstract and not self.env[m]._transient]
         for m in models:
             with self.subTest(model=m):

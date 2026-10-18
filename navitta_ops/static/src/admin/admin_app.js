@@ -36,8 +36,15 @@ const TX = {
     open: _t("Open"),
     newPins: _t("🔑 New PINs"),
     devAccounts: _t("📱 Branch device accounts"),
-    fromPos: _t("From Point of Sale"),
+    fromPos: _t("From the Point of Sale"),
     fromReports: _t("From daily reports"),
+    src: { pos: _t("From the Point of Sale"), reports: _t("From daily reports"), mixed: _t("From the Point of Sale and daily reports") },
+    ownerVisits: (n) => _t("%s's counter visits", n),
+    branchCounter: _t("The branch's counter (the device has no owner)"),
+    noVisits: _t("No counter visits recorded in this period"),
+    nReports: (n) => _t("Average of %s daily reports", n),
+    noReports: _t("No daily reports in this period"),
+    noDeviceTarget: _t("A device has no target of its own"),
     noPendingDecisions: _t("No pending decisions"),
     morning: _t("Morning shift"),
     evening: _t("Evening shift"),
@@ -123,7 +130,7 @@ function loadFilter() {
     } catch {
         f = null;
     }
-    f = Object.assign({ br: 0, preset: "month", from: "", to: "", wd: [] }, f || {});
+    f = Object.assign({ br: 0, dev: 0, preset: "month", from: "", to: "", wd: [] }, f || {});
     if (f.preset !== "custom" || !f.from || !f.to) {
         [f.from, f.to] = presetRange(f.preset === "custom" ? "month" : f.preset);
     }
@@ -132,7 +139,7 @@ function loadFilter() {
 
 class FilterBar extends Component {
     static template = "navitta_ops.FilterBar";
-    static props = { f: Object, branches: Array, dates: Boolean };
+    static props = { f: Object, branches: Array, dates: Boolean, devices: { type: Array, optional: true }, withDev: { type: Boolean, optional: true } };
     setup() {
         this.PRESETS = PRESETS;
         this.WD = WD;
@@ -171,8 +178,29 @@ class FilterBar extends Component {
         this.save();
     }
     setBr(v) {
-        this.props.f.br = +v || 0;
+        const f = this.props.f;
+        f.br = +v || 0;
+        const dv = (this.props.devices || []).find((x) => x.id === f.dev);
+        if (f.dev && (!dv || (f.br && dv.branch_id !== f.br))) {
+            f.dev = 0;
+        }
         this.save();
+    }
+    /** The «Device» filter (points of sale): a device belongs to one branch, so the branch follows it. */
+    setDev(v) {
+        const f = this.props.f;
+        f.dev = +v || 0;
+        const dv = (this.props.devices || []).find((x) => x.id === f.dev);
+        if (dv) {
+            f.br = dv.branch_id;
+        }
+        this.save();
+    }
+    get devList() {
+        const f = this.props.f;
+        const bn = (id) => (this.props.branches.find((b) => b.id === id) || {}).name || "";
+        return (this.props.devices || []).filter((x) => !f.br || x.branch_id === f.br)
+            .map((x) => ({ id: x.id, label: [x.name, x.owner, !f.br && bn(x.branch_id)].filter(Boolean).join(" · ") }));
     }
     clearDays() {
         this.props.f.wd = [];
@@ -195,10 +223,13 @@ class AdminBase extends Component {
             } else if (this.watchFilter) {
                 this.load();
             }
-        }, () => [f.br, f.from, f.to, f.wd.join(",")]);
+        }, () => [f.br, f.dev, f.from, f.to, f.wd.join(",")]);
     }
     get br() {
         return this.props.f.br;
+    }
+    get dev() {
+        return this.props.f.dev || 0;
     }
     toast(msg, type = "success") {
         this.notification.add(msg, { type });
@@ -234,7 +265,8 @@ class Dashboard extends AdminBase {
     async load() {
         const f = this.props.f;
         const my = (this.req = (this.req || 0) + 1);
-        const [d, setup] = await Promise.all([api(this.orm, "admin_dashboard", f.from, f.to, f.wd), api(this.orm, "admin_setup")]);
+        const [d, setup] = await Promise.all([api(this.orm, "admin_dashboard", f.from, f.to, f.wd, f.br || false, f.dev || false),
+            api(this.orm, "admin_setup")]);
         if (my !== this.req) {
             return;
         }
@@ -293,14 +325,11 @@ class Dashboard extends AdminBase {
     }
     get v() {
         const d = this.state.d;
-        const reps = d.reports.filter((r) => this.inB(r.branch_id)), vis = d.visits.filter((v) => this.inB(v.branch_id));
-        const sl = d.sales.filter((r) => this.inB(r.branch_id));
-        const sales = sl.reduce((t, r) => t + (+r.sales || 0), 0), inv = sl.reduce((t, r) => t + (+r.invoices || 0), 0);
-        const tax = sl.reduce((t, r) => t + (+r.tax || 0), 0), sys = sl.some((r) => r.system);
-        const buys = vis.filter((v) => v.bought).length;
-        const sat = reps.length ? reps.reduce((t, r) => t + (+r.sat || 0), 0) / reps.length : 0;
+        // the figure cards come computed from the server for the branch and device of the filter (see _kpi)
+        const k = d.kpi;
         return {
-            sales, inv, tax, sys, visits: vis.length, buyPct: vis.length ? ((buys / vis.length) * 100).toFixed(1) : 0, sat: sat.toFixed(1),
+            sales: k.sales, inv: k.invoices, tax: k.tax, source: k.source, device: k.device, reports: k.reports,
+            visits: k.visits, buyPct: k.visits ? k.buy_pct.toFixed(1) : 0, sat: k.sat.toFixed(1),
             review: d.cases.filter((c) => c.state === "review" && this.inB(this.eB(c.employee_id))),
             waiting: d.cases.filter((c) => c.state === "reply" && this.inB(this.eB(c.employee_id))),
             lreq: d.leave_requests.filter((r) => this.inB(this.eB(r.employee_id)) && (["pending", "cover"].includes(r.state) ||
@@ -403,12 +432,17 @@ class Sales extends AdminBase {
     async load() {
         const r = this.range;
         const my = (this.req = (this.req || 0) + 1);
-        const d = await api(this.orm, "admin_sales", this.br || false, r.from, r.to, this.year, r.mFrom, r.mTo, this.props.f.wd);
+        const d = await api(this.orm, "admin_sales", this.br || false, r.from, r.to, this.year, r.mFrom, r.mTo, this.props.f.wd, this.dev || false);
         if (d.error || my !== this.req) {
             return;
         }
         setClock(d.settings.tz);
         this.state.d = d;
+    }
+    /** «All branches», the branch, or the device (point of sale) of the filter. */
+    get scopeName() {
+        const dv = this.state.d.device;
+        return dv ? [dv.name, dv.owner].filter(Boolean).join(" · ") : this.br ? this.bName(this.br) : TX.allBranches;
     }
     vat(x) {
         const rate = this.state.d.settings.vat_rate || 0;
@@ -950,7 +984,7 @@ export class AdminApp extends Component {
     static props = { ...standardActionServiceProps };
     setup() {
         this.orm = useService("orm");
-        this.state = useState({ tab: (this.props.action.params && this.props.action.params.tab) || "dashboard", branches: [], login: "" });
+        this.state = useState({ tab: (this.props.action.params && this.props.action.params.tab) || "dashboard", branches: [], devices: [], login: "" });
         this.f = useState(loadFilter());
         this.theme = useTheme();
         this.DIR = DIR;
@@ -966,12 +1000,19 @@ export class AdminApp extends Component {
                 setClock(d.settings.tz);
                 this.state.login = d.login || "";
                 this.state.branches = d.branches;
+                this.state.devices = d.devices || [];
                 Object.assign(this.f, loadFilter());       // dates of the presets in the branches' time zone
+                if (this.f.dev && !this.state.devices.some((x) => x.id === this.f.dev)) {
+                    this.f.dev = 0;                        // a device unlinked since (or no Point of Sale module)
+                }
             }
         });
     }
     get withDates() {
         return !["requests", "day", "rules", "settings", "ideas"].includes(this.state.tab);
+    }
+    get withDev() {
+        return ["dashboard", "sales"].includes(this.state.tab);
     }
     get withFilter() {
         return this.state.tab !== "ideas";

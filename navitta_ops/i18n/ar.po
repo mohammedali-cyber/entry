@@ -400,6 +400,12 @@ msgstr "%s بدون تغيير"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "%s's counter visits"
+msgstr "زيارات %s في العدّاد"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/tasks.js:0
 msgid "%s, check the money with your own eyes and confirm it's complete 👀"
 msgstr "%s، شوفي الفلوس بعينك وأكّدي إنها كاملة 👀"
@@ -721,6 +727,12 @@ msgstr "صورة واضحة للفلوس في الدرج"
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "A customer kept me just before my break"
 msgstr "عميلة طولت معي قبل الاستراحة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "A device has no target of its own"
+msgstr "الجهاز ما له تارقت خاص"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -1048,6 +1060,12 @@ msgstr "كل الفروع"
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "All days"
 msgstr "كل الأيام"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "All devices"
+msgstr "كل الأجهزة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -1426,6 +1444,12 @@ msgstr "المتوسط"
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "Average invoice"
 msgstr "متوسط الفاتورة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Average of %s daily reports"
+msgstr "متوسط %s تقرير يومي"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -3810,10 +3834,18 @@ msgid "Details *"
 msgstr "التفاصيل *"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_device_punch__device_id
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_device_punch_search
 msgid "Device"
 msgstr "الجهاز"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Device (point of sale)"
+msgstr "الجهاز (نقطة البيع)"
 
 #. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_branch_form
@@ -5052,17 +5084,12 @@ msgstr "من %(from)s إلى %(to)s"
 
 #. module: navitta_ops
 #. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
-msgid "From Point of Sale"
-msgstr "من نقطة البيع"
-
-#. module: navitta_ops
-#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/components.js:0
 msgid ""
-"From Point of Sale invoices, by the cashier who made the sale (not the "
-"shared account)"
-msgstr "من فواتير نقطة البيع حسب الكاشير اللي باعت (وليس الحساب العام)"
+"From Point of Sale invoices: the device owner, or the cashier who made the "
+"sale (not the shared account)"
+msgstr ""
+"من فواتير نقطة البيع: صاحبة الجهاز، أو الكاشير اللي باعت (مو الحساب العام)"
 
 #. module: navitta_ops
 #. odoo-python
@@ -5082,6 +5109,12 @@ msgid "From fingerprint device"
 msgstr "من جهاز البصمة"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "From the Point of Sale"
+msgstr "من نقطة البيع"
+
+#. module: navitta_ops
 #: model_terms:ir.actions.act_window,help:navitta_ops.action_employee_sales
 msgid ""
 "From the Point of Sale (by the cashier who made the sale) if the branch is "
@@ -5095,6 +5128,12 @@ msgstr ""
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "From the Point of Sale + your own count"
 msgstr "من نقطة البيع + عدّك أنتِ"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "From the Point of Sale and daily reports"
+msgstr "من نقطة البيع والتقارير اليومية"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -7038,6 +7077,12 @@ msgstr "لم تسجل انصراف"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "No counter visits recorded in this period"
+msgstr "ما انسجلت زيارات في العدّاد في هذي الفترة"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "No cover"
 msgstr "بدون تغطية"
@@ -7053,6 +7098,12 @@ msgstr "لا توجد إجازات حالية أو قادمة"
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "No customers waiting"
 msgstr "ما فيه عميلات ينتظرن"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "No daily reports in this period"
+msgstr "ما فيه تقارير يومية في هذي الفترة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -10333,6 +10384,12 @@ msgid ""
 msgstr ""
 "الفرع يشتغل بشفت صباح وشفت مساء، وكل موظفة لها شفتها (صباح أو مساء). غير كذا"
 " الكل على شفت المساء."
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "The branch's counter (the device has no owner)"
+msgstr "عدّاد الفرع (الجهاز ما له صاحبة)"
 
 #. module: navitta_ops
 #: model:ir.model.fields,help:navitta_ops.field_navitta_float__expected

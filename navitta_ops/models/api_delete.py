@@ -160,6 +160,7 @@ class NavittaApiDelete(models.AbstractModel):
         d = fields.Date.to_date(month) if month else app_today(self.env)
         m0 = d.replace(day=1)
         m1 = (m0 + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        self._backfill(m0, m1)
         S = self.env
         branches = S["navitta.branch"].sudo().search([("id", "=", int(branch_id))] if branch_id else [])
         ids = branches.ids

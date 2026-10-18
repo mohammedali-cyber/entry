@@ -29,7 +29,7 @@ const TX = {
     moreColors: (n) => _t("+ %s more colors ▾", n),
     size: (x) => _t("Size %s", x),
     get empSales() { return _t("Employee sales"); },
-    get fromPos() { return _t("From Point of Sale invoices, by the cashier who made the sale (not the shared account)"); },
+    get fromPos() { return _t("From Point of Sale invoices: the device owner, or the cashier who made the sale (not the shared account)"); },
     get fromReport() { return _t("From the daily report"); },
     get sar() { return _t("SAR"); },
     invVsCounter: (inv, bought) => _t("Invoices %(inv)s, counter says bought %(bought)s", { inv, bought }),
@@ -588,15 +588,15 @@ export class ModelPicker extends Component {
 export class EmpBoard extends Component {
     static template = "navitta_ops.EmpBoard";
     TX = TX;
-    static props = { from: String, to: String, branchId: { optional: true }, branches: Array, title: { type: String, optional: true },
-        wd: { type: Array, optional: true } };
+    static props = { from: String, to: String, branchId: { optional: true }, deviceId: { optional: true }, branches: Array,
+        title: { type: String, optional: true }, wd: { type: Array, optional: true } };
     setup() {
         this.orm = useService("orm");
         this.state = useState({ rows: null, targets: {} });
         this.f0 = f0;
         onWillStart(() => this.load(this.props));
         onWillUpdateProps((np) => {
-            if (np.from !== this.props.from || np.to !== this.props.to || np.branchId !== this.props.branchId ||
+            if (np.from !== this.props.from || np.to !== this.props.to || np.branchId !== this.props.branchId || np.deviceId !== this.props.deviceId ||
                 (np.wd || []).join() !== (this.props.wd || []).join()) {
                 return this.load(np);
             }
@@ -607,7 +607,7 @@ export class EmpBoard extends Component {
     }
     async load(p) {
         const my = (this.req = (this.req || 0) + 1);
-        const r = await api(this.orm, "employee_summary", p.from, p.to, p.branchId || false, p.wd || []);
+        const r = await api(this.orm, "employee_summary", p.from, p.to, p.branchId || false, p.wd || [], p.deviceId || false);
         if (my !== this.req) {
             return;
         }

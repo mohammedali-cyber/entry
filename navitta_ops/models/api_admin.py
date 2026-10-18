@@ -63,8 +63,86 @@ class NavittaApiAdmin(models.AbstractModel):
     @api.model
     def admin_filters(self):
         self._admin()
-        return {"branches": self._branches(), "settings": self._settings(), "day": fields.Date.to_string(app_today(self.env)),
-                "login": self._login_stamp()}
+        return {"branches": self._branches(), "devices": self._devices(), "settings": self._settings(),
+                "day": fields.Date.to_string(app_today(self.env)), "login": self._login_stamp()}
+
+    # ------------------------------------------------------------------ cash register devices (overridden by navitta_ops_pos)
+    @api.model
+    def _devices(self):
+        """The cash register devices for the «Device» filter: [{id, name, branch_id, owner_id, owner}]. [] without a
+        cash register system (the filter is then not shown)."""
+        return []
+
+    @api.model
+    def _device(self, device_id):
+        """One device of _devices(), or None (all devices)."""
+        try:
+            device_id = int(device_id or 0)
+        except (TypeError, ValueError):
+            return None
+        return next((d for d in self._devices() if d["id"] == device_id), None) if device_id else None
+
+    @api.model
+    def _device_days(self, device, d0, d1, weekdays=None):
+        """One device's figures per day: [{branch_id, day (date), sales, tax, invoices, items, returns, returns_amount,
+        cash, card}]."""
+        return []
+
+    @api.model
+    def _device_months(self, device, year):
+        """One device's sales per month of `year`: {month: sales}."""
+        return {}
+
+    @api.model
+    def _device_emp_rows(self, device, d0, d1, weekdays=None):
+        """The employee board of one device: rows of employee_summary (without the counter visits)."""
+        return []
+
+    @api.model
+    def _backfill(self, d0, d1):
+        """Before reading the sales of [d0, d1]: every day of it is synced from the cash register system (the history
+        too, once; then only the days whose orders changed). Nothing without a cash register system."""
+        d1 = min(d1, app_today(self.env))
+        if d0 <= d1:
+            self.env["navitta.branch"].sudo().search([])._system_backfill(d0, d1)
+
+    @api.model
+    def _kpi(self, d0, d1, weekdays=None, branch_id=False, device=None):
+        """The dashboard's figure cards for the period, the branch (or all) and the device (or all):
+
+        - sales / invoices / VAT: the days' sales (Point of Sale orders, else the daily report / management); a device:
+          the orders of that point of sale only; average invoice = sales / invoices;
+        - customers (counter) = the saved counter visits (with the automatic visits «sold without the counter»), of the
+          device's owner for a device with an owner; purchase rate = the «bought» ones / all of them;
+        - customer satisfaction = the average rating (1–5) of the daily reports of the period.
+        All of them on the chosen days of the week only."""
+        dom = self._day_filter(d0, d1, weekdays)
+        S = self.env
+        bid = device["branch_id"] if device else (int(branch_id) if branch_id else False)
+        bdom = [("branch_id", "=", bid)] if bid else []
+        if device:
+            rows = self._device_days(device, d0, d1, weekdays)
+            sales, inv, tax = (sum(r[k] for r in rows) for k in ("sales", "invoices", "tax"))
+            source = "pos"
+        else:
+            rows = S["navitta.daily.sales"].sudo().search(dom + bdom + [("has_sales", "=", True)])
+            sales, inv, tax = sum(rows.mapped("sales")), sum(rows.mapped("invoices")), sum(rows.mapped("vat_amount"))
+            system = rows.filtered(lambda r: r._is_system())
+            if rows:
+                source = "pos" if len(system) == len(rows) else "mixed" if system else "reports"
+            else:
+                scope = S["navitta.branch"].sudo().browse(bid) if bid else S["navitta.branch"].sudo().search([])
+                source = "pos" if any(b._has_system() for b in scope) else "reports"
+        vdom = dom + bdom + [("saved", "=", True)]
+        if device and device.get("owner_id"):
+            vdom.append(("employee_id", "=", device["owner_id"]))
+        Visit = S["navitta.visit"].sudo()
+        visits, bought = Visit.search_count(vdom), Visit.search_count(vdom + [("bought", "=", True)])
+        sats = S["navitta.daily.report"].sudo().search(dom + bdom + [("sat", ">", 0)]).mapped("sat")
+        return {"sales": round(sales, 2), "invoices": inv, "tax": round(tax, 2), "avg_invoice": round(sales / inv, 2) if inv else 0.0,
+                "visits": visits, "bought": bought, "buy_pct": round(bought * 100.0 / visits, 1) if visits else 0.0,
+                "sat": round(sum(sats) / len(sats), 1) if sats else 0.0, "reports": len(sats), "source": source,
+                "device": device or False}
 
     # ------------------------------------------------------------------ first-time setup
     @api.model
@@ -130,8 +208,9 @@ class NavittaApiAdmin(models.AbstractModel):
 
     # ------------------------------------------------------------------ dashboard
     @api.model
-    def admin_dashboard(self, date_from=7, date_to=None, weekdays=None):
-        """date_from / date_to: the period of the figures (an int = the last N days, as before)."""
+    def admin_dashboard(self, date_from=7, date_to=None, weekdays=None, branch_id=False, device_id=False):
+        """date_from / date_to: the period of the figures (an int = the last N days, as before). branch_id / device_id:
+        the figure cards («kpi») of one branch / one point of sale only."""
         self._admin()
         day = app_today(self.env)
         if isinstance(date_from, int) or not date_from:
@@ -140,6 +219,8 @@ class NavittaApiAdmin(models.AbstractModel):
             d0, d1 = self._d(date_from), self._d(date_to)
         S = self.env
         S["navitta.branch"].sudo().search([])._system_sync([day])
+        self._backfill(d0, d1)
+        device = self._device(device_id)
         dom = self._day_filter(d0, d1, weekdays)
         emps = S["navitta.employee"].sudo().search([("active", "=", True)])
         reps = S["navitta.daily.report"].sudo().search(dom)
@@ -160,6 +241,7 @@ class NavittaApiAdmin(models.AbstractModel):
                 best = {"name": r.branch_id.name, "p": p}
         return {
             "best": best, "from": fields.Date.to_string(d0), "to": fields.Date.to_string(d1),
+            "kpi": self._kpi(d0, d1, weekdays, branch_id, device), "devices": self._devices(),
             "sales": [{"branch_id": r.branch_id.id, "day": fields.Date.to_string(r.day), "sales": r.sales, "invoices": r.invoices,
                        "items": r.items, "tax": r.vat_amount, "returns": r.returns, "system": r._is_system()} for r in sales_rows],
             "registers": {str(k): v for k, v in S["navitta.branch"].sudo().search([])._system_status(day).items()},
@@ -241,14 +323,28 @@ class NavittaApiAdmin(models.AbstractModel):
         return _("%s (cashier not linked to an employee)", cashier_text(self.env, cashier))
 
     @api.model
-    def employee_summary(self, date_from, date_to, branch_id=False, weekdays=None):
-        """Each employee's sales in the period: from the cash register system (by the cashier who made the sale) when the
-        branch has one, else from the daily reports. Sales without a cashier are shown as «بدون كاشير». Also her counter
-        visits, to check the counter against the sales records."""
+    def employee_summary(self, date_from, date_to, branch_id=False, weekdays=None, device_id=False):
+        """Each employee's sales in the period: from the cash register system (by the cashier who made the sale, or the
+        owner of the device) when the branch has one, else from the daily reports. Sales without a cashier are shown as
+        «بدون كاشير». Also her counter visits, to check the counter against the sales records.
+        device_id: the sales made on that point of sale only (its owner's counter visits)."""
         self._admin()
         d0, d1 = self._d(date_from), self._d(date_to)
+        self._backfill(d0, d1)
         dom = self._day_filter(d0, d1, weekdays)
         wd = self._wd(weekdays)
+        device = self._device(device_id)
+        if device:
+            rows = {(r["branch_id"], r["employee_id"] or 0, "" if r["employee_id"] else r["name"]): r
+                    for r in self._device_emp_rows(device, d0, d1, weekdays)}
+            emps = [k[1] for k in rows if k[1]]
+            vdom = dom + [("saved", "=", True), ("branch_id", "=", device["branch_id"]), ("employee_id", "in", emps)]
+            for v in self.env["navitta.visit"].sudo().search(vdom) if emps else []:
+                r = rows.get((v.branch_id.id, v.employee_id.id, ""))
+                if r:
+                    r["visits"] += 1
+                    r["bought"] += 1 if v.bought else 0
+            return {"rows": sorted(rows.values(), key=lambda r: -r["amount"]), "targets": {}}
         lines = self.env["navitta.employee.sales"]._preferred_domain(d0, d1, branch_id)
         if wd:
             lines = lines.filtered(lambda l: dow(l.day) in wd)
@@ -284,12 +380,19 @@ class NavittaApiAdmin(models.AbstractModel):
         return {"rows": sorted(rows.values(), key=lambda r: -r["amount"]), "targets": targets}
 
     @api.model
-    def admin_sales(self, branch_id, date_from, date_to, year, m_from, m_to, weekdays=None):
+    def admin_sales(self, branch_id, date_from, date_to, year, m_from, m_to, weekdays=None, device_id=False):
+        """Sales and targets: totals per branch, the year's months, the days of the period and the employees.
+        device_id: the figures of that point of sale only (a device has no target of its own)."""
         self._admin()
         d0, d1, m0, m1 = self._d(date_from), self._d(date_to), self._d(m_from), self._d(m_to)
         today = app_today(self.env)
         branches = self.env["navitta.branch"].sudo().search([])
         branches._system_sync([today])
+        y0 = fields.Date.to_date("%04d-01-01" % int(year))
+        self._backfill(min(d0, m0, y0), max(d1, m1, y0.replace(month=12, day=31)))
+        device = self._device(device_id)
+        if device:
+            return self._device_sales(device, d0, d1, int(year), m0, m1, weekdays, today)
         wd = self._wd(weekdays) or None
         self.env["navitta.daily.sales"].flush_model()
         cr = self.env.cr
@@ -325,6 +428,24 @@ class NavittaApiAdmin(models.AbstractModel):
                 "day": fields.Date.to_string(today)}
 
     @api.model
+    def _device_sales(self, device, d0, d1, year, m0, m1, weekdays, today):
+        """admin_sales for one point of sale: its orders' figures, without targets."""
+        keys = ("sales", "invoices", "items", "returns", "tax", "returns_amount", "cash", "card")
+        tot = {k: 0.0 for k in keys}
+        for r in self._device_days(device, d0, d1, weekdays):
+            for k in keys:
+                tot[k] += r[k]
+        summary = [dict(tot, branch_id=device["branch_id"], target=0.0, target_to_date=0.0, device=True)]
+        monthly = [{"month": m, "target": 0.0, "target_to_date": 0.0, "sales": s} for m, s in sorted(self._device_months(device, year).items())]
+        daily = [{"id": False, "day": fields.Date.to_string(r["day"]), "branch_id": r["branch_id"], "target": 0.0, "sales": r["sales"],
+                  "invoices": r["invoices"], "items": r["items"], "returns": r["returns"], "returns_amount": r["returns_amount"],
+                  "tax": r["tax"], "cash": r["cash"], "card": r["card"], "closed_by": "", "system": True, "source": "pos",
+                  "edited": False, "changed": 0, "check": None} for r in self._device_days(device, m0, m1, weekdays)]
+        return {"branches": self._branches(), "summary": summary, "monthly": monthly, "daily": daily, "device": device,
+                "employees": self.employee_summary(d0, d1, device["branch_id"], weekdays, device["id"]), "settings": self._settings(),
+                "day": fields.Date.to_string(today)}
+
+    @api.model
     def admin_compare(self, date_from, date_to, weekdays=None):
         """Branches side by side for the period: target, sales (cash register system or daily report), tax, invoices,
         average invoice, items, returns, customers counted at the door, and checks between the three sources."""
@@ -334,6 +455,7 @@ class NavittaApiAdmin(models.AbstractModel):
         S = self.env
         branches = S["navitta.branch"].sudo().search([])
         branches._system_sync([today])
+        self._backfill(d0, d1)
         dom = self._day_filter(d0, d1, weekdays)
         res = {b.id: {"branch_id": b.id, "name": b.name, "system": b._has_system(), "days": 0, "target": 0.0, "sales": 0.0,
                       "tax": 0.0, "net": 0.0, "invoices": 0, "items": 0, "returns": 0, "returns_amount": 0.0, "cash": 0.0, "card": 0.0,
@@ -467,6 +589,7 @@ class NavittaApiAdmin(models.AbstractModel):
         att, brk = self._today_bits(emps, d)
         cases = S["navitta.late.case"].sudo().search([("day", "=", d)])
         S["navitta.branch"].sudo().search([])._system_sync([d])
+        self._backfill(d, d)
         sales = {r.branch_id.id: r for r in S["navitta.daily.sales"].sudo().search([("day", "=", d)])}
         changed = {}
         for c in S["navitta.sales.change.log"].sudo().search_read([("day", "=", d)], ["branch_id"]):
@@ -499,6 +622,7 @@ class NavittaApiAdmin(models.AbstractModel):
         cases = S["navitta.late.case"].sudo().search([("day", "=", day)])
         lreq = S["navitta.leave.request"].sudo().search([("state", "=", "pending")])
         branches._system_sync([day])
+        self._backfill(day - timedelta(days=7), day)      # the day and the same day last week
         Sales = S["navitta.daily.sales"].sudo()
         ds = Sales.search([("day", "=", day), ("has_sales", "=", True)])
         prev_ds = Sales.search([("day", "=", day - timedelta(days=7)), ("has_sales", "=", True)])

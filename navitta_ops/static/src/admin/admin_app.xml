@@ -14,7 +14,7 @@
                     </nav>
                 </header>
                 <div class="sheen"/>
-                <FilterBar t-if="withFilter" f="f" branches="state.branches" dates="withDates"/>
+                <FilterBar t-if="withFilter" f="f" branches="state.branches" dates="withDates" devices="state.devices" withDev="withDev"/>
                 <Dashboard t-if="state.tab === 'dashboard'" f="f"/>
                 <Compare t-if="state.tab === 'compare'" f="f"/>
                 <Sales t-if="state.tab === 'sales'" f="f"/>
@@ -35,6 +35,11 @@
             <select class="ctl" aria-label="Branch" t-on-change="(e) => this.setBr(e.target.value)">
                 <option value="0" t-att-selected="!props.f.br">All branches</option>
                 <t t-foreach="props.branches" t-as="b" t-key="b.id"><option t-att-value="b.id" t-att-selected="props.f.br === b.id" t-esc="b.name"/></t>
+            </select>
+            <select t-if="props.withDev and (props.devices or []).length" class="ctl" aria-label="Device" title="Device (point of sale)"
+                    t-on-change="(e) => this.setDev(e.target.value)">
+                <option value="0" t-att-selected="!props.f.dev">All devices</option>
+                <t t-foreach="devList" t-as="x" t-key="x.id"><option t-att-value="x.id" t-att-selected="props.f.dev === x.id" t-esc="x.label"/></t>
             </select>
             <t t-if="props.dates">
                 <div class="seg presets">
@@ -161,16 +166,18 @@
             <t t-call="navitta_ops.Registers"><t t-set="regs" t-value="d.registers"/><t t-set="branches" t-value="d.branches"/></t>
 
             <div class="kpis">
-                <div class="kpi"><span class="lbl">Total sales</span><span class="val num"><t t-esc="f0(w.sales)"/><small>SAR</small></span><span class="small" t-esc="w.sys ? TX.fromPos : TX.fromReports"/></div>
-                <div class="kpi"><span class="lbl">Number of invoices</span><span class="val num" t-esc="f0(w.inv)"/><span class="small">VAT <t t-esc="f0(w.tax)"/> SAR</span></div>
-                <div class="kpi"><span class="lbl">Average invoice</span><span class="val num"><t t-esc="w.inv ? f0(w.sales / w.inv) : 0"/><small>SAR</small></span></div>
-                <div class="kpi"><span class="lbl">Customers (counter)</span><span class="val num" t-esc="f0(w.visits)"/></div>
-                <div class="kpi"><span class="lbl">Purchase rate</span><span class="val num"><bdi dir="ltr"><t t-esc="w.buyPct"/>%</bdi></span></div>
-                <div class="kpi"><span class="lbl">Customer satisfaction</span><span class="val num"><t t-esc="w.sat"/><small>out of 5</small></span></div>
+                <div class="kpi" data-kpi="sales"><span class="lbl">Total sales</span><span class="val num"><t t-esc="f0(w.sales)"/><small>SAR</small></span><span class="small" t-esc="TX.src[w.source]"/></div>
+                <div class="kpi" data-kpi="invoices"><span class="lbl">Number of invoices</span><span class="val num" t-esc="f0(w.inv)"/><span class="small">VAT <t t-esc="f0(w.tax)"/> SAR</span></div>
+                <div class="kpi" data-kpi="avg"><span class="lbl">Average invoice</span><span class="val num"><t t-esc="w.inv ? f0(w.sales / w.inv) : 0"/><small>SAR</small></span></div>
+                <div class="kpi" data-kpi="visits"><span class="lbl">Customers (counter)</span><span class="val num" t-esc="f0(w.visits)"/>
+                    <span class="small" t-esc="!w.visits ? TX.noVisits : w.device ? (w.device.owner ? TX.ownerVisits(w.device.owner) : TX.branchCounter) : ''"/></div>
+                <div class="kpi" data-kpi="buy"><span class="lbl">Purchase rate</span><span class="val num"><bdi dir="ltr"><t t-esc="w.buyPct"/>%</bdi></span></div>
+                <div class="kpi" data-kpi="sat"><span class="lbl">Customer satisfaction</span><span class="val num"><t t-esc="w.sat"/><small>out of 5</small></span>
+                    <span class="small" t-esc="w.reports ? TX.nReports(w.reports) : TX.noReports"/></div>
             </div>
 
             <div class="grid">
-                <EmpBoard from="props.f.from" to="props.f.to" wd="props.f.wd" branchId="br" branches="d.branches"/>
+                <EmpBoard from="props.f.from" to="props.f.to" wd="props.f.wd" branchId="br" deviceId="dev" branches="d.branches"/>
 
                 <div class="nv-card c12">
                     <div class="nv-card-h"><div><h2>Late arrival alerts and grace chances</h2><p class="sub"><t t-esc="w.waiting.length"/> awaiting the employee's reason</p></div>
@@ -344,12 +351,12 @@
             <t t-set="d" t-value="state.d"/>
             <t t-set="rg" t-value="range"/>
             <div class="filters">
-                <button t-if="br" type="button" class="nv-btn" t-on-click="() => this.openEdit(br)">✏️ Edit target</button>
+                <button t-if="br and !d.device" type="button" class="nv-btn" t-on-click="() => this.openEdit(br)">✏️ Edit target</button>
                 <TargetFile onDone="() => this.load()"/>
             </div>
             <t t-set="T" t-value="tot('target_to_date')"/><t t-set="S" t-value="tot('sales')"/><t t-set="I" t-value="tot('invoices')"/><t t-set="IT" t-value="tot('items')"/><t t-set="R" t-value="tot('returns')"/>
             <div class="kpis k7">
-                <div class="kpi"><span class="lbl">Target to date</span><span class="val num"><t t-esc="f0(T)"/><small>SAR</small></span><span class="small">Full-period target <t t-esc="f0(tot('target'))"/></span></div>
+                <div class="kpi"><span class="lbl">Target to date</span><span class="val num"><t t-esc="f0(T)"/><small>SAR</small></span><span class="small" t-esc="d.device ? TX.noDeviceTarget : ''"/><span t-if="!d.device" class="small">Full-period target <t t-esc="f0(tot('target'))"/></span></div>
                 <div class="kpi"><span class="lbl">Actual sales</span><span class="val num"><t t-esc="f0(S)"/><small>SAR</small></span><span class="small">Achievement <bdi dir="ltr"><t t-esc="pc(S, T)"/>%</bdi></span></div>
                 <div class="kpi"><span class="lbl">Total VAT</span><span class="val num"><t t-esc="f0(tot('tax'))"/><small>SAR</small></span></div>
                 <div class="kpi"><span class="lbl">💵 Net after VAT</span><span class="val num"><t t-esc="f0(S - tot('tax'))"/><small>SAR</small></span><span class="small">Sales minus VAT</span></div>
@@ -372,7 +379,7 @@
                 </tbody></table></div></div>
 
                 <div class="nv-card c12">
-                    <div class="nv-card-h"><div><h2><t t-esc="br ? bName(br) : TX.allBranches"/>: Monthly target vs sales · <t t-esc="year"/></h2><p class="sub">Hover over any month to see the figures</p></div>
+                    <div class="nv-card-h"><div><h2><t t-esc="scopeName"/>: Monthly target vs sales · <t t-esc="year"/></h2><p class="sub">Hover over any month to see the figures</p></div>
                         <div class="lg"><span><i class="sw"/>Actual sales</span><span><i class="tk"/>Target</span></div></div>
                     <div class="bars" role="img" aria-label="Monthly target vs sales">
                         <t t-foreach="MONTHS" t-as="mn" t-key="mn_index">
@@ -388,8 +395,8 @@
                     </div>
                 </div>
 
-                <div class="nv-card c12"><h2><t t-esc="br ? bName(br) : TX.allBranches"/>: <t t-esc="TX.fromTo(dmy(rg.from), dmy(rg.to))"/> day by day</h2>
-                    <div class="tscroll"><table class="nv-tbl dt"><thead><tr><th>Date</th><th>Day</th><th>Target</th><th>Sales</th><th>Achieved</th><th>Invoices</th><th>Average invoice</th><th>Items</th><th>Returns</th><th>Refund (SAR)</th><th>Cash</th><th>Card</th><th>Difference</th><th>VAT</th><th>Net</th><t t-if="br"><th>Closed by</th><th/></t></tr></thead><tbody>
+                <div class="nv-card c12"><h2><t t-esc="scopeName"/>: <t t-esc="TX.fromTo(dmy(rg.from), dmy(rg.to))"/> day by day</h2>
+                    <div class="tscroll"><table class="nv-tbl dt"><thead><tr><th>Date</th><th>Day</th><th>Target</th><th>Sales</th><th>Achieved</th><th>Invoices</th><th>Average invoice</th><th>Items</th><th>Returns</th><th>Refund (SAR)</th><th>Cash</th><th>Card</th><th>Difference</th><th>VAT</th><th>Net</th><t t-if="br and !d.device"><th>Closed by</th><th/></t></tr></thead><tbody>
                         <t t-foreach="dayRows" t-as="x" t-key="x.day"><t t-set="p2" t-value="pc(x.sales, x.target)"/>
                             <tr><td class="num"><t t-esc="x.day.slice(5)"/><t t-if="x.changed"> <button type="button" class="chg" title="Changed after closing" aria-label="Changed after closing" t-on-click="() => state.changes = {day: x.day}">⚠️</button></t></td>
                                 <td t-esc="weekday(x.day)"/><td class="n" t-esc="f0(x.target)"/>
@@ -401,17 +408,17 @@
                                 <td class="n" t-esc="x.has ? f0(x.card) : '—'"/>
                                 <t t-set="dc" t-value="diffCell(x)"/><td t-att-class="'n ' + dc.cls" t-att-title="dc.title" t-esc="dc.text"/>
                                 <td class="n" t-esc="x.has ? f0(x.tax) : '—'"/><td class="n"><b t-if="x.has" t-esc="f0(x.sales - x.tax)"/><t t-else="">—</t></td>
-                                <t t-if="br"><td><t t-esc="x.closed_by or '—'"/> <span t-if="x.edited" class="chip info">✏️ Edited</span></td>
+                                <t t-if="br and !d.device"><td><t t-esc="x.closed_by or '—'"/> <span t-if="x.edited" class="chip info">✏️ Edited</span></td>
                                     <td class="act"><button type="button" class="del" t-on-click="() => state.dayEdit = {day: x.day}">✏️ Edit</button>
                                         <DelBtn t-if="x.id" small="true" kind="'daily_sales'" id="x.id" what="dayWhat(x)" onDone="() => this.load()"/></td></t></tr>
                         </t>
                         <tr t-if="!dayRows.length"><td colspan="18" class="empty" t-esc="rg.custom ? TX.noDataPeriod : TX.noDataMonth"/></tr>
                     </tbody></table></div></div>
 
-                <EmpBoard from="rg.from" to="rg.to" wd="props.f.wd" branchId="br" branches="d.branches"/>
+                <EmpBoard from="rg.from" to="rg.to" wd="props.f.wd" branchId="br" deviceId="dev" branches="d.branches"/>
             </div>
             <TargetEditor t-if="state.edit" branchId="state.edit.id" branchName="state.edit.name" admin="true" rows="state.editRows" onClose="() => state.edit = null" onSaved="() => this.saved()"/>
-            <DayEdit t-if="state.dayEdit and br" branchId="br" day="state.dayEdit.day" onClose="() => state.dayEdit = null" onSaved="() => this.daySaved()"/>
+            <DayEdit t-if="state.dayEdit and br and !d.device" branchId="br" day="state.dayEdit.day" onClose="() => state.dayEdit = null" onSaved="() => this.daySaved()"/>
             <DayChanges t-if="state.changes" day="state.changes.day" branchId="br or false" onClose="() => state.changes = null"/>
         </t>
     </t>

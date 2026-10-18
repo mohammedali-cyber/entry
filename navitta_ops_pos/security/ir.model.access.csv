@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_navitta_pos_day_admin,navitta.pos.day admin,model_navitta_pos_day,navitta_ops.group_navitta_admin,1,0,0,0
