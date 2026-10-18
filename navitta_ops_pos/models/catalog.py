@@ -9,8 +9,16 @@ and a size attribute and each variant has its barcode. The search answers with t
   else the models whose number starts with those digits (up to 6);
 - text: the products whose name contains it (up to 6 models).
 
-When no product matches, the models file is searched as before."""
+When no product matches, the models file is searched as before.
+
+The products' result also carries the quantity on hand (stock.quant, one grouped read) of each variant at the branch's
+own stock: the stock location of the warehouse of the branch's points of sale (and its sub-locations; several
+warehouses are added up). A branch device sees its own branch and only the total of the other branches; management
+also gets one row per branch. The true quantity is shown (it can be negative); 0 or less is «out of stock».
+The models file has no stock."""
 import re
+
+from collections import defaultdict
 
 from odoo import api, models
 
@@ -26,7 +34,87 @@ class NavittaCatalogItem(models.Model):
     @api.model
     def _find(self, raw):
         res = self._find_products(raw)
-        return res if res is not None else super()._find(raw)
+        if res is None:
+            return super()._find(raw)
+        self._add_stock(res)
+        return res
+
+    # ------------------------------------------------------------------ stock on hand
+    @api.model
+    def _stock_scope(self):
+        """(the branch whose stock is «here» (may be empty), management?) for the user searching."""
+        Api = self.env["navitta.api"]
+        if Api._is_device():
+            return self.env.user.navitta_branch_id.sudo(), False
+        branch = self.env["navitta.branch"].sudo().browse(int(self.env.context.get("navitta_branch") or 0)).exists()
+        return branch, self.env.user.has_group("navitta_ops.group_navitta_admin")
+
+    @api.model
+    def _branch_stock_roots(self):
+        """{branch id: stock.location ids}: the stock locations of the warehouses of each branch's points of sale."""
+        out = defaultdict(set)
+        for c in self.env["pos.config"].sudo().search([("navitta_branch_id", "!=", False)]):
+            loc = c.picking_type_id.warehouse_id.lot_stock_id
+            if loc:
+                out[c.navitta_branch_id.id].add(loc.id)
+        return out
+
+    @api.model
+    def _add_stock(self, res):
+        """Writes the on-hand quantities into the products' result: item["qty"] / item["qty_other"] and model["stock"]."""
+        roots = self._branch_stock_roots()
+        items = [i for g in res["models"] for i in g["items"] if i.get("product_id")]
+        if res.get("item") and res["item"].get("product_id"):
+            items.append(res["item"])
+        if not roots or not items:
+            return res
+        branch, admin = self._stock_scope()
+        Loc = self.env["stock.location"].sudo()
+        root_ids = sorted({x for ids in roots.values() for x in ids})
+        paths = {r.id: r.parent_path for r in Loc.browse(root_ids)}
+        groups = self.env["stock.quant"].sudo()._read_group(
+            [("product_id", "in", list({i["product_id"] for i in items})), ("location_id", "child_of", root_ids)],
+            ["product_id", "location_id"], ["quantity:sum"])
+        mine = roots.get(branch.id, set()) if branch else set()
+        here, other, per_branch = defaultdict(float), defaultdict(float), defaultdict(float)
+        for product, loc, qty in groups:
+            under = {r for r, path in paths.items() if (loc.parent_path or "").startswith(path)}
+            if under & mine:
+                here[product.id] += qty
+            elif under:
+                other[product.id] += qty
+            for b, rs in roots.items():
+                if under & rs:
+                    per_branch[(b, product.id)] += qty
+        names = {b.id: b.name for b in self.env["navitta.branch"].sudo().browse(list(roots))}
+        has_here = bool(mine)
+
+        def num(x):
+            x = round(x, 2)
+            return int(x) if x == int(x) else x
+        for i in items:
+            i["qty"] = num(here[i["product_id"]]) if has_here else None
+            i["qty_other"] = num(other[i["product_id"]])
+        for g in res["models"]:
+            pids = [i["product_id"] for i in g["items"] if i.get("product_id")]
+            if not pids:
+                continue
+            by, colors = defaultdict(dict), defaultdict(float)
+            for i in g["items"]:
+                if has_here:
+                    by[i["color"]][i["size"] or ""] = num(by[i["color"]].get(i["size"] or "", 0) + here[i["product_id"]])
+                    colors[i["color"]] += here[i["product_id"]]
+            g["stock"] = {
+                "branch_id": branch.id or False, "branch": branch.name or "",
+                "here": num(sum(here[p] for p in pids)) if has_here else None,
+                "other": num(sum(other[p] for p in pids)),
+                "by": dict(by), "colors": {c: num(q) for c, q in colors.items()},
+                # management: one compact row per branch (a branch device sees only the other branches' total)
+                "branches": sorted(({"id": b, "name": names.get(b, ""), "qty": num(sum(per_branch[(b, p)] for p in pids))}
+                                    for b in roots if b in names), key=lambda x: (x["id"] != branch.id, x["name"], x["id"]))
+                if admin else [],
+            }
+        return res
 
     # ------------------------------------------------------------------ products
     @api.model

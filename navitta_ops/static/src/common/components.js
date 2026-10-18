@@ -4,7 +4,7 @@ import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
 import {
     LANG, api, addDays, ago, barcodeUrl, compress, dcsText, f0, hourNow, icon, isBag, jn, longDate, minuteNow, mmss, monthEnd, monthName,
-    monthStart, photoUrl, pc, sizesOf, swatch, today,
+    monthStart, photoUrl, pc, sizesOf, stockQty, swatch, today,
 } from "./utils";
 import { Bulb } from "./help";
 
@@ -33,6 +33,13 @@ const TX = {
     get fromReport() { return _t("From the daily report"); },
     get sar() { return _t("SAR"); },
     invVsCounter: (inv, bought) => _t("Invoices %(inv)s, counter says bought %(bought)s", { inv, bought }),
+    ownTarget: (n) => _t("%s% of her device target", n),
+    stockHere: (n) => _t("Available here: %s pieces", n),
+    stockAt: (b, n) => _t("Available at %(branch)s: %(n)s pieces", { branch: b, n }),
+    stockOther: (n) => _t("Available in other branches: %s pieces", n),
+    sizeHere: (n) => _t("This size here: %s pieces", n),
+    get outOfStock() { return _t("Out of stock"); },
+    inStock: (n) => _t("%s in stock", n),
 };
 
 export class NvModal extends Component {
@@ -505,6 +512,7 @@ export class ModelCard extends Component {
         this.icon = icon;
         this.dcsText = dcsText;
         this.swatch = swatch;
+        this.stockQty = stockQty;
     }
     get sizes() {
         return sizesOf(this.props.m);
@@ -546,6 +554,8 @@ export class ModelSearch extends Component {
         this.icon = icon;
         this.dcsText = dcsText;
         this.swatch = swatch;
+        this.stockQty = stockQty;
+        this.TX = TX;
     }
     onResult(res, q) {
         this.state.res = res;
@@ -575,6 +585,9 @@ export class ModelPicker extends Component {
         this.icon = icon;
         this.dcsText = dcsText;
     }
+    stockOf(m) {
+        return m.stock && m.stock.here !== null && m.stock.here !== undefined ? m.stock.here : null;
+    }
     onResult(res, q) {
         this.state.res = res;
         this.state.q = q;
@@ -592,7 +605,7 @@ export class EmpBoard extends Component {
         title: { type: String, optional: true }, wd: { type: Array, optional: true } };
     setup() {
         this.orm = useService("orm");
-        this.state = useState({ rows: null, targets: {} });
+        this.state = useState({ rows: null, targets: {}, own: {} });
         this.f0 = f0;
         onWillStart(() => this.load(this.props));
         onWillUpdateProps((np) => {
@@ -614,6 +627,7 @@ export class EmpBoard extends Component {
         if (!r.error) {
             this.state.rows = r.rows;
             this.state.targets = r.targets;
+            this.state.own = r.own_targets || {};
         }
     }
     bName(id) {
@@ -622,5 +636,10 @@ export class EmpBoard extends Component {
     pct(r) {
         const t = this.state.targets[r.branch_id] || 0;
         return t ? Math.round((r.amount / t) * 100) : 0;
+    }
+    /** The owner of a device: her sales against her device's target (its share of the branch target), or null. */
+    ownPct(r) {
+        const t = r.employee_id && this.state.own[r.employee_id];
+        return t ? Math.round((r.amount / t) * 100) : null;
     }
 }

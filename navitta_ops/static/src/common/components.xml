@@ -233,6 +233,18 @@
         </div>
     </t>
 
+    <!-- on-hand stock of a model from the Odoo products: here, the other branches' total, or (management) each branch -->
+    <t t-name="navitta_ops.ModelStock">
+        <div t-if="m.stock" class="ms-stock">
+            <span t-if="m.stock.here !== null" t-att-class="'chip ' + (m.stock.here &gt; 0 ? 'good' : 'neutral')">📦 <t t-esc="TX.stockHere(f0(m.stock.here))"/></span>
+            <span t-if="!m.stock.branches.length" class="chip neutral" t-esc="TX.stockOther(f0(m.stock.other))"/>
+            <div t-else="" class="ms-brs num" role="list" aria-label="Stock per branch">
+                <span t-foreach="m.stock.branches" t-as="b" t-key="b.id" role="listitem" t-att-class="(b.qty &lt;= 0 ? 'out' : '') + (b.id === m.stock.branch_id ? ' on' : '')"
+                      t-att-title="TX.stockAt(b.name, f0(b.qty))"><t t-esc="b.name"/> <b t-esc="f0(b.qty)"/></span>
+            </div>
+        </div>
+    </t>
+
     <t t-name="navitta_ops.ModelCard">
         <div class="ms-card">
             <t t-call="navitta_ops.ModelHead"><t t-set="m" t-value="props.m"/><t t-set="small" t-value="false"/></t>
@@ -243,13 +255,18 @@
                 <span class="chip neutral num">📏 <t t-esc="sizes.length ? (sizes.length &gt; 1 ? sizes[0] + '–' + sizes[sizes.length - 1] : sizes[0]) : TX.noSize"/></span>
                 <span t-if="props.m.dcs" class="chip neutral num" t-esc="props.m.dcs"/>
             </div>
+            <t t-call="navitta_ops.ModelStock"><t t-set="m" t-value="props.m"/></t>
             <div t-if="bag" class="cc">
-                <t t-foreach="props.m.colors" t-as="c" t-key="c.color"><span t-att-class="'num' + (props.hi and props.hi.color === c.color ? ' on' : '')"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/></span></t>
+                <t t-foreach="props.m.colors" t-as="c" t-key="c.color"><t t-set="q" t-value="stockQty(props.m, c.color)"/>
+                    <span t-att-class="'num' + (props.hi and props.hi.color === c.color ? ' on' : '') + (q !== null and q &lt;= 0 ? ' out' : '')"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/><small t-if="q !== null" class="sq" t-esc="f0(q)"/></span></t>
             </div>
             <div t-else="" class="ms-col">
                 <div t-foreach="cols" t-as="c" t-key="c.color" class="ms-row">
-                    <div class="ms-cn num"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/></div>
-                    <div class="ms-sz num"><t t-foreach="c.sizes" t-as="s" t-key="s"><span t-att-class="props.hi and props.hi.color === c.color and props.hi.size === s ? 'on' : ''" t-esc="s"/></t></div>
+                    <t t-set="cq" t-value="stockQty(props.m, c.color)"/>
+                    <div class="ms-cn num"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/><small t-if="cq !== null" t-att-class="'sq' + (cq &lt;= 0 ? ' out' : '')" t-esc="f0(cq)"/></div>
+                    <div class="ms-sz num"><t t-foreach="c.sizes" t-as="s" t-key="s"><t t-set="q" t-value="stockQty(props.m, c.color, s)"/>
+                        <span t-att-class="(props.hi and props.hi.color === c.color and props.hi.size === s ? 'on' : '') + (q !== null and q &lt;= 0 ? ' out' : '')"
+                              t-att-title="q !== null and q &lt;= 0 ? TX.outOfStock : undefined"><t t-esc="s"/><small t-if="q !== null" class="sq" t-esc="f0(q)"/></span></t></div>
                 </div>
             </div>
             <button t-if="!bag and props.m.colors.length &gt; 8" type="button" class="ms-more" t-on-click="() => state.more = !state.more"
@@ -275,9 +292,16 @@
                         <div class="scan-side">
                             <t t-call="navitta_ops.ModelHead"><t t-set="m" t-value="m0"/><t t-set="small" t-value="true"/></t>
                             <t t-if="item.size"><h4>Sizes in the same color (<t t-esc="item.color"/>)</h4>
-                                <div class="szb num"><t t-foreach="itemSizes" t-as="s" t-key="s"><span t-att-class="s === item.size ? 'on' : ''" t-esc="s"/></t></div></t>
+                                <div class="szb num"><t t-foreach="itemSizes" t-as="s" t-key="s"><t t-set="q" t-value="stockQty(m0, item.color, s)"/>
+                                    <span t-att-class="(s === item.size ? 'on' : '') + (q !== null and q &lt;= 0 ? ' out' : '')" t-att-title="q !== null and q &lt;= 0 ? TX.outOfStock : undefined"><t t-esc="s"/><small t-if="q !== null" class="sq" t-esc="f0(q)"/></span></t></div></t>
+                            <div t-if="m0.stock" class="ms-stock">
+                                <span t-if="item.qty !== null and item.qty !== undefined" t-att-class="'chip ' + (item.qty &gt; 0 ? 'good' : 'bad')" t-esc="item.qty &gt; 0 ? TX.sizeHere(f0(item.qty)) : TX.outOfStock"/>
+                                <span t-if="!m0.stock.branches.length" class="chip neutral" t-esc="TX.stockOther(f0(item.qty_other))"/>
+                            </div>
                             <h4>Model colors</h4>
-                            <div class="cc"><t t-foreach="m0.colors" t-as="c" t-key="c.color"><span t-att-class="'num' + (c.color === item.color ? ' on' : '')"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/></span></t></div>
+                            <div class="cc"><t t-foreach="m0.colors" t-as="c" t-key="c.color"><t t-set="q" t-value="stockQty(m0, c.color)"/>
+                                <span t-att-class="'num' + (c.color === item.color ? ' on' : '') + (q !== null and q &lt;= 0 ? ' out' : '')"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/><small t-if="q !== null" class="sq" t-esc="f0(q)"/></span></t></div>
+                            <t t-call="navitta_ops.ModelStock"><t t-set="m" t-value="m0"/></t>
                             <Waiting nos="[m0.item_no]"/>
                         </div>
                     </div>
@@ -302,6 +326,8 @@
                     <button type="button" class="pick1" t-on-click="() => props.onPick(m)">
                         <div class="ms-ic sm" t-esc="icon(m.dcs)"/>
                         <div><b class="num">🏷️ <t t-esc="m.item_no"/></b><small>Model <bdi t-esc="m.model"/><t t-if="dcsText(m.dcs)"> · <t t-esc="dcsText(m.dcs)"/></t><t t-if="m.price"> · <bdi><t t-esc="f0(m.price)"/> SAR</bdi></t></small></div>
+                        <t t-set="sq" t-value="stockOf(m)"/>
+                        <span t-if="sq !== null" t-att-class="'chip ' + (sq &gt; 0 ? 'good' : 'neutral')" t-esc="sq &gt; 0 ? TX.inStock(f0(sq)) : TX.outOfStock"/>
                     </button>
                 </t>
             </t>
@@ -323,7 +349,8 @@
                     <td class="n" t-esc="r.employee_id ? f0(r.visits) : '—'"/>
                     <td class="n"><t t-if="r.employee_id"><t t-esc="f0(r.bought)"/>
                         <span t-if="r.source and r.source !== 'report' and r.bought !== r.invoices" class="chip warn" t-att-title="TX.invVsCounter(r.invoices, r.bought)" t-esc="(r.invoices - r.bought &gt; 0 ? '+' : '') + (r.invoices - r.bought)"/></t><t t-else="">—</t></td>
-                    <td><div class="pc"><div class="pbar"><i t-att-style="'width:' + Math.min(100, pct(r)) + '%'"/></div><span class="num" t-esc="pct(r) + '%'"/></div></td>
+                    <td><div class="pc"><div class="pbar"><i t-att-style="'width:' + Math.min(100, pct(r)) + '%'"/></div><span class="num" t-esc="pct(r) + '%'"/></div>
+                        <t t-set="op" t-value="ownPct(r)"/><div t-if="op !== null" class="meta num" t-esc="TX.ownTarget(op)"/></td>
                 </tr>
                 <tr t-if="!state.rows.length"><td colspan="11" class="empty">No employee sales recorded in this period</td></tr>
             </tbody></table></div>

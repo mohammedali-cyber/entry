@@ -577,3 +577,185 @@ class NavittaPosCase(TransactionCase):
         self.assertEqual(api.catalog_find("777")["item"]["model"], "SANDY")
         # management uses the same search
         self.assertEqual(self.env["navitta.api"].with_user(self.boss).catalog_find("21160003")["models"][0]["item_no"], "21160003")
+
+    # ------------------------------------------------------------------ device targets, comparison per device, stock
+    def _targets(self, branch, day, amount, days=1):
+        self.env["navitta.daily.sales"]._set_target_days(branch, day, days, amount, True)
+
+    def test_device_target_shares(self):
+        """Device day target = branch day target × share / 100: equal split when no device has a share, the devices
+        without a share split the rest of 100 %, a warning when the shares add up to more than 100 %; the dashboard,
+        Sales and targets and the employee board show the device target with the Device filter."""
+        cfg_reem, pm_reem = self.own_config("جهاز ريم", self.reem)
+        cfg_x, _pm = self.own_config("جهاز ثالث")
+        eff = lambda: [round(c.navitta_target_share_eff, 2) for c in (self.cfg_dwd, cfg_reem, cfg_x)]  # noqa: E731
+        shares = lambda: {d["id"]: round(d["share"], 2) for d in self.env["navitta.api"]._devices() if d["branch_id"] == self.dwd.id}  # noqa: E731
+        self.assertEqual(eff(), [33.33, 33.33, 33.33])                                 # nothing set: equal split
+        self.assertEqual(shares()[self.cfg_dwd.id], 33.33)
+        self.assertFalse(self.dwd.pos_share_warning)
+        self.assertEqual([d["share"] for d in self.env["navitta.api"]._devices() if d["id"] == self.cfg_qsm.id], [100.0])  # alone
+        self.cfg_dwd.navitta_target_share, cfg_reem.navitta_target_share, cfg_x.navitta_target_share = 50, 30, 20
+        self.assertEqual(eff(), [50, 30, 20])                                          # explicit shares
+        cfg_x.navitta_target_share = 0
+        cfg_reem.navitta_target_share = 0
+        self.assertEqual(eff(), [50, 25, 25])                                          # mixed: the rest split equally
+        self.assertEqual(shares(), {self.cfg_dwd.id: 50, cfg_reem.id: 25, cfg_x.id: 25})
+        self.cfg_dwd.navitta_target_share, cfg_reem.navitta_target_share = 80, 40
+        self.dwd.invalidate_recordset(["pos_share_warning"])
+        self.assertEqual(eff(), [80, 40, 0])                                           # never negative
+        self.assertIn("120%", self.dwd.pos_share_warning)
+        with self.assertRaises(ValidationError):
+            cfg_x.navitta_target_share = 120
+        # the branch form: the warning follows the shares typed in
+        from odoo.tests import Form
+        with Form(self.dwd) as f:
+            self.assertTrue(f.pos_share_warning)
+            for i in range(3):
+                with f.pos_config_ids.edit(i) as line:
+                    line.navitta_target_share = 10
+            self.assertFalse(f.pos_share_warning)
+        self.assertEqual(eff(), [10, 10, 10])
+        # achievement with the Device filter: 1000 a day for the branch, her device 10 % → 100
+        self.cfg_dwd.navitta_target_share = cfg_x.navitta_target_share = 0
+        self.assertEqual(eff(), [45, 10, 45])
+        day = self.day
+        self._targets(self.dwd, day - timedelta(days=1), 1000, 2)
+        reem_hr, shima_hr = self.link()
+        s_reem = self._open(cfg_reem, reem_hr)
+        self._order(s_reem, 1, pm_reem, shima_hr)                                     # 230, counts for her (her device)
+        boss = self.env["navitta.api"].with_user(self.boss)
+        d0 = day - timedelta(days=1)
+        k = boss.admin_dashboard(str(d0), str(day), [], self.dwd.id, cfg_reem.id)["kpi"]
+        self.assertEqual((k["target"], k["target_full"], k["sales"], k["device"]["share"]), (200, 200, 230, 10))
+        k = boss.admin_dashboard(str(d0), str(day), [], self.dwd.id, False)["kpi"]
+        self.assertEqual((k["target"], k["sales"]), (2000, 230))
+        sal = boss.admin_sales(self.dwd.id, str(d0), str(day), day.year, str(d0), str(day), [], cfg_reem.id)
+        self.assertEqual((sal["summary"][0]["target_to_date"], sal["summary"][0]["sales"]), (200, 230))
+        self.assertEqual({r["day"]: (r["target"], r["sales"]) for r in sal["daily"]},
+                         {str(d0): (100, None), str(day): (100, 230)})
+        month = [m for m in sal["monthly"] if m["month"] == day.month][0]
+        self.assertEqual((month["sales"], month["target"] >= 100), (230, True))
+        emp = boss.employee_summary(str(d0), str(day), self.dwd.id, [], cfg_reem.id)
+        self.assertEqual((emp["targets"][self.dwd.id], emp["own_targets"]), (2000, {self.reem.id: 200}))
+        emp = boss.employee_summary(str(d0), str(day), self.dwd.id, [])
+        self.assertEqual(emp["own_targets"], {self.reem.id: 200})
+
+    def test_compare_per_device(self):
+        """Branch comparison in «Devices» mode: one row per point of sale equal to the SQL sums of its orders for the
+        period, its target (share of its branch's), its owner's counter visits, the ranks and the totals."""
+        Hr = self.env["hr.employee"]
+        akaria = Hr.create({"name": "POS_AKARIA"})
+        reem_hr, shima_hr = self.link()
+        cfg_reem, pm_reem = self.own_config("جهاز ريم", self.reem)
+        s_dwd, s_reem, s_qsm = self._open(self.cfg_dwd, shima_hr), self._open(cfg_reem, reem_hr), self._open(self.cfg_qsm, akaria)
+        day = self.day
+        plan = [(0, s_dwd, 2, self.cash), (0, s_reem, 1, pm_reem), (1, s_reem, 3, self.card), (2, s_qsm, 1, self.cash_qsm),
+                (3, s_dwd, -1, self.cash), (5, s_qsm, 3, self.card), (9, s_reem, 1, pm_reem), (40, s_dwd, 5, self.card)]
+        for ago, s, q, pm in plan:
+            self._at(self._order(s, q, pm), day - timedelta(days=ago))
+        cfg_reem.navitta_target_share = 40
+        self._targets(self.dwd, day - timedelta(days=9), 1000, 10)
+        self._targets(self.qsm, day - timedelta(days=9), 500, 10)
+        Visit = self.env["navitta.visit"]
+        for i, bought in enumerate((True, False, True, False)):
+            Visit.create({"branch_id": self.dwd.id, "employee_id": self.reem.id, "day": day - timedelta(days=i), "saved": True,
+                          "started_at": fields.Datetime.now() - timedelta(days=i), "bought": bought})
+        boss = self.env["navitta.api"].with_user(self.boss)
+        d0, d1 = day - timedelta(days=9), day
+        cmp = boss.admin_compare(str(d0), str(d1), [], "device")
+        self.assertEqual(cmp["level"], "device")
+        rows = {r["device_id"]: r for r in cmp["rows"]}
+        self.assertEqual(set(rows), {self.cfg_dwd.id, cfg_reem.id, self.cfg_qsm.id})
+        self.env["pos.order.line"].flush_model()
+        for cfg in (self.cfg_dwd, cfg_reem, self.cfg_qsm):
+            r = rows[cfg.id]
+            self.assertEqual((round(r["sales"], 2), r["invoices"]), self._sql(d0, d1, None, cfg.id), cfg.name)
+            self.env.cr.execute("""
+                SELECT COALESCE(SUM(l.qty) FILTER (WHERE l.qty > 0), 0), COALESCE(SUM(-l.qty) FILTER (WHERE l.qty < 0), 0),
+                       COALESCE(SUM(o.amount_tax), 0)
+                  FROM pos_order_line l JOIN pos_order o ON o.id = l.order_id
+                 WHERE o.config_id = %s AND (o.date_order AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Riyadh')::date BETWEEN %s AND %s""",
+                                [cfg.id, d0, d1])
+            items, ret, tax = self.env.cr.fetchone()
+            self.assertEqual((r["items"], r["returns"], round(r["tax"], 2)), (items, ret, round(tax, 2)), cfg.name)
+            self.assertEqual(r["avg_invoice"], round(r["sales"] / r["invoices"], 2) if r["invoices"] else 0.0)
+        # targets: her device 40 %, the shared device of dwd the remaining 60 %, qsm's only device 100 % (days up to today)
+        self.assertEqual((rows[cfg_reem.id]["target"], rows[self.cfg_dwd.id]["target"], rows[self.cfg_qsm.id]["target"]), (4000, 6000, 5000))
+        self.assertEqual(rows[cfg_reem.id]["achieved"], round(rows[cfg_reem.id]["sales"] * 100 / 4000, 1))
+        # her counter visits and purchase rate; the shared device has none
+        r = rows[cfg_reem.id]
+        vdom = [("employee_id", "=", self.reem.id), ("branch_id", "=", self.dwd.id), ("saved", "=", True), ("day", ">=", d0), ("day", "<=", d1)]
+        n, b = Visit.search_count(vdom), Visit.search_count(vdom + [("bought", "=", True)])      # with the automatic visits
+        self.assertGreaterEqual(n, 4)
+        self.assertEqual((r["visits"], r["bought"], r["buy_pct"], r["owner"]), (n, b, round(b * 100.0 / n, 1), "ريم"))
+        self.assertEqual(r["label"], "جهاز ريم · %s · ريم" % self.dwd.name)
+        self.assertEqual((rows[self.cfg_dwd.id]["visits"], rows[self.cfg_dwd.id]["buy_pct"]), (None, None))
+        # ranks by sales, and the devices add up to the branches
+        by_sales = sorted(cmp["rows"], key=lambda x: -x["sales"])
+        self.assertEqual([x["rank"] for x in cmp["rows"]], [1, 2, 3])
+        self.assertEqual([x["device_id"] for x in cmp["rows"]], [x["device_id"] for x in by_sales])
+        br = {r["branch_id"]: r for r in boss.admin_compare(str(d0), str(d1))["rows"]}
+        for b in (self.dwd, self.qsm):
+            mine = [x for x in cmp["rows"] if x["branch_id"] == b.id]
+            self.assertEqual(round(sum(x["sales"] for x in mine), 2), round(br[b.id]["sales"], 2))
+            self.assertEqual(sum(x["invoices"] for x in mine), br[b.id]["invoices"])
+            self.assertAlmostEqual(sum(x["target"] for x in mine), br[b.id]["target"], 2)
+        self.assertEqual(br[self.dwd.id]["rank"] in (1, 2), True)
+        # a weekday filter applies to the devices too
+        wd = [dow(day)]
+        rows = {r["device_id"]: r for r in boss.admin_compare(str(d0), str(d1), wd, "device")["rows"]}
+        self.assertEqual((round(rows[cfg_reem.id]["sales"], 2), rows[cfg_reem.id]["invoices"]), self._sql(d0, d1, None, cfg_reem.id, wd))
+
+    def _shoe(self):
+        PA = self.env["product.attribute"]
+        color = PA.create({"name": "اللون", "value_ids": [(0, 0, {"name": "أسود", "sequence": 1}), (0, 0, {"name": "بيج", "sequence": 2})]})
+        size = PA.create({"name": "المقاس", "value_ids": [(0, 0, {"name": s, "sequence": i}) for i, s in enumerate(["36", "37"])]})
+        lines = [(0, 0, {"attribute_id": a.id, "value_ids": [(6, 0, a.value_ids.ids)]}) for a in (color, size)]
+        shoe = self.env["product.template"].create({"name": "21170001- حذاء", "list_price": 200, "available_in_pos": True, "is_storable": True,
+                                                     "attribute_line_ids": lines})
+        return {tuple(v.product_template_attribute_value_ids.mapped("name")): v for v in shoe.product_variant_ids}
+
+    def test_model_search_stock(self):
+        """🔎 Model search in the products shows the quantity on hand per variant at the branch's own warehouse (of its
+        points of sale, with the sub-locations): a branch device its own branch and the other branches' total,
+        management one row per branch. One grouped read; the models file has no stock."""
+        Q = self.env["stock.quant"]
+        v = self._shoe()
+        wh1 = self.cfg_dwd.picking_type_id.warehouse_id
+        wh2 = self.env["stock.warehouse"].create({"name": "مستودع القصيم", "code": "QSM"})
+        self.cfg_qsm.picking_type_id = wh2.pos_type_id
+        shelf = self.env["stock.location"].create({"name": "رف", "location_id": wh1.lot_stock_id.id, "usage": "internal"})
+        black36, black37, beige36, beige37 = v[("أسود", "36")], v[("أسود", "37")], v[("بيج", "36")], v[("بيج", "37")]
+        black37.barcode = "6281999000377"
+        Q._update_available_quantity(black37, wh1.lot_stock_id, 3)
+        Q._update_available_quantity(black37, shelf, 2)            # a sub-location of the branch's stock
+        Q._update_available_quantity(beige36, wh1.lot_stock_id, -1)   # negative: shown as it is, out of stock
+        Q._update_available_quantity(black37, wh2.lot_stock_id, 4)
+        Q._update_available_quantity(black36, wh2.lot_stock_id, 6)
+        other = self.env["stock.warehouse"].create({"name": "مستودع آخر", "code": "OTH"})   # no branch: not counted
+        Q._update_available_quantity(black36, other.lot_stock_id, 50)
+        api = self.env["navitta.api"].with_user(self.dev)
+        m = api.catalog_find("21170001")["models"][0]
+        qty = {(i["color"], i["size"]): (i["qty"], i["qty_other"]) for i in m["items"]}
+        self.assertEqual(qty, {("أسود", "36"): (0, 6), ("أسود", "37"): (5, 4), ("بيج", "36"): (-1, 0), ("بيج", "37"): (0, 0)})
+        st = m["stock"]
+        self.assertEqual((st["branch_id"], st["here"], st["other"], st["branches"]), (self.dwd.id, 4, 10, []))
+        self.assertEqual(st["by"], {"أسود": {"36": 0, "37": 5}, "بيج": {"36": -1, "37": 0}})
+        self.assertEqual(st["colors"], {"أسود": 5, "بيج": -1})
+        # a scanned piece: its own quantities too
+        r = api.catalog_find("6281999000377")
+        self.assertEqual((r["item"]["qty"], r["item"]["qty_other"]), (5, 4))
+        # the other branch's device: the other way round
+        dev_qsm = self.env["res.users"].create({"name": "جهاز القصيم", "login": "qsm-pos-device", "navitta_branch_id": self.qsm.id,
+                                                "groups_id": [(6, 0, [self.env.ref("base.group_user").id, self.env.ref("navitta_ops.group_navitta_branch").id])]})
+        st = self.env["navitta.api"].with_user(dev_qsm).catalog_find("21170001")["models"][0]["stock"]
+        self.assertEqual((st["here"], st["other"], st["branches"]), (10, 4, []))
+        # management on the branch screen of dwd: one row per branch (its own first), and the same «here»
+        boss = self.env["navitta.api"].with_user(self.boss)
+        st = boss.with_context(navitta_branch=self.dwd.id).catalog_find("21170001")["models"][0]["stock"]
+        self.assertEqual((st["here"], [(b["id"], b["qty"]) for b in st["branches"]]), (4, [(self.dwd.id, 4), (self.qsm.id, 10)]))
+        st = boss.catalog_find("21170001")["models"][0]["stock"]          # no branch picked: per branch only
+        self.assertEqual((st["here"], {b["id"]: b["qty"] for b in st["branches"]}), (None, {self.dwd.id: 4, self.qsm.id: 10}))
+        # the models file: no stock
+        self.env["navitta.catalog.item"].create({"alu": "778", "item_no": "30010002", "model": "SANDY", "color": "BLACK", "size": "38"})
+        self.assertNotIn("stock", api.catalog_find("30010002")["models"][0])

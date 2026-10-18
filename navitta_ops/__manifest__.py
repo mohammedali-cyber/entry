@@ -7,7 +7,7 @@ leaves with cover, employee inbox, targets and sales, daily report, branch reque
 shipments received by scanning, defective items, supplies, expenses, lost sales, models file, management dashboard, a month calendar of the days, deleting with a delete password and a delete log,
 an ideas backlog, help bubbles with a guided tour, a dark mode and a nightly PDF summary by email.
 """,
-    "version": "18.0.2.1.0",
+    "version": "18.0.2.2.0",
     "category": "Operations",
     "author": "Navitta",
     "license": "LGPL-3",

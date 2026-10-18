@@ -12,13 +12,13 @@
                 <span class="x">✕ Change</span>
             </button>
             <div class="lt">Color</div>
-            <div t-if="v.m" class="cc"><t t-foreach="v.m.colors" t-as="c" t-key="c.color">
-                <button type="button" t-att-class="'num' + (v.color === c.color ? ' on' : '')" t-on-click="() => this.setColor(c.color)"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/></button></t></div>
+            <div t-if="v.m" class="cc"><t t-foreach="v.m.colors" t-as="c" t-key="c.color"><t t-set="q" t-value="stockQty(v.m, c.color)"/>
+                <button type="button" t-att-class="'num' + (v.color === c.color ? ' on' : '') + (q !== null and q &lt;= 0 ? ' out' : '')" t-on-click="() => this.setColor(c.color)"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/><small t-if="q !== null" class="sq" t-esc="f0(q)"/></button></t></div>
             <input t-else="" class="ctl" t-model="v.color" t-att-placeholder="TX.colorPh"/>
             <t t-if="hasSizes">
                 <div class="lt">Size</div>
-                <div t-if="v.m" class="cc num"><t t-foreach="sizes" t-as="z" t-key="z">
-                    <button type="button" t-att-class="v.size === z ? 'on' : ''" t-on-click="() => this.setSize(z)" t-esc="z"/></t></div>
+                <div t-if="v.m" class="cc num"><t t-foreach="sizes" t-as="z" t-key="z"><t t-set="q" t-value="v.color ? stockQty(v.m, v.color, z) : null"/>
+                    <button type="button" t-att-class="(v.size === z ? 'on' : '') + (q !== null and q &lt;= 0 ? ' out' : '')" t-on-click="() => this.setSize(z)"><t t-esc="z"/><small t-if="q !== null" class="sq" t-esc="f0(q)"/></button></t></div>
                 <input t-else="" class="ctl num" t-model="v.size" t-att-placeholder="TX.sizePh"/>
             </t>
         </t>

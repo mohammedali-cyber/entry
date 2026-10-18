@@ -69,9 +69,31 @@ class NavittaApiAdmin(models.AbstractModel):
     # ------------------------------------------------------------------ cash register devices (overridden by navitta_ops_pos)
     @api.model
     def _devices(self):
-        """The cash register devices for the «Device» filter: [{id, name, branch_id, owner_id, owner}]. [] without a
-        cash register system (the filter is then not shown)."""
+        """The cash register devices for the «Device» filter: [{id, name, branch_id, owner_id, owner, share}]. [] without
+        a cash register system (the filter is then not shown). share: the device's share (%) of its branch's target."""
         return []
+
+    @api.model
+    def _devices_totals(self, d0, d1, weekdays=None):
+        """{device id: {sales, tax, invoices, items, returns, returns_amount, cash, card, sales_days}} over the period."""
+        return {}
+
+    @api.model
+    def _target_sums(self, d0, d1, weekdays=None):
+        """{branch id: (target of the whole period, target of its days up to today)} for the chosen weekdays."""
+        wd = self._wd(weekdays) or None
+        self.env["navitta.daily.sales"].flush_model()
+        self.env.cr.execute("""
+            SELECT branch_id, COALESCE(SUM(target), 0), COALESCE(SUM(target) FILTER (WHERE day <= %s), 0)
+              FROM navitta_daily_sales
+             WHERE day BETWEEN %s AND %s AND (%s::int[] IS NULL OR EXTRACT(dow FROM day)::int = ANY(%s::int[]))
+             GROUP BY branch_id""", [app_today(self.env), d0, d1, wd, wd])
+        return {b: (t, ttd) for b, t, ttd in self.env.cr.fetchall()}
+
+    @staticmethod
+    def _dev_k(device):
+        """The device's part of its branch's target (device day target = branch day target × share / 100)."""
+        return (device.get("share") or 0.0) / 100.0
 
     @api.model
     def _device(self, device_id):
@@ -114,7 +136,8 @@ class NavittaApiAdmin(models.AbstractModel):
           the orders of that point of sale only; average invoice = sales / invoices;
         - customers (counter) = the saved counter visits (with the automatic visits «sold without the counter»), of the
           device's owner for a device with an owner; purchase rate = the «bought» ones / all of them;
-        - customer satisfaction = the average rating (1–5) of the daily reports of the period.
+        - customer satisfaction = the average rating (1–5) of the daily reports of the period;
+        - target = the days' targets up to today (target_full: the whole period); a device: its share of its branch's.
         All of them on the chosen days of the week only."""
         dom = self._day_filter(d0, d1, weekdays)
         S = self.env
@@ -139,7 +162,12 @@ class NavittaApiAdmin(models.AbstractModel):
         Visit = S["navitta.visit"].sudo()
         visits, bought = Visit.search_count(vdom), Visit.search_count(vdom + [("bought", "=", True)])
         sats = S["navitta.daily.report"].sudo().search(dom + bdom + [("sat", ">", 0)]).mapped("sat")
-        return {"sales": round(sales, 2), "invoices": inv, "tax": round(tax, 2), "avg_invoice": round(sales / inv, 2) if inv else 0.0,
+        # the target of the period (its days up to today): the branch's / all branches', or the device's share of its branch's
+        tg = self._target_sums(d0, d1, weekdays)
+        t_full, t_date = (sum(x[i] for b, x in tg.items() if not bid or b == bid) for i in (0, 1))
+        if device:
+            t_full, t_date = t_full * self._dev_k(device), t_date * self._dev_k(device)
+        return {"target": round(t_date, 2), "target_full": round(t_full, 2), "sales": round(sales, 2), "invoices": inv, "tax": round(tax, 2), "avg_invoice": round(sales / inv, 2) if inv else 0.0,
                 "visits": visits, "bought": bought, "buy_pct": round(bought * 100.0 / visits, 1) if visits else 0.0,
                 "sat": round(sum(sats) / len(sats), 1) if sats else 0.0, "reports": len(sats), "source": source,
                 "device": device or False}
@@ -344,7 +372,8 @@ class NavittaApiAdmin(models.AbstractModel):
                 if r:
                     r["visits"] += 1
                     r["bought"] += 1 if v.bought else 0
-            return {"rows": sorted(rows.values(), key=lambda r: -r["amount"]), "targets": {}}
+            rows = sorted(rows.values(), key=lambda r: -r["amount"])
+            return dict(self._emp_targets(rows, d0, d1, weekdays), rows=rows)
         lines = self.env["navitta.employee.sales"]._preferred_domain(d0, d1, branch_id)
         if wd:
             lines = lines.filtered(lambda l: dow(l.day) in wd)
@@ -373,11 +402,21 @@ class NavittaApiAdmin(models.AbstractModel):
                                  "returns_amount": 0.0, "amount_inv": 0.0, "source": False, "visits": 0, "bought": 0}
             r["visits"] += 1
             r["bought"] += 1 if v.bought else 0
-        today = app_today(self.env)
-        targets = {}
-        for ds in self.env["navitta.daily.sales"].sudo().search(dom + [("day", "<=", today)]):
-            targets[ds.branch_id.id] = targets.get(ds.branch_id.id, 0.0) + ds.target
-        return {"rows": sorted(rows.values(), key=lambda r: -r["amount"]), "targets": targets}
+        rows = sorted(rows.values(), key=lambda r: -r["amount"])
+        return dict(self._emp_targets(rows, d0, d1, weekdays), rows=rows)
+
+    @api.model
+    def _emp_targets(self, rows, d0, d1, weekdays=None):
+        """The employee board's targets (their days up to today): {branch id: target} for «of branch target», and
+        own_targets {employee id: her device's target} for the owners of a device («of her device target»)."""
+        tg = self._target_sums(d0, d1, weekdays)
+        targets = {b: x[1] for b, x in tg.items()}
+        emps = {r["employee_id"] for r in rows if r["employee_id"]}
+        own = {}
+        for dv in self._devices() if emps else []:
+            if dv.get("owner_id") in emps:
+                own[dv["owner_id"]] = round(targets.get(dv["branch_id"], 0.0) * self._dev_k(dv), 2)
+        return {"targets": targets, "own_targets": own}
 
     @api.model
     def admin_sales(self, branch_id, date_from, date_to, year, m_from, m_to, weekdays=None, device_id=False):
@@ -429,26 +468,46 @@ class NavittaApiAdmin(models.AbstractModel):
 
     @api.model
     def _device_sales(self, device, d0, d1, year, m0, m1, weekdays, today):
-        """admin_sales for one point of sale: its orders' figures, without targets."""
+        """admin_sales for one point of sale: its orders' figures, and its share of its branch's targets (device day
+        target = branch day target × share / 100; the targets themselves are still set per branch)."""
+        k, br = self._dev_k(device), device["branch_id"]
         keys = ("sales", "invoices", "items", "returns", "tax", "returns_amount", "cash", "card")
-        tot = {k: 0.0 for k in keys}
+        tot = {x: 0.0 for x in keys}
         for r in self._device_days(device, d0, d1, weekdays):
-            for k in keys:
-                tot[k] += r[k]
-        summary = [dict(tot, branch_id=device["branch_id"], target=0.0, target_to_date=0.0, device=True)]
-        monthly = [{"month": m, "target": 0.0, "target_to_date": 0.0, "sales": s} for m, s in sorted(self._device_months(device, year).items())]
-        daily = [{"id": False, "day": fields.Date.to_string(r["day"]), "branch_id": r["branch_id"], "target": 0.0, "sales": r["sales"],
-                  "invoices": r["invoices"], "items": r["items"], "returns": r["returns"], "returns_amount": r["returns_amount"],
-                  "tax": r["tax"], "cash": r["cash"], "card": r["card"], "closed_by": "", "system": True, "source": "pos",
-                  "edited": False, "changed": 0, "check": None} for r in self._device_days(device, m0, m1, weekdays)]
+            for x in keys:
+                tot[x] += r[x]
+        t_full, t_date = self._target_sums(d0, d1, weekdays).get(br, (0.0, 0.0))
+        summary = [dict(tot, branch_id=br, target=round(t_full * k, 2), target_to_date=round(t_date * k, 2), device=True,
+                        share=device.get("share") or 0.0)]
+        self.env["navitta.daily.sales"].flush_model()
+        cr = self.env.cr
+        cr.execute("""
+            SELECT EXTRACT(month FROM day)::int, COALESCE(SUM(target), 0), COALESCE(SUM(target) FILTER (WHERE day <= %s), 0)
+              FROM navitta_daily_sales WHERE EXTRACT(year FROM day) = %s AND branch_id = %s GROUP BY 1""", [today, year, br])
+        mt = {m: (t, ttd) for m, t, ttd in cr.fetchall()}
+        ms = self._device_months(device, year)
+        monthly = [{"month": m, "target": round(mt.get(m, (0.0, 0.0))[0] * k, 2), "target_to_date": round(mt.get(m, (0.0, 0.0))[1] * k, 2),
+                    "sales": ms.get(m, 0.0)} for m in sorted(set(mt) | set(ms))]
+        targets = {r.day: r.target for r in self.env["navitta.daily.sales"].sudo().search(
+            self._day_filter(m0, m1, weekdays) + [("branch_id", "=", br), ("target", ">", 0)])}
+        days = {r["day"]: r for r in self._device_days(device, m0, m1, weekdays)}
+        daily = []
+        for day in sorted(set(days) | set(targets)):
+            r = days.get(day) or {}
+            daily.append({"id": False, "day": fields.Date.to_string(day), "branch_id": br, "target": round(targets.get(day, 0.0) * k, 2),
+                          "sales": r["sales"] if r else None, "invoices": r.get("invoices", 0), "items": r.get("items", 0),
+                          "returns": r.get("returns", 0), "returns_amount": r.get("returns_amount", 0.0), "tax": r.get("tax", 0.0),
+                          "cash": r.get("cash", 0.0), "card": r.get("card", 0.0), "closed_by": "", "system": True, "source": "pos",
+                          "edited": False, "changed": 0, "check": None})
         return {"branches": self._branches(), "summary": summary, "monthly": monthly, "daily": daily, "device": device,
-                "employees": self.employee_summary(d0, d1, device["branch_id"], weekdays, device["id"]), "settings": self._settings(),
+                "employees": self.employee_summary(d0, d1, br, weekdays, device["id"]), "settings": self._settings(),
                 "day": fields.Date.to_string(today)}
 
     @api.model
-    def admin_compare(self, date_from, date_to, weekdays=None):
+    def admin_compare(self, date_from, date_to, weekdays=None, level="branch"):
         """Branches side by side for the period: target, sales (cash register system or daily report), tax, invoices,
-        average invoice, items, returns, customers counted at the door, and checks between the three sources."""
+        average invoice, items, returns, customers counted at the door, and checks between the three sources.
+        level "device": one row per cash register device instead (see _compare_devices). Each row has its rank by sales."""
         self._admin()
         d0, d1 = self._d(date_from), self._d(date_to)
         today = app_today(self.env)
@@ -456,6 +515,13 @@ class NavittaApiAdmin(models.AbstractModel):
         branches = S["navitta.branch"].sudo().search([])
         branches._system_sync([today])
         self._backfill(d0, d1)
+        devices = self._devices()
+        status = branches._system_status(today)
+        head = {"branches": self._branches(), "settings": self._settings(), "devices": devices, "level": "branch",
+                "day": fields.Date.to_string(today), "from": fields.Date.to_string(d0), "to": fields.Date.to_string(d1),
+                "registers": {str(k): v for k, v in status.items()}}
+        if level == "device" and devices:
+            return dict(head, level="device", rows=self._compare_devices(devices, d0, d1, weekdays))
         dom = self._day_filter(d0, d1, weekdays)
         res = {b.id: {"branch_id": b.id, "name": b.name, "system": b._has_system(), "days": 0, "target": 0.0, "sales": 0.0,
                       "tax": 0.0, "net": 0.0, "invoices": 0, "items": 0, "returns": 0, "returns_amount": 0.0, "cash": 0.0, "card": 0.0,
@@ -503,10 +569,55 @@ class NavittaApiAdmin(models.AbstractModel):
             x["report_gap_days"] = x.get("report_gap_days", 0)
             x["missing_reports"] = max(0, n_days - x["report_days"])
             rows.append(x)
-        status = branches._system_status(today)
-        return {"rows": sorted(rows, key=lambda r: -r["sales"]), "branches": self._branches(), "settings": self._settings(),
-                "day": fields.Date.to_string(today), "from": fields.Date.to_string(d0), "to": fields.Date.to_string(d1),
-                "registers": {str(k): v for k, v in status.items()}}
+        return dict(head, rows=self._ranked(rows))
+
+    @staticmethod
+    def _ranked(rows):
+        """Rows sorted by sales (highest first) with their rank; equal sales share a rank (1, 1, 3…)."""
+        rows = sorted(rows, key=lambda r: -r["sales"])
+        for i, r in enumerate(rows):
+            r["rank"] = rows[i - 1]["rank"] if i and round(rows[i - 1]["sales"], 2) == round(r["sales"], 2) else i + 1
+        return rows
+
+    @api.model
+    def _compare_devices(self, devices, d0, d1, weekdays=None):
+        """Branch comparison per cash register device: its figures over the period (navitta.pos.day, one grouped query),
+        its target (its share of its branch's target up to today) and achievement, and the counter visits and purchase
+        rate of its owner (in its branch) when it has one."""
+        tot = self._devices_totals(d0, d1, weekdays)
+        tg = self._target_sums(d0, d1, weekdays)
+        owners = [dv["owner_id"] for dv in devices if dv.get("owner_id")]
+        visits, bought = {}, {}
+        if owners:
+            Visit = self.env["navitta.visit"].sudo()
+            vdom = self._day_filter(d0, d1, weekdays) + [("saved", "=", True), ("employee_id", "in", owners)]
+            for dom, out in ((vdom, visits), (vdom + [("bought", "=", True)], bought)):
+                for emp, br, n in Visit._read_group(dom, ["employee_id", "branch_id"], ["__count"]):
+                    out[(emp.id, br.id)] = n
+        names = {b["id"]: b["name"] for b in self._branches()}
+        rows = []
+        for dv in devices:
+            x = {"sales": 0.0, "tax": 0.0, "invoices": 0, "items": 0, "returns": 0, "returns_amount": 0.0, "cash": 0.0, "card": 0.0,
+                 "sales_days": 0}
+            x.update(tot.get(dv["id"], {}))
+            br, owner = dv["branch_id"], dv.get("owner_id") or False
+            key = (owner, br)
+            target = tg.get(br, (0.0, 0.0))[1] * self._dev_k(dv)
+            x.update({
+                "device_id": dv["id"], "branch_id": br, "name": dv["name"], "owner": dv.get("owner") or "", "owner_id": owner,
+                "branch": names.get(br, ""), "label": " · ".join(p for p in (dv["name"], names.get(br, ""), dv.get("owner")) if p),
+                "share": dv.get("share") or 0.0, "system": True, "target": round(target, 2), "net": x["sales"] - x["tax"],
+                "visits": visits.get(key, 0) if owner else None, "bought": bought.get(key, 0) if owner else None,
+                "report_sales": 0.0})
+            for k in ("sales", "tax", "net", "returns_amount", "cash", "card"):
+                x[k] = round(x[k], 2)
+            x["achieved"] = round(x["sales"] * 100.0 / x["target"], 1) if x["target"] else None
+            x["avg_invoice"] = round(x["sales"] / x["invoices"], 2) if x["invoices"] else 0.0
+            x["items_per_invoice"] = round(x["items"] / x["invoices"], 2) if x["invoices"] else 0.0
+            x["buy_pct"] = round(x["bought"] * 100.0 / x["visits"], 1) if owner and x["visits"] else None
+            x["conversion"] = round(x["invoices"] * 100.0 / x["visits"], 1) if owner and x["visits"] else None
+            rows.append(x)
+        return self._ranked(rows)
 
     @api.model
     def admin_target_rows(self, branch_id):

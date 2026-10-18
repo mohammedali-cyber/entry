@@ -165,7 +165,10 @@
             <DailyQuote admin="true" best="d.best"/>
             <t t-call="navitta_ops.Registers"><t t-set="regs" t-value="d.registers"/><t t-set="branches" t-value="d.branches"/></t>
 
-            <div class="kpis">
+            <div class="kpis k7">
+                <div class="kpi" data-kpi="target"><span class="lbl">🎯 Target to date</span><span class="val num"><t t-esc="f0(w.target)"/><small>SAR</small></span>
+                    <span class="small"><t t-if="w.target">Achievement <bdi dir="ltr"><t t-esc="pc(w.sales, w.target)"/>%</bdi> · <t t-esc="w.left ? TX.remaining(f0(w.left)) : TX.targetDone"/></t><t t-else="" t-esc="TX.noTarget"/></span>
+                    <span t-if="w.device" class="small" t-esc="TX.deviceShare(+(+w.device.share || 0).toFixed(1))"/></div>
                 <div class="kpi" data-kpi="sales"><span class="lbl">Total sales</span><span class="val num"><t t-esc="f0(w.sales)"/><small>SAR</small></span><span class="small" t-esc="TX.src[w.source]"/></div>
                 <div class="kpi" data-kpi="invoices"><span class="lbl">Number of invoices</span><span class="val num" t-esc="f0(w.inv)"/><span class="small">VAT <t t-esc="f0(w.tax)"/> SAR</span></div>
                 <div class="kpi" data-kpi="avg"><span class="lbl">Average invoice</span><span class="val num"><t t-esc="w.inv ? f0(w.sales / w.inv) : 0"/><small>SAR</small></span></div>
@@ -301,15 +304,48 @@
             <div class="grid">
                 <div class="nv-card c12">
                     <div class="nv-card-h"><div><h2>📊 Branch comparison</h2>
-                        <p class="sub">Figures come from the Point of Sale for linked branches and from the daily report for the others. Click any column title to sort.</p></div>
-                        <button type="button" class="nv-btn" t-on-click="() => this.exportCsv()">⬇️ Download Excel (CSV)</button></div>
-                    <div class="tscroll"><table class="nv-tbl cmp"><thead><tr>
-                        <th>Branch</th>
+                        <p t-if="byDev" class="sub">Each row is a device (point of sale) with its own invoices. Target = the device's share of its branch target. Counter customers and purchase rate are its owner's. Click any column title to sort.</p>
+                        <p t-else="" class="sub">Figures come from the Point of Sale for linked branches and from the daily report for the others. Click any column title to sort.</p></div>
+                        <div class="cmp-tools">
+                            <div t-if="d.devices.length" class="seg" role="group" aria-label="Compare by">
+                                <button type="button" t-att-aria-pressed="byDev ? 'false' : 'true'" t-on-click="() => this.setLvl('branch')">Branches</button>
+                                <button type="button" t-att-aria-pressed="byDev ? 'true' : 'false'" t-on-click="() => this.setLvl('device')">Devices</button>
+                            </div>
+                            <button type="button" class="nv-btn" t-on-click="() => this.exportCsv()">⬇️ Download Excel (CSV)</button></div></div>
+                    <div t-if="byDev" class="tscroll"><table class="nv-tbl cmp"><thead><tr>
+                        <th>#</th><th>Device</th>
+                        <t t-foreach="CMPCOLS_DEV" t-as="c" t-key="c[0]">
+                            <th><button type="button" t-att-class="'th-sort' + (state.sort === c[0] ? ' on' : '')" t-on-click="() => state.sort = c[0]" t-esc="c[1]"/></th>
+                        </t>
+                    </tr></thead><tbody>
+                        <tr t-foreach="rows" t-as="r" t-key="r.device_id">
+                            <td><span t-att-class="'rk' + (r.rank &lt;= 3 and r.sales &gt; 0 ? ' g' + r.rank : '')" t-esc="r.rank"/></td>
+                            <td><b t-esc="r.name"/><div class="meta"><t t-esc="r.branch"/> · <t t-esc="r.owner or TX.noOwner"/></div></td>
+                            <td class="n"><t t-esc="f0(r.target)"/><div class="meta num"><bdi dir="ltr"><t t-esc="+(+r.share).toFixed(1)"/>%</bdi></div></td>
+                            <td class="n"><b t-esc="f0(r.sales)"/><div class="pbar sm"><i t-att-style="'width:' + (r.sales / best * 100) + '%'"/></div></td>
+                            <td><span t-if="r.achieved !== null" t-att-class="'chip ' + (r.achieved &gt;= 100 ? 'good' : r.achieved &gt;= 70 ? 'neutral' : 'warn')"><bdi dir="ltr"><t t-esc="r.achieved"/>%</bdi></span><t t-else="">—</t></td>
+                            <td class="n" t-esc="f0(r.tax)"/>
+                            <td class="n" t-esc="f0(r.invoices)"/>
+                            <td class="n" t-esc="f0(r.avg_invoice)"/>
+                            <td class="n"><t t-esc="f0(r.items)"/><div class="meta num"><t t-esc="r.items_per_invoice"/>/invoice</div></td>
+                            <td class="n"><t t-esc="f0(r.returns)"/><div t-if="r.returns_amount" class="meta num"><t t-esc="f0(r.returns_amount)"/> SAR</div></td>
+                            <td class="n"><t t-if="r.owner_id"><t t-esc="f0(r.visits)"/><div class="meta num">Bought <t t-esc="r.bought"/></div></t><t t-else="">—</t></td>
+                            <td class="n"><bdi t-if="r.buy_pct !== null" dir="ltr"><t t-esc="r.buy_pct"/>%</bdi><t t-else="">—</t></td>
+                        </tr>
+                        <tr t-if="!rows.length"><td colspan="12" class="empty">No devices</td></tr>
+                        <tr class="tot"><td/><td><b>Total</b></td><td class="n" t-esc="f0(T.target)"/><td class="n"><b t-esc="f0(T.sales)"/></td>
+                            <td><bdi dir="ltr" t-esc="T.achieved === null ? '—' : T.achieved + '%'"/></td><td class="n" t-esc="f0(T.tax)"/><td class="n" t-esc="f0(T.invoices)"/>
+                            <td class="n" t-esc="f0(T.avg_invoice)"/><td class="n" t-esc="f0(T.items)"/><td class="n" t-esc="f0(T.returns)"/><td class="n" t-esc="f0(T.visits)"/>
+                            <td class="n"><bdi dir="ltr" t-esc="T.buy_pct === null ? '—' : T.buy_pct + '%'"/></td></tr>
+                    </tbody></table></div>
+                    <div t-else="" class="tscroll"><table class="nv-tbl cmp"><thead><tr>
+                        <th>#</th><th>Branch</th>
                         <t t-foreach="CMPCOLS" t-as="c" t-key="c[0]">
                             <th><button type="button" t-att-class="'th-sort' + (state.sort === c[0] ? ' on' : '')" t-on-click="() => state.sort = c[0]" t-esc="c[1]"/></th>
                         </t>
                     </tr></thead><tbody>
                         <tr t-foreach="rows" t-as="r" t-key="r.branch_id">
+                            <td><span t-att-class="'rk' + (r.rank &lt;= 3 and r.sales &gt; 0 ? ' g' + r.rank : '')" t-esc="r.rank"/></td>
                             <td><b t-esc="r.name"/><div class="meta"><span t-att-class="'chip ' + (r.system ? 'info' : 'neutral')" t-esc="r.system ? TX.pos : TX.dailyReport"/>
                                 <span t-if="r.missing_reports" class="chip warn" t-esc="TX.daysNoReport(r.missing_reports)"/></div></td>
                             <td class="n" t-esc="f0(r.target)"/>
@@ -329,17 +365,17 @@
                                 <span t-elif="Math.abs(r.report_gap) &lt; 1" class="chip good">✓ Matches</span>
                                 <span t-else="" class="chip bad" t-att-title="TX.reportGap(r.report_gap_days)" t-esc="(r.report_gap &gt; 0 ? '+' : '') + f0(r.report_gap)"/></td>
                         </tr>
-                        <tr class="tot"><td><b>Total</b></td><td class="n" t-esc="f0(T.target)"/><td class="n"><b t-esc="f0(T.sales)"/></td>
+                        <tr class="tot"><td/><td><b>Total</b></td><td class="n" t-esc="f0(T.target)"/><td class="n"><b t-esc="f0(T.sales)"/></td>
                             <td t-esc="T.achieved === null ? '—' : T.achieved + '%'"/><td class="n" t-esc="f0(T.tax)"/><td class="n" t-esc="f0(T.invoices)"/>
                             <td class="n" t-esc="f0(T.avg_invoice)"/><td class="n" t-esc="f0(T.items)"/><td class="n" t-esc="f0(T.returns)"/><td class="n" t-esc="f0(T.visits)"/>
                             <td class="n" t-esc="T.conversion === null ? '—' : T.conversion + '%'"/><td class="n" t-esc="(T.counter_gap &gt; 0 ? '+' : '') + T.counter_gap"/><td/></tr>
                     </tbody></table></div>
-                    <p class="note">
+                    <p t-if="!byDev" class="note">
                         <b>Invoices − Bought (counter):</b> The difference between sales invoices and the visits the employee marked “Bought” in the counter. Positive = sales without a recorded visit, negative = “Bought” visits without an invoice.
                         <b>Report − System:</b> For branches linked to the Point of Sale: the difference between the sales written in the daily reports and the system invoices, only on days with a report.
                     </p>
                 </div>
-                <EmpBoard from="props.f.from" to="props.f.to" wd="props.f.wd" branchId="br" branches="d.branches" title="TX.empSalesByCashier"/>
+                <EmpBoard from="props.f.from" to="props.f.to" wd="props.f.wd" branchId="br" deviceId="byDev ? dev : 0" branches="d.branches" title="TX.empSalesByCashier"/>
             </div>
         </t>
     </t>
@@ -356,8 +392,9 @@
             </div>
             <t t-set="T" t-value="tot('target_to_date')"/><t t-set="S" t-value="tot('sales')"/><t t-set="I" t-value="tot('invoices')"/><t t-set="IT" t-value="tot('items')"/><t t-set="R" t-value="tot('returns')"/>
             <div class="kpis k7">
-                <div class="kpi"><span class="lbl">Target to date</span><span class="val num"><t t-esc="f0(T)"/><small>SAR</small></span><span class="small" t-esc="d.device ? TX.noDeviceTarget : ''"/><span t-if="!d.device" class="small">Full-period target <t t-esc="f0(tot('target'))"/></span></div>
-                <div class="kpi"><span class="lbl">Actual sales</span><span class="val num"><t t-esc="f0(S)"/><small>SAR</small></span><span class="small">Achievement <bdi dir="ltr"><t t-esc="pc(S, T)"/>%</bdi></span></div>
+                <div class="kpi"><span class="lbl">Target to date</span><span class="val num"><t t-esc="f0(T)"/><small>SAR</small></span><span class="small" t-esc="TX.fullTarget(f0(tot('target')))"/>
+                    <span t-if="d.device" class="small" t-esc="TX.deviceShare(+(+d.device.share || 0).toFixed(1))"/></div>
+                <div class="kpi"><span class="lbl">Actual sales</span><span class="val num"><t t-esc="f0(S)"/><small>SAR</small></span><span class="small">Achievement <bdi dir="ltr"><t t-esc="pc(S, T)"/>%</bdi><t t-if="T"> · <t t-esc="S &lt; T ? TX.remaining(f0(T - S)) : TX.targetDone"/></t></span></div>
                 <div class="kpi"><span class="lbl">Total VAT</span><span class="val num"><t t-esc="f0(tot('tax'))"/><small>SAR</small></span></div>
                 <div class="kpi"><span class="lbl">💵 Net after VAT</span><span class="val num"><t t-esc="f0(S - tot('tax'))"/><small>SAR</small></span><span class="small">Sales minus VAT</span></div>
                 <div class="kpi"><span class="lbl">Invoices</span><span class="val num" t-esc="f0(I)"/></div>

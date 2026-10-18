@@ -7,7 +7,7 @@ import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 import {
     CASEST, COLORS, EXPICON, LEAVEST, LOST, LOSTL, NOBUY, LOSTFULL, OUTOF, QBREAK, QLATE, RQST, EXST, SAT, SIZES, SREASONL, SUP, TRIED, TYPES,
-    CTX, addDays, api, clock, dTxt, days, f0, h12, jn, longDate, minuteNow, mmss, now, photoUrl, setClock, sizesOf, swatch, today, ago, icon, dcsText,
+    CTX, addDays, api, clock, dTxt, days, f0, h12, jn, longDate, minuteNow, mmss, now, photoUrl, setClock, sizesOf, stockQty, swatch, today, ago, icon, dcsText,
     DIR, LANG, vlabel, WD,
 } from "../common/utils";
 import { Bulb, HelpLayer, ThemeToggle, TourBtn, useTheme } from "../common/help";
@@ -24,7 +24,7 @@ const newDraft = (buy = false) => ({
     buy, exch: false, no: false, reason: "", other: "", note: "", m: null, manual: "", color: "", colorOther: "", size: "", sizeOther: "",
     mfgNote: "", call: false, phone: "", cname: "", req: false, err: "",
 });
-const H = { jn, f0, minuteNow, mmss, clock, longDate, h12, dTxt, days, ago, photoUrl, swatch, icon, dcsText, vlabel, LOSTL, LOST, LOSTFULL, SUP, EXPICON, RQST, EXST, CASEST, LEAVEST };
+const H = { jn, f0, minuteNow, mmss, clock, longDate, h12, dTxt, days, ago, photoUrl, swatch, stockQty, icon, dcsText, vlabel, LOSTL, LOST, LOSTFULL, SUP, EXPICON, RQST, EXST, CASEST, LEAVEST };
 
 // ---------------------------------------------------------------- visit outcome (bought / exchange / didn't buy + lost sale)
 class Outcome extends Component {

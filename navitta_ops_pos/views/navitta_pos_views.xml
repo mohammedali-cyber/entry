@@ -7,15 +7,20 @@
         <field name="inherit_id" ref="navitta_ops.view_branch_form"/>
         <field name="arch" type="xml">
             <xpath expr="//page[@name='devices']" position="before">
-                <page string="Point of Sale" name="pos">
+                <page string="Point of Sale" name="pos" groups="point_of_sale.group_pos_user">
                     <div class="d-flex gap-2 mb-2">
                         <button name="action_pos_sync_all" type="object" string="Sync all sales from the Point of Sale" class="btn-primary"
                                 help="Counts every day of this branch again from its Point of Sale orders (the whole history)"/>
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="not pos_share_warning">
+                        <field name="pos_share_warning" readonly="1" nolabel="1"/>
                     </div>
                     <field name="pos_config_ids" context="{'default_navitta_branch_id': id}">
                         <list create="0" editable="bottom"><field name="name" string="Device (point of sale)" readonly="1"/>
                             <field name="navitta_branch_id" column_invisible="1"/>
                             <field name="navitta_employee_id" string="Owner employee" options="{'no_create': True}"/>
+                            <field name="navitta_target_share" string="Share of the branch target (%)"/>
+                            <field name="navitta_target_share_eff"/>
                             <field name="navitta_session_label"/></list>
                     </field>
                     <group><field name="pos_last_sync"/></group>
@@ -26,6 +31,7 @@
                         On a point of sale without an owner, each sale counts for the employee whose cashier account was picked (“Her Point of Sale cashier account”, optional), else as “Shared account”.
                         The Point of Sale itself is not changed: its cashier list and settings stay as you configure them.
                     </div>
+                    <div class="text-muted mt-2">Device target: each device's daily target is the branch's daily target × its “Share of the branch target (%)” ÷ 100 (targets are still set per branch). Leave the share empty (0) on every device to split the branch target equally between them; the devices left empty share what remains of 100% equally.</div>
                 </page>
             </xpath>
             <xpath expr="//field[@name='employee_ids']/list/field[@name='device_user_id']" position="after">
@@ -69,6 +75,8 @@
                     <field name="navitta_branch_id" options="{'no_create': True}"/>
                     <field name="navitta_employee_id" invisible="not navitta_branch_id" options="{'no_create': True}"
                            placeholder="None: each sale counts for the cashier picked"/>
+                    <field name="navitta_target_share" invisible="not navitta_branch_id"/>
+                    <field name="navitta_target_share_eff" invisible="not navitta_branch_id"/>
                 </group>
             </xpath>
         </field>

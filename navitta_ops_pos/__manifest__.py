@@ -7,7 +7,7 @@ sales, tax, invoices, items, returns, cash/card and each employee's sales come f
 history, per branch and per device); who opened the register and when; the model search finds the Odoo products.
 The Point of Sale's own settings and cashier lists are never changed.
 """,
-    "version": "18.0.1.3.0",
+    "version": "18.0.1.4.0",
     "category": "Sales/Point of Sale",
     "author": "Navitta",
     "license": "LGPL-3",

@@ -286,6 +286,12 @@ msgstr ""
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/components.js:0
+msgid "%s in stock"
+msgstr "المتوفر %s"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/tasks.js:0
 msgid "%s is open!"
 msgstr "%s انفتحت!"
@@ -397,6 +403,12 @@ msgstr "ناقص %s"
 #: code:addons/navitta_ops/static/src/admin/sales_tools.js:0
 msgid "%s unchanged"
 msgstr "%s بدون تغيير"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/components.js:0
+msgid "%s% of her device target"
+msgstr "%s% من تارقت جهازها"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -727,12 +739,6 @@ msgstr "صورة واضحة للفلوس في الدرج"
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "A customer kept me just before my break"
 msgstr "عميلة طولت معي قبل الاستراحة"
-
-#. module: navitta_ops
-#. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
-msgid "A device has no target of its own"
-msgstr "الجهاز ما له تارقت خاص"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -1429,6 +1435,24 @@ msgstr "حضرت"
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "August"
 msgstr "أغسطس"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/components.js:0
+msgid "Available at %(branch)s: %(n)s pieces"
+msgstr "المتوفر في %(branch)s: %(n)s قطعة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/components.js:0
+msgid "Available here: %s pieces"
+msgstr "المتوفر في الفرع: %s قطعة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/components.js:0
+msgid "Available in other branches: %s pieces"
+msgstr "متوفر في الفروع الأخرى: %s قطعة"
 
 #. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_daily_report_list
@@ -2892,6 +2916,12 @@ msgstr ""
 "ألوان ومقاسات طلبتها العميلات وما نوفرها أساسًا. احسب حسابها لما تطلب بضاعة."
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Compare by"
+msgstr "المقارنة حسب"
+
+#. module: navitta_ops
 #. odoo-python
 #: code:addons/navitta_ops/models/sales.py:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_daily_report__complaint
@@ -3835,6 +3865,7 @@ msgstr "التفاصيل *"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_device_punch__device_id
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_device_punch_search
@@ -3862,6 +3893,18 @@ msgstr "معلومات الجهاز"
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_device__name
 msgid "Device name"
 msgstr "اسم الجهاز"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Device share of the branch target: %s%"
+msgstr "حصة الجهاز من تارقت الفرع: %s%"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "Devices"
+msgstr "الأجهزة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -4121,6 +4164,17 @@ msgid ""
 msgstr ""
 "كل فترة تنفتح بوقتها، وإذا خلص وقتها ومهمة ما انعملت تطلع «فاتت» ويوصل "
 "الإدارة تنبيه."
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid ""
+"Each row is a device (point of sale) with its own invoices. Target = the "
+"device's share of its branch target. Counter customers and purchase rate are"
+" its owner's. Click any column title to sort."
+msgstr ""
+"كل سطر جهاز (نقطة بيع) بفواتيره. التارقت = حصة الجهاز من تارقت الفرع. عميلات"
+" العدّاد ونسبة الشراء لصاحبة الجهاز. اضغط على عنوان أي عمود للترتيب."
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -5148,9 +5202,9 @@ msgstr "من العرض"
 
 #. module: navitta_ops
 #. odoo-javascript
-#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
-msgid "Full-period target"
-msgstr "تارقت الفترة كاملة"
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Full-period target %s"
+msgstr "تارقت الفترة كاملة %s"
 
 #. module: navitta_ops
 #: model:ir.ui.menu,name:navitta_ops.menu_cfg_settings
@@ -7132,6 +7186,12 @@ msgstr "ما فيه قطع معيبة"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "No devices"
+msgstr "ما فيه أجهزة"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_notification__state__no_email
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_pin_wizard__mail__no_email
@@ -7291,6 +7351,12 @@ msgstr "ما فيه طلبات مفتوحة لهذا الفرع"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "No owner (shared device)"
+msgstr "بدون صاحبة (جهاز مشترك)"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "No penalties this month"
 msgstr "ما فيه عقوبات هذا الشهر"
@@ -7351,6 +7417,12 @@ msgstr "لا توجد شحنات بعد"
 #: code:addons/navitta_ops/static/src/common/components.js:0
 msgid "No size"
 msgstr "بدون مقاس"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "No target set for this period"
+msgstr "ما فيه تارقت لهذي الفترة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -7894,6 +7966,12 @@ msgstr "أخرى: %s"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/components.js:0
+msgid "Out of stock"
+msgstr "غير متوفر"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_lost_sale__request_id
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_branch_request__kind__goods
@@ -7929,6 +8007,18 @@ msgstr "خادم البريد الصادر"
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "Over by"
 msgstr "تجاوز"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Owner employee"
+msgstr "الموظفة صاحبة الجهاز"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Owner's counter customers"
+msgstr "عميلات العدّاد لصاحبة الجهاز"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -8317,6 +8407,7 @@ msgstr "شراء"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: model_terms:ir.ui.view,arch_db:navitta_ops.report_daily_summary
 msgid "Purchase rate"
@@ -8349,6 +8440,12 @@ msgstr "بالانتظار"
 #: code:addons/navitta_ops/models/device.py:0
 msgid "RFID card"
 msgstr "بطاقة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Rank"
+msgstr "الترتيب"
 
 #. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_device_punch__raw
@@ -8726,6 +8823,12 @@ msgstr "الإصدار"
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "Remaining"
 msgstr "باقي"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Remaining %s SAR"
+msgstr "باقي %s ريال"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -9511,6 +9614,12 @@ msgstr "صورة الموازنة"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "Share of the branch target (%)"
+msgstr "حصة الجهاز من تارقت الفرع (%)"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "Shared account"
 msgstr "الحساب العام"
@@ -10017,6 +10126,12 @@ msgstr "الخطوة %(n)s من %(m)s"
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "Stiletto"
 msgstr "كعب رفيع"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/components.xml:0
+msgid "Stock per branch"
+msgstr "المتوفر في كل فرع"
 
 #. module: navitta_ops
 #. odoo-python
@@ -10990,6 +11105,12 @@ msgstr "هذه الشاشة لإدارة الفروع فقط"
 #: model:ir.model.constraint,message:navitta_ops.constraint_navitta_device_sn_uniq
 msgid "This serial number is registered to another device"
 msgstr "هذا الرقم التسلسلي مسجل لجهاز ثاني"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/components.js:0
+msgid "This size here: %s pieces"
+msgstr "هذا المقاس في الفرع: %s قطعة"
 
 #. module: navitta_ops
 #: model:ir.model.constraint,message:navitta_ops.constraint_navitta_task_done_task_done_uniq
@@ -13858,6 +13979,12 @@ msgstr "🌙 أوفك يوم"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+msgid "🎉 Target achieved"
+msgstr "🎉 تحقق التارقت"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "🎉 Today's target achieved"
 msgstr "🎉 تحقق تارقت اليوم"
@@ -13885,6 +14012,12 @@ msgstr "🎯 التارقت اليومي"
 #: code:addons/navitta_ops/static/src/admin/sales_tools.js:0
 msgid "🎯 Target"
 msgstr "🎯 التارقت"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+msgid "🎯 Target to date"
+msgstr "🎯 التارقت حتى اليوم"
 
 #. module: navitta_ops
 #. odoo-javascript

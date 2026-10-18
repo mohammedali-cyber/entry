@@ -395,7 +395,7 @@ html,
 .topnav a{text-decoration:none;padding:7px 14px;border-radius:999px;color:var(--fg-2);font-weight:500}
 .topnav a.on{background:var(--fg);color:var(--bg)}
 
-.nv-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;z-index:70;padding:16px}
+.nv-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;grid-template-columns:minmax(0,1fr);place-items:center;z-index:70;padding:16px}
 .nv-modal{background:var(--surface);color:var(--fg);border-radius:14px;max-width:420px;width:100%;padding:8px}
 .row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .small{font-size:12.5px;color:var(--muted)}
@@ -581,6 +581,20 @@ table.dt td,table.dt .nv-tbl th{padding:7px 6px;font-size:12.5px;white-space:now
 .cc>.oth{border-style:dashed;border-color:var(--fg-2)}
 .cc>.oth.on{border-style:solid}
 @media (max-width:640px){.scan2{grid-template-columns:1fr}.ms-row{grid-template-columns:1fr}}
+/* on-hand stock (Odoo products): a small number under each size / next to each color; 0 or less = out of stock (grey) */
+.ms-sz span,.szb span{display:inline-flex;flex-direction:column;align-items:center;line-height:1.2}
+.sq{font-size:10.5px;font-weight:600;color:var(--fg-3)}
+.cc .sq,.ms-cn .sq{background:var(--surface-2);border-radius:999px;padding:0 6px;margin-inline-start:2px}
+.on .sq{color:inherit;background:transparent;opacity:.85}
+.ms-sz span.out,.szb span.out,.cc>.out{color:var(--fg-3);background:transparent;border-style:dashed}
+.ms-sz span.out.on,.szb span.out.on,.cc>.out.on{background:var(--fg-2);color:var(--bg)}
+.ms-stock{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ms-brs{display:flex;gap:5px;flex-wrap:wrap}
+.ms-brs span{border:1px solid var(--line);border-radius:7px;padding:2px 8px;font-size:12px;background:var(--surface-2)}
+.ms-brs span.on{border-color:var(--fg)}
+.ms-brs span.out{color:var(--fg-3);background:transparent;border-style:dashed}
+.pick1 .chip{margin-inline-start:auto;flex:none}
+.cmp-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
 
 .oc3{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:6px}

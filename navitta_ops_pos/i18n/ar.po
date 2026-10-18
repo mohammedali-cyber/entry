@@ -124,6 +124,24 @@ msgid "Device (point of sale)"
 msgstr "الجهاز (نقطة البيع)"
 
 #. module: navitta_ops_pos
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_branch_form_pos
+msgid ""
+"Device target: each device's daily target is the branch's daily target × its"
+" “Share of the branch target (%)” ÷ 100 (targets are still set per branch). "
+"Leave the share empty (0) on every device to split the branch target equally"
+" between them; the devices left empty share what remains of 100% equally."
+msgstr ""
+"تارقت الجهاز: تارقت كل جهاز اليومي = تارقت الفرع اليومي × «حصة الجهاز من "
+"تارقت الفرع (%)» ÷ 100 (التارقت نفسه ينحط للفرع). اترك الحصة فاضية (0) في كل"
+" الأجهزة عشان ينقسم تارقت الفرع عليها بالتساوي؛ والأجهزة الفاضية تتقاسم "
+"الباقي من 100% بالتساوي."
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_pos_config__navitta_target_share_eff
+msgid "Effective share (%)"
+msgstr "الحصة الفعلية (%)"
+
+#. module: navitta_ops_pos
 #: model:ir.model,name:navitta_ops_pos.model_navitta_employee_sales
 msgid "Employee daily sales"
 msgstr "مبيعات الموظفة اليومية"
@@ -328,6 +346,12 @@ msgid "Sales (incl. VAT)"
 msgstr "المبيعات (شامل الضريبة)"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_pos_config__navitta_target_share
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_branch_form_pos
+msgid "Share of the branch target (%)"
+msgstr "حصة الجهاز من تارقت الفرع (%)"
+
+#. module: navitta_ops_pos
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_daily_sales__source
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_employee_sales__source
 msgid "Source"
@@ -342,6 +366,11 @@ msgstr "مزامنة كل المبيعات من نقطة البيع"
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_pos_day__synced_at
 msgid "Synced at"
 msgstr "وقت المزامنة"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_branch__pos_share_warning
+msgid "Target shares warning"
+msgstr "تنبيه حصص التارقت"
 
 #. module: navitta_ops_pos
 #: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_branch_form_pos
@@ -386,6 +415,16 @@ msgstr ""
 "عداد»)"
 
 #. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/branch.py:0
+msgid ""
+"The devices' shares add up to %s%%, more than 100%%: their targets together "
+"are more than the branch target"
+msgstr ""
+"مجموع حصص الأجهزة %s%%، أكثر من 100%%: تارقتات الأجهزة مع بعض أكثر من تارقت "
+"الفرع"
+
+#. module: navitta_ops_pos
 #: model:ir.model.fields,help:navitta_ops_pos.field_navitta_pos_day__last_order_write
 msgid "The latest change of the day's orders when they were synced"
 msgstr "آخر تعديل على طلبات اليوم وقت المزامنة"
@@ -395,6 +434,30 @@ msgstr "آخر تعديل على طلبات اليوم وقت المزامنة"
 #: code:addons/navitta_ops_pos/models/pos.py:0
 msgid "The owner of “%(c)s” must be an employee of its Navitta branch"
 msgstr "صاحبة «%(c)s» لازم تكون موظفة في فرع نافيتا حقه"
+
+#. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/pos.py:0
+msgid "The share of the branch target of “%s” must be between 0 and 100%%"
+msgstr "حصة الجهاز «%s» من تارقت الفرع لازم تكون بين 0 و100%%"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,help:navitta_ops_pos.field_pos_config__navitta_target_share_eff
+msgid "The share of the branch target this device gets, after the equal split"
+msgstr "حصة الجهاز من تارقت الفرع بعد التقسيم بالتساوي"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,help:navitta_ops_pos.field_pos_config__navitta_target_share
+msgid ""
+"This device's share of its branch's daily target: device target = branch "
+"target × share / 100. Left empty (0) on every device of the branch, the "
+"target is split equally between them; the devices left empty share what "
+"remains of 100% equally. Targets are still set per branch"
+msgstr ""
+"حصة هذا الجهاز من تارقت الفرع اليومي: تارقت الجهاز = تارقت الفرع × الحصة ÷ "
+"100. إذا تركتها فاضية (0) في كل أجهزة الفرع ينقسم التارقت عليها بالتساوي، "
+"والأجهزة الفاضية تتقاسم الباقي من 100% بالتساوي. التارقت نفسه ينحط للفرع مثل"
+" قبل"
 
 #. module: navitta_ops_pos
 #: model:ir.model.fields,help:navitta_ops_pos.field_pos_config__navitta_employee_id

@@ -3,7 +3,7 @@
 import { Component, useState } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
-import { DFST, SREASONL, api, dcsText, f0, icon, jn, longDate, sizesOf, swatch } from "../common/utils";
+import { DFST, SREASONL, api, dcsText, f0, icon, jn, longDate, sizesOf, stockQty, swatch } from "../common/utils";
 import { ModelPicker, PhotoLink, PhotoPicker, SignModal } from "../common/components";
 
 const PHONE = /^(05\d{8}|9665\d{8})$/;
@@ -47,7 +47,7 @@ export class ItemChooser extends Component {
     static props = { v: Object };
     setup() {
         this.v = useState(this.props.v);
-        Object.assign(this, { TX, f0, icon, dcsText, swatch });
+        Object.assign(this, { TX, f0, icon, dcsText, swatch, stockQty });
     }
     pick(m, it) {
         Object.assign(this.v, { m, manual: "", color: (it && it.color) || "", size: (it && it.size) || "", alu: (it && it.alu) || "" });

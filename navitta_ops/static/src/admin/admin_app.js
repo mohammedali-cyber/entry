@@ -44,7 +44,12 @@ const TX = {
     noVisits: _t("No counter visits recorded in this period"),
     nReports: (n) => _t("Average of %s daily reports", n),
     noReports: _t("No daily reports in this period"),
-    noDeviceTarget: _t("A device has no target of its own"),
+    deviceShare: (n) => _t("Device share of the branch target: %s%", n),
+    remaining: (n) => _t("Remaining %s SAR", n),
+    targetDone: _t("🎉 Target achieved"),
+    fullTarget: (n) => _t("Full-period target %s", n),
+    noTarget: _t("No target set for this period"),
+    noOwner: _t("No owner (shared device)"),
     noPendingDecisions: _t("No pending decisions"),
     morning: _t("Morning shift"),
     evening: _t("Evening shift"),
@@ -102,9 +107,13 @@ const TX = {
 const CMPCOLS = [["target", _t("Target")], ["sales", _t("Sales")], ["achieved", _t("Achieved")], ["tax", _t("VAT")], ["invoices", _t("Invoices")],
     ["avg_invoice", _t("Average invoice")], ["items", _t("Items")], ["returns", _t("Returns")], ["visits", _t("Counter customers")],
     ["conversion", _t("Conversion")], ["counter_gap", _t("Invoices − Bought (counter)")], ["report_gap", _t("Report − System")]];
+// «Devices» mode of the branch comparison: one row per cash register device
+const CMPCOLS_DEV = [["target", _t("Target")], ["sales", _t("Sales")], ["achieved", _t("Achieved")], ["tax", _t("VAT")], ["invoices", _t("Invoices")],
+    ["avg_invoice", _t("Average invoice")], ["items", _t("Items")], ["returns", _t("Returns")], ["visits", _t("Owner's counter customers")],
+    ["buy_pct", _t("Purchase rate")]];
 const REQKINDS = [["all", _t("All")], ["goods", _t("Out-of-stock request")], ["defect", _t("🩹 Defective items")], ["supply", _t("Supplies")], ["expense", _t("Expenses")]];
 const H = { jn, f0, mmss, clock, longDate, h12, dTxt, days, ago, pc, dmy, weekday, addDays, LOSTL, SUP, EXPICON, RQST, EXST, DFST, SREASONL, WD, MONTHS, LEAVEADM, NOTIF, PINMAIL,
-    TX, CMPCOLS, REQKINDS, SEP, ARROW, vlabel };
+    TX, CMPCOLS, CMPCOLS_DEV, REQKINDS, SEP, ARROW, vlabel };
 
 // ---------------------------------------------------------------- shared period filter (every tab)
 const FKEY = "navitta_admin_filter";
@@ -130,7 +139,7 @@ function loadFilter() {
     } catch {
         f = null;
     }
-    f = Object.assign({ br: 0, dev: 0, preset: "month", from: "", to: "", wd: [] }, f || {});
+    f = Object.assign({ br: 0, dev: 0, lvl: "branch", preset: "month", from: "", to: "", wd: [] }, f || {});
     if (f.preset !== "custom" || !f.from || !f.to) {
         [f.from, f.to] = presetRange(f.preset === "custom" ? "month" : f.preset);
     }
@@ -329,6 +338,7 @@ class Dashboard extends AdminBase {
         const k = d.kpi;
         return {
             sales: k.sales, inv: k.invoices, tax: k.tax, source: k.source, device: k.device, reports: k.reports,
+            target: k.target, targetFull: k.target_full, left: Math.max(0, k.target - k.sales),
             visits: k.visits, buyPct: k.visits ? k.buy_pct.toFixed(1) : 0, sat: k.sat.toFixed(1),
             review: d.cases.filter((c) => c.state === "review" && this.inB(this.eB(c.employee_id))),
             waiting: d.cases.filter((c) => c.state === "reply" && this.inB(this.eB(c.employee_id))),
@@ -816,15 +826,38 @@ class Compare extends AdminBase {
     async load() {
         const f = this.props.f;
         const my = (this.req = (this.req || 0) + 1);
-        const d = await api(this.orm, "admin_compare", f.from, f.to, f.wd);
+        const d = await api(this.orm, "admin_compare", f.from, f.to, f.wd, this.lvl);
         if (!d.error && my === this.req) {
             setClock(d.settings.tz);
             this.state.d = d;
         }
     }
+    /** «Branches | Devices»: kept in the shared filter (the Device filter shows in Devices mode). */
+    get lvl() {
+        return this.props.f.lvl === "device" ? "device" : "branch";
+    }
+    get byDev() {
+        return this.state.d.level === "device";
+    }
+    setLvl(v) {
+        const f = this.props.f;
+        if (f.lvl === v) {
+            return;
+        }
+        f.lvl = v;
+        if (v === "device" && !CMPCOLS_DEV.some((c) => c[0] === this.state.sort)) {
+            this.state.sort = "sales";
+        }
+        try {
+            localStorage.setItem(FKEY, JSON.stringify(f));
+        } catch {
+            // private mode: the choice is just not remembered
+        }
+        this.load();
+    }
     get rows() {
         const k = this.state.sort;
-        return this.state.d.rows.filter((r) => !this.br || r.branch_id === this.br)
+        return this.state.d.rows.filter((r) => (!this.br || r.branch_id === this.br) && (!this.byDev || !this.dev || r.device_id === this.dev))
             .sort((a, b) => (+(b[k] ?? -1e9)) - (+(a[k] ?? -1e9)));
     }
     get total() {
@@ -836,6 +869,7 @@ class Compare extends AdminBase {
         t.avg_invoice = t.invoices ? t.sales / t.invoices : 0;
         t.items_per_invoice = t.invoices ? t.items / t.invoices : 0;
         t.conversion = t.visits ? +((t.invoices * 100) / t.visits).toFixed(1) : null;
+        t.buy_pct = t.visits ? +((t.bought * 100) / t.visits).toFixed(1) : null;
         t.counter_gap = t.invoices - t.bought;
         return t;
     }
@@ -843,10 +877,20 @@ class Compare extends AdminBase {
         return Math.max(1, ...this.rows.map((r) => +r.sales || 0));
     }
     exportCsv() {
-        const head = [_t("Branch"), _t("Target"), _t("Sales"), _t("Achieved %"), _t("VAT"), _t("Net"), _t("Invoices"), _t("Average invoice"), _t("Items"), _t("Items/invoice"),
+        if (this.byDev) {
+            const head = [_t("Rank"), _t("Device"), _t("Branch"), _t("Owner employee"), _t("Share of the branch target (%)"), _t("Target"), _t("Sales"),
+                _t("Achieved %"), _t("VAT"), _t("Net"), _t("Invoices"), _t("Average invoice"), _t("Items"), _t("Items/invoice"), _t("Returns (items)"),
+                _t("Returns value"), _t("Cash"), _t("Card"), _t("Owner's counter customers"), _t("Bought (counter)"), _t("Purchase rate")];
+            const line = (r) => [r.rank ?? "", r.name, r.branch ?? "", r.owner ?? "", r.share !== undefined ? +(+r.share).toFixed(2) : "", r.target, r.sales,
+                r.achieved ?? "", r.tax, r.net, r.invoices, r.avg_invoice, r.items, r.items_per_invoice, r.returns, r.returns_amount, r.cash, r.card,
+                r.visits ?? "", r.bought ?? "", r.buy_pct ?? ""];
+            downloadCsv(`devices-${this.props.f.from}-${this.props.f.to}.csv`, [head, ...this.rows.map(line), line(Object.assign({ name: _t("Total") }, this.total))]);
+            return;
+        }
+        const head = [_t("Rank"), _t("Branch"), _t("Target"), _t("Sales"), _t("Achieved %"), _t("VAT"), _t("Net"), _t("Invoices"), _t("Average invoice"), _t("Items"), _t("Items/invoice"),
             _t("Returns (items)"), _t("Returns value"), _t("Cash"), _t("Card"), _t("Counter customers"), _t("Bought (counter)"), _t("Conversion %"),
             _t("Invoices vs counter gap"), _t("Report sales"), _t("Report vs system gap")];
-        const line = (r) => [r.name, r.target, r.sales, r.achieved ?? "", r.tax, r.net, r.invoices, r.avg_invoice, r.items, r.items_per_invoice,
+        const line = (r) => [r.rank ?? "", r.name, r.target, r.sales, r.achieved ?? "", r.tax, r.net, r.invoices, r.avg_invoice, r.items, r.items_per_invoice,
             r.returns, r.returns_amount, r.cash, r.card, r.visits, r.bought, r.conversion ?? "", r.counter_gap, r.report_sales, r.report_gap ?? ""];
         downloadCsv(`branches-${this.props.f.from}-${this.props.f.to}.csv`, [head, ...this.rows.map(line), line(Object.assign({ name: _t("Total") }, this.total))]);
     }
@@ -1012,7 +1056,7 @@ export class AdminApp extends Component {
         return !["requests", "day", "rules", "settings", "ideas"].includes(this.state.tab);
     }
     get withDev() {
-        return ["dashboard", "sales"].includes(this.state.tab);
+        return ["dashboard", "sales"].includes(this.state.tab) || (this.state.tab === "compare" && this.f.lvl === "device");
     }
     get withFilter() {
         return this.state.tab !== "ideas";

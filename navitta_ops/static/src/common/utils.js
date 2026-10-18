@@ -132,6 +132,18 @@ export const now = () => Date.now() + OFFSET;
 export const jn = (arr, sep = " · ") => arr.filter((x) => x).join(sep);
 export const f0 = (n) => new Intl.NumberFormat("en-US").format(Math.round(+n || 0));
 export const pc = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+/** On-hand stock of a model found in the Odoo products (m.stock, at the branch's own stock): of one color (size left out)
+ * or of one color and size (bags: size ""). null when there is no stock to show (models file, no branch). */
+export function stockQty(m, color, size) {
+    const st = m && m.stock;
+    if (!st || st.here === null || st.here === undefined) {
+        return null;
+    }
+    if (size === undefined) {
+        return (st.colors || {})[color] || 0;
+    }
+    return ((st.by || {})[color] || {})[size || ""] || 0;
+}
 export const mmss = (s) => {
     s = Math.max(0, Math.round(s || 0));
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;

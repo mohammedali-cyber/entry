@@ -26,6 +26,13 @@ class PosConfig(models.Model):
                                           domain="[('branch_id', '=', navitta_branch_id)]",
                                           help="This point of sale is this employee's own device: every sale on it counts for her, "
                                                "whoever is picked as cashier. The cashier list of the point of sale is not changed")
+    navitta_target_share = fields.Float(
+        "Share of the branch target (%)", digits=(5, 2), default=0.0,
+        help="This device's share of its branch's daily target: device target = branch target × share / 100. "
+             "Left empty (0) on every device of the branch, the target is split equally between them; the devices left "
+             "empty share what remains of 100% equally. Targets are still set per branch")
+    navitta_target_share_eff = fields.Float("Effective share (%)", digits=(5, 2), compute="_compute_navitta_target_share_eff",
+                                            help="The share of the branch target this device gets, after the equal split")
     navitta_session_label = fields.Char("Current session status", compute="_compute_navitta_session_label")
 
     @api.constrains("navitta_employee_id", "navitta_branch_id")
@@ -36,6 +43,17 @@ class PosConfig(models.Model):
             other = self.sudo().search([("id", "!=", c.id), ("navitta_employee_id", "=", c.navitta_employee_id.id)], limit=1)
             if other:
                 raise ValidationError(_("%(e)s already owns the point of sale “%(o)s”", e=c.navitta_employee_id.name, o=other.name))
+
+    @api.constrains("navitta_target_share")
+    def _check_navitta_target_share(self):
+        for c in self:
+            if not 0 <= c.navitta_target_share <= 100:
+                raise ValidationError(_("The share of the branch target of “%s” must be between 0 and 100%%", c.name))
+
+    @api.depends("navitta_target_share", "navitta_branch_id", "navitta_branch_id.pos_config_ids.navitta_target_share")
+    def _compute_navitta_target_share_eff(self):
+        for c in self:
+            c.navitta_target_share_eff = c.navitta_branch_id._pos_target_shares().get(c.id, 0.0) if c.navitta_branch_id else 0.0
 
     @api.depends("current_session_state")
     def _compute_navitta_session_label(self):

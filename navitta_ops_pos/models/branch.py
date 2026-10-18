@@ -40,6 +40,23 @@ def _blank():
             "cash": 0.0, "card": 0.0, "orders": 0, "last": None}
 
 
+def split_shares(pairs):
+    """[(device, share %)] -> {device: effective share %} of the branch target.
+
+    A share > 0 is kept as it is. When no device has a share, the target is split equally between all of them;
+    otherwise the devices without a share split what remains of 100 % equally (never below 0)."""
+    pairs = list(pairs)
+    if not pairs:
+        return {}
+    fixed = {k: float(v) for k, v in pairs if v and v > 0}
+    if not fixed:
+        return {k: 100.0 / len(pairs) for k, _v in pairs}
+    rest = [k for k, v in pairs if k not in fixed]
+    left = max(0.0, 100.0 - sum(fixed.values()))
+    fixed.update({k: left / len(rest) for k in rest})
+    return fixed
+
+
 def _local_day(tz):
     """SQL: the local day of pos_order o.date_order (stored in UTC)."""
     return SQL("(o.date_order AT TIME ZONE 'UTC' AT TIME ZONE %s)::date", tz)
@@ -50,6 +67,20 @@ class NavittaBranch(models.Model):
 
     pos_config_ids = fields.One2many("pos.config", "navitta_branch_id", string="Points of Sale")
     pos_last_sync = fields.Datetime("Last update from the Point of Sale", readonly=True)
+    pos_share_warning = fields.Char("Target shares warning", compute="_compute_pos_share_warning")
+
+    @api.depends("pos_config_ids.navitta_target_share")
+    def _compute_pos_share_warning(self):
+        for b in self:
+            total = sum(b.pos_config_ids.mapped("navitta_target_share"))
+            b.pos_share_warning = _(
+                "The devices' shares add up to %s%%, more than 100%%: their targets together are more than the branch target",
+                ("%.2f" % total).rstrip("0").rstrip(".")) if total > 100.005 else False
+
+    def _pos_target_shares(self):
+        """{pos.config id: effective share % of the branch target} for the branch's (active) points of sale."""
+        self.ensure_one()
+        return split_shares((c.id, c.navitta_target_share) for c in self.pos_config_ids if c.active)
 
     def _has_system(self):
         self.ensure_one()

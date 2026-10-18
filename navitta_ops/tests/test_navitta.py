@@ -617,6 +617,28 @@ class NavittaCase(TransactionCase):
             self.assertEqual(self.api().target_check("bad")["error"], "wrong_pw")
             self.assertEqual(self.api().target_check("9999")["error"], "locked")
 
+    def test_targets_on_dashboard_and_compare_without_devices(self):
+        """The dashboard shows the period's target (its days up to today) and the remaining; without a cash register
+        system there are no devices: the comparison stays per branch (the «Devices» mode is not offered), with ranks."""
+        with freeze_time(utc(12, 0, date(2026, 10, 21))):
+            self.admin().admin_target_set_month(self.dwd.id, "2026-10-01", 33000)       # 3000 a day from the 21st
+            self.admin().admin_target_set_days(self.qsm.id, "2026-10-01", 31, 1000)
+            self.env["navitta.daily.sales"]._row(self.dwd, date(2026, 10, 21)).write({"sales": 1200, "source": "admin"})
+            self.env["navitta.daily.sales"]._row(self.qsm, date(2026, 10, 20)).write({"sales": 1800, "source": "admin"})
+            k = self.admin().admin_dashboard("2026-10-01", "2026-10-31", [], self.dwd.id)["kpi"]
+            self.assertEqual((k["target"], k["target_full"], k["sales"]), (3000, 33000, 1200))
+            k = self.admin().admin_dashboard("2026-10-01", "2026-10-31")["kpi"]
+            self.assertEqual((k["target"], k["target_full"]), (3000 + 21000, 33000 + 31000))
+            self.assertFalse(self.admin().admin_filters()["devices"])
+            cmp = self.admin().admin_compare("2026-10-01", "2026-10-31", [], "device")
+            self.assertEqual((cmp["level"], cmp["devices"]), ("branch", []))
+            ranks = {r["branch_id"]: (r["rank"], r["target"]) for r in cmp["rows"]}
+            self.assertEqual((ranks[self.qsm.id], ranks[self.dwd.id]), ((1, 21000), (2, 3000)))
+            emp = self.admin().employee_summary("2026-10-01", "2026-10-31")
+            self.assertEqual((emp["targets"][self.dwd.id], emp["own_targets"]), (3000, {}))
+        ranked = self.env["navitta.api"]._ranked([{"sales": 1.0}, {"sales": 5.0}, {"sales": 5.0}, {"sales": 0.0}])
+        self.assertEqual([(r["sales"], r["rank"]) for r in ranked], [(5, 1), (5, 1), (1, 3), (0, 4)])
+
     def test_undo_checkout(self):
         with freeze_time(utc(15, 20)):
             self.api().check_in(self.reem.id, "2468")

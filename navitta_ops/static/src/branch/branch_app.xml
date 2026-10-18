@@ -231,8 +231,8 @@
             <t t-if="m or x.manual">
                 <div class="lt">Color</div>
                 <div t-if="m" class="cc">
-                    <t t-foreach="cols" t-as="c" t-key="c.color">
-                        <button type="button" t-att-class="'num' + (x.color === c.color ? ' on' : '')" t-on-click="() => this.set({color: x.color === c.color ? '' : c.color, size: ''})"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/></button>
+                    <t t-foreach="cols" t-as="c" t-key="c.color"><t t-set="q" t-value="stockQty(m, c.color)"/>
+                        <button type="button" t-att-class="'num' + (x.color === c.color ? ' on' : '') + (q !== null and q &lt;= 0 ? ' out' : '')" t-on-click="() => this.set({color: x.color === c.color ? '' : c.color, size: ''})"><span class="sw9" t-att-style="'background:' + swatch(c.color)"/><t t-esc="c.color"/><small t-if="q !== null" class="sq" t-esc="f0(q)"/></button>
                     </t>
                     <button type="button" t-att-class="'oth' + (x.color === OTHER ? ' on' : '')" t-on-click="() => this.custom('color')">➕ Other</button>
                 </div>
@@ -240,7 +240,7 @@
                 <t t-if="!bag">
                     <div class="lt">Size</div>
                     <div t-if="m" class="cc num">
-                        <t t-foreach="sizes" t-as="z" t-key="z"><button type="button" t-att-class="x.size === z ? 'on' : ''" t-on-click="() => this.set({size: x.size === z ? '' : z})" t-esc="z"/></t>
+                        <t t-foreach="sizes" t-as="z" t-key="z"><t t-set="q" t-value="x.color and x.color !== OTHER ? stockQty(m, x.color, z) : null"/><button type="button" t-att-class="(x.size === z ? 'on' : '') + (q !== null and q &lt;= 0 ? ' out' : '')" t-on-click="() => this.set({size: x.size === z ? '' : z})"><t t-esc="z"/><small t-if="q !== null" class="sq" t-esc="f0(q)"/></button></t>
                         <button type="button" t-att-class="'oth' + (x.size === OTHER ? ' on' : '')" t-on-click="() => this.custom('size')">➕ Other</button>
                     </div>
                     <input t-if="!m or x.size === OTHER" class="ctl num" t-model="x.sizeOther" placeholder="Type the size"/>

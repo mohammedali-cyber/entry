@@ -46,8 +46,26 @@ class NavittaApi(models.AbstractModel):
     def _devices(self):
         cfgs = self.env["pos.config"].sudo().search([("navitta_branch_id", "!=", False)])
         cfgs = cfgs.sorted(lambda c: (c.navitta_branch_id.name or "", c.name or "", c.id))
+        shares = {}
+        for b in cfgs.navitta_branch_id:
+            shares.update(b._pos_target_shares())
         return [{"id": c.id, "name": c.name, "branch_id": c.navitta_branch_id.id, "owner_id": c.navitta_employee_id.id or False,
-                 "owner": c.navitta_employee_id.name or ""} for c in cfgs]
+                 "owner": c.navitta_employee_id.name or "", "share": round(shares.get(c.id, 0.0), 4)} for c in cfgs]
+
+    @api.model
+    def _devices_totals(self, d0, d1, weekdays=None):
+        """{pos.config id: its figures summed over the days of [d0, d1] (the chosen weekdays)}: one grouped query."""
+        self.env["navitta.pos.day"].flush_model()
+        wd = self._wd(weekdays) or None
+        self.env.cr.execute("""
+            SELECT config_id, COALESCE(SUM(sales), 0), COALESCE(SUM(tax), 0), COALESCE(SUM(invoices), 0), COALESCE(SUM(items), 0),
+                   COALESCE(SUM(returns), 0), COALESCE(SUM(returns_amount), 0), COALESCE(SUM(cash), 0), COALESCE(SUM(card), 0),
+                   COUNT(*) FILTER (WHERE orders > 0)
+              FROM navitta_pos_day
+             WHERE day BETWEEN %s AND %s AND (%s::int[] IS NULL OR EXTRACT(dow FROM day)::int = ANY(%s::int[]))
+             GROUP BY config_id""", [d0, d1, wd, wd])
+        keys = ("sales", "tax", "invoices", "items", "returns", "returns_amount", "cash", "card", "sales_days")
+        return {r[0]: dict(zip(keys, r[1:])) for r in self.env.cr.fetchall()}
 
     @api.model
     def _device_days(self, device, d0, d1, weekdays=None):
