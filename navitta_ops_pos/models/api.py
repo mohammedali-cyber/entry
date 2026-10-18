@@ -1,4 +1,5 @@
 from odoo import _, api, fields, models
+from odoo.exceptions import UserError, ValidationError
 from odoo.tools import SQL
 from odoo.addons.navitta_ops.models.common import CASHIER_SHARED, company_tz, day_bounds_utc
 
@@ -40,6 +41,54 @@ class NavittaApi(models.AbstractModel):
         ]
         res["done"] = all(i["done"] for i in res["items"])
         return res
+
+    # ------------------------------------------------------------------ linking the points of sale (dashboard card)
+    @api.model
+    def admin_pos_devices(self):
+        """Every point of sale with its counted orders, its Navitta branch and owner, and what was synced from it:
+        the dashboard card where management links each device to its branch and employee."""
+        self._admin()
+        S = self.env
+        cfgs = S["pos.config"].sudo().search([], order="name, id")
+        orders, synced = {}, {}
+        if cfgs:
+            S["pos.order"].flush_model()
+            S["navitta.pos.day"].flush_model()
+            S.cr.execute("""SELECT config_id, COUNT(*), MIN(date_order), MAX(date_order) FROM pos_order
+                             WHERE config_id = ANY(%s) AND state IN %s GROUP BY 1""", [cfgs.ids, COUNTED_STATES])
+            orders = {r[0]: r[1:] for r in S.cr.fetchall()}
+            S.cr.execute("""SELECT config_id, COUNT(*) FILTER (WHERE orders > 0), COALESCE(SUM(sales), 0) FROM navitta_pos_day
+                             WHERE config_id = ANY(%s) GROUP BY 1""", [cfgs.ids])
+            synced = {r[0]: r[1:] for r in S.cr.fetchall()}
+        branches = S["navitta.branch"].sudo().search([])
+        return {
+            "devices": [{
+                "id": c.id, "name": c.name, "company": c.company_id.name or "",
+                "branch_id": c.navitta_branch_id.id or False, "owner_id": c.navitta_employee_id.id or False,
+                "orders": orders.get(c.id, (0,))[0],
+                "first": orders[c.id][1] and fields.Date.to_string(orders[c.id][1].date()) if c.id in orders else False,
+                "last": orders[c.id][2] and fields.Date.to_string(orders[c.id][2].date()) if c.id in orders else False,
+                "synced_days": synced.get(c.id, (0, 0))[0], "synced_sales": round(synced.get(c.id, (0, 0))[1], 2),
+            } for c in cfgs],
+            "branches": [{"id": b.id, "name": b.name,
+                          "employees": [{"id": e.id, "name": e.name} for e in b.employee_ids.filtered("active")]} for b in branches],
+        }
+
+    @api.model
+    def admin_pos_link(self, config_id, branch_id=False, owner_id=False):
+        """Links a point of sale to a branch (and its owner employee); its whole history is synced right away."""
+        self._admin()
+        cfg = self.env["pos.config"].sudo().browse(int(config_id)).exists()
+        if not cfg:
+            return self._err("not_found")
+        branch_id = int(branch_id or 0) or False
+        owner_id = int(owner_id or 0) or False if branch_id else False
+        try:
+            with self.env.cr.savepoint():
+                cfg.write({"navitta_branch_id": branch_id, "navitta_employee_id": owner_id})
+        except (UserError, ValidationError) as e:
+            return {"error": "invalid", "message": e.args[0] if e.args else str(e)}
+        return {"ok": True}
 
     # ------------------------------------------------------------------ the «Device» filter
     @api.model

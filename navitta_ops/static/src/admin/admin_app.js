@@ -13,6 +13,7 @@ import { DailyQuote, EmpBoard, FileThumb, NvModal, PhotoLink, TargetEditor } fro
 import { DelBtn } from "../common/del";
 import { Bulb, HelpLayer, ThemeToggle, TourBtn, useTheme } from "../common/help";
 import { DayCalendar } from "./daycal";
+import { PosLink } from "./poslink";
 import { Ideas } from "./ideas";
 import { AdminSettings } from "./settings";
 import { CaseDecide, Dots } from "../common/cases";
@@ -261,7 +262,7 @@ class AdminBase extends Component {
 // ---------------------------------------------------------------- dashboard
 class Dashboard extends AdminBase {
     static template = "navitta_ops.AdminDashboard";
-    static components = { DailyQuote, EmpBoard, NvModal, PhotoLink, CaseDecide, DelBtn };
+    static components = { DailyQuote, EmpBoard, NvModal, PhotoLink, CaseDecide, DelBtn, PosLink };
     setup() {
         super.setup();
         this.state = useState({ d: null, notes: {}, openT: null, reply: "", setup: null, once: null, busy: false });

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="navitta_ops.PosLink">
+        <t t-if="state.d">
+            <div t-if="!state.open" class="poslink-bar">
+                <span t-if="missing.length" class="pill bad">⚠️ <t t-esc="missing.length"/> points of sale with sales are not linked to a branch</span>
+                <span t-else="" class="pill ok">🔗 Points of sale linked to branches: <bdi dir="ltr"><t t-esc="linked"/> / <t t-esc="state.d.devices.length"/></bdi></span>
+                <button type="button" class="nv-btn" t-on-click="() => state.open = true">Link points of sale</button>
+            </div>
+            <div t-else="" t-att-class="'nv-card poslink' + (missing.length ? ' warn' : '')">
+                <div class="hd">
+                    <div>
+                        <h2>🔗 Link the points of sale to the branches</h2>
+                        <p class="sub">The dashboard's sales come from the Point of Sale invoices of the devices linked here. Choose each device's branch, and its employee if it is her own device (all its invoices then count for her). Saving syncs all its past sales.</p>
+                    </div>
+                    <button type="button" class="nv-btn" t-on-click="() => state.open = false">Close</button>
+                </div>
+                <p t-if="!state.d.devices.length" class="empty">No point of sale found in Odoo</p>
+                <div t-else="" class="tscroll">
+                    <table class="nv-tbl">
+                        <thead><tr><th>Point of sale</th><th>Invoices</th><th>Branch</th><th>Her own device (employee)</th><th>Synced</th><th/></tr></thead>
+                        <tbody>
+                            <t t-foreach="state.d.devices" t-as="x" t-key="x.id">
+                                <t t-set="e" t-value="state.edit[x.id]"/>
+                                <tr t-att-class="!x.branch_id and x.orders ? 'bad' : ''">
+                                    <td><b t-esc="x.name"/><div t-if="x.company" class="small" t-esc="x.company"/></td>
+                                    <td class="num"><t t-esc="x.orders"/><div t-if="x.orders" class="small"><bdi dir="ltr"><t t-esc="x.first"/> → <t t-esc="x.last"/></bdi></div></td>
+                                    <td>
+                                        <select class="ctl" aria-label="Branch" t-on-change="(ev) => this.setBranch(x, ev.target.value)">
+                                            <option value="0" t-att-selected="!e.branch">— Not linked —</option>
+                                            <t t-foreach="state.d.branches" t-as="b" t-key="b.id"><option t-att-value="b.id" t-att-selected="n(e.branch) === b.id" t-esc="b.name"/></t>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="ctl" aria-label="Employee" t-att-disabled="!n(e.branch)" t-on-change="(ev) => e.owner = n(ev.target.value)">
+                                            <option value="0" t-att-selected="!e.owner">— Shared device —</option>
+                                            <t t-foreach="employees(e.branch)" t-as="m" t-key="m.id"><option t-att-value="m.id" t-att-selected="n(e.owner) === m.id" t-esc="m.name"/></t>
+                                        </select>
+                                    </td>
+                                    <td class="num"><t t-if="x.branch_id"><t t-esc="x.synced_days"/> days<div class="small"><t t-esc="Math.round(x.synced_sales).toLocaleString()"/> SAR</div></t><t t-else="">—</t></td>
+                                    <td><button type="button" class="nv-btn primary" t-att-disabled="!changed(x) or state.busy" t-on-click="() => this.save(x)"><t t-if="state.busy === x.id">Syncing…</t><t t-else="">Save</t></button></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </t>
+    </t>
+</templates>

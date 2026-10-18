@@ -162,6 +162,7 @@
                     <button type="button" class="nv-btn primary" t-on-click="() => state.once = null">Done, close</button>
                 </div>
             </NvModal>
+            <PosLink onSaved="() => this.load()"/>
             <DailyQuote admin="true" best="d.best"/>
             <t t-call="navitta_ops.Registers"><t t-set="regs" t-value="d.registers"/><t t-set="branches" t-value="d.branches"/></t>
 

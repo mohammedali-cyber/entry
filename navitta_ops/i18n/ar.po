@@ -1778,6 +1778,7 @@ msgstr "أولادي"
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
 #: code:addons/navitta_ops/static/src/admin/sales_tools.xml:0
 #: code:addons/navitta_ops/static/src/admin/settings.xml:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
@@ -2824,6 +2825,7 @@ msgstr "مسح الكل"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
 #: code:addons/navitta_ops/static/src/admin/sales_tools.xml:0
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 #: code:addons/navitta_ops/static/src/common/shipments.xml:0
@@ -4270,6 +4272,7 @@ msgstr "حدث طارئ"
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
 #: code:addons/navitta_ops/static/src/admin/settings.xml:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_attendance__employee_id
@@ -5538,6 +5541,12 @@ msgid "Her invoices"
 msgstr "عدد فواتيرها"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid "Her own device (employee)"
+msgstr "جهازها الخاص (الموظفة)"
+
+#. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_daily_report_employee__amount
 msgid "Her sales"
 msgstr "مبيعاتها"
@@ -5811,6 +5820,7 @@ msgstr "فاتورة بدون عداد:"
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_daily_sales__invoices
@@ -6252,6 +6262,18 @@ msgid ""
 "only takes a minute."
 msgstr ""
 "خليني أوريك وش فايدة كل أيقونة في الصفحة وكيف تستخدمينها. ياخذ دقيقة بس."
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid "Link points of sale"
+msgstr "ربط نقاط البيع"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.js:0
+msgid "Linked. Its sales were synced from the Point of Sale."
+msgstr "تم الربط، وسُحبت مبيعاته من نقطة البيع."
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -7378,6 +7400,12 @@ msgstr "بدون صورة"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid "No point of sale found in Odoo"
+msgstr "ما فيه نقاط بيع في Odoo"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 msgid "No reason"
 msgstr "بدون سبب"
@@ -8240,6 +8268,12 @@ msgstr "أرقام نقطة البيع"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Point of Sale total:"
 msgstr "إجمالي نقطة البيع:"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid "Point of sale"
+msgstr "نقطة البيع"
 
 #. module: navitta_ops
 #: model:ir.model.fields,help:navitta_ops.field_navitta_employee__slot
@@ -9154,6 +9188,7 @@ msgstr "تشغّل شاشة فرع:"
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: code:addons/navitta_ops/static/src/admin/daycal.xml:0
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
 #: code:addons/navitta_ops/static/src/admin/sales_tools.xml:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 #: code:addons/navitta_ops/static/src/common/components.js:0
@@ -9305,6 +9340,7 @@ msgstr "السبت"
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: code:addons/navitta_ops/static/src/admin/ideas.xml:0
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
 #: code:addons/navitta_ops/static/src/admin/settings.xml:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_admin_password_wizard
@@ -10258,6 +10294,18 @@ msgstr "حركة المستلزمات"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid "Synced"
+msgstr "المسحوب"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid "Syncing…"
+msgstr "جارٍ السحب…"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/shortage.xml:0
 msgid "Take a clear photo of the defect; management replies here."
 msgstr "صوّري العيب واضح، والإدارة ترد عليك هنا."
@@ -10601,6 +10649,19 @@ msgid ""
 "The current PIN will be cancelled and a new PIN will be created and shown "
 "only once. Continue?"
 msgstr "سيتم إلغاء الرمز الحالي وإنشاء رمز جديد يظهر مرة واحدة. متابعة؟"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid ""
+"The dashboard's sales come from the Point of Sale invoices of the devices "
+"linked here. Choose each device's branch, and its employee if it is her own "
+"device (all its invoices then count for her). Saving syncs all its past "
+"sales."
+msgstr ""
+"مبيعات اللوحة تُؤخذ من فواتير نقطة البيع للأجهزة المربوطة هنا. اختر فرع كل "
+"جهاز، واختر الموظفة إذا كان جهازها الخاص (فتُحسب لها كل فواتيره). الحفظ يسحب"
+" كل مبيعاته السابقة."
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -11545,6 +11606,12 @@ msgstr "قرار غير معروف"
 #: code:addons/navitta_ops/models/api_branch.py:0
 msgid "Unknown shift"
 msgstr "شفت غير معروف"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.js:0
+msgid "Unlinked"
+msgstr "تم فك الربط"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -12671,6 +12738,12 @@ msgid "day by day"
 msgstr "يوم بيوم"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid "days"
+msgstr "يوم"
+
+#. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_employee_form
 msgid "e.g. 5"
 msgstr "مثال: 5"
@@ -12895,6 +12968,12 @@ msgstr "من 5"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid "points of sale with sales are not linked to a branch"
+msgstr "نقطة بيع فيها مبيعات وغير مربوطة بفرع"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 msgid "positive"
 msgstr "إيجابية"
@@ -13061,6 +13140,18 @@ msgstr "— اختر الفرع —"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "— Choose a colleague —"
 msgstr "— اختاري الزميلة —"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid "— Not linked —"
+msgstr "— غير مربوط —"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid "— Shared device —"
+msgstr "— جهاز مشترك —"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -14854,6 +14945,18 @@ msgstr "🔒 برمزي"
 #: code:addons/navitta_ops/static/src/branch/branch_app.js:0
 msgid "🔔 %s new alerts · open"
 msgstr "🔔 %s تنبيه جديد · افتحي"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid "🔗 Link the points of sale to the branches"
+msgstr "🔗 ربط نقاط البيع بالفروع"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/poslink.xml:0
+msgid "🔗 Points of sale linked to branches:"
+msgstr "🔗 نقاط البيع المربوطة بالفروع:"
 
 #. module: navitta_ops
 #. odoo-javascript

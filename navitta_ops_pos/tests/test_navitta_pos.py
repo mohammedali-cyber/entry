@@ -759,3 +759,30 @@ class NavittaPosCase(TransactionCase):
         # the models file: no stock
         self.env["navitta.catalog.item"].create({"alu": "778", "item_no": "30010002", "model": "SANDY", "color": "BLACK", "size": "38"})
         self.assertNotIn("stock", api.catalog_find("30010002")["models"][0])
+
+    def test_dashboard_link_card(self):
+        """An unlinked point of sale with orders shows on the dashboard card; linking it there syncs its sales at once."""
+        self.link()
+        self.cfg_dwd.navitta_branch_id = False
+        s = self._open(self.cfg_dwd, self.reem.hr_employee_id)
+        self._order(s, 2, self.cash, self.reem.hr_employee_id)
+        Api = self.env["navitta.api"].with_user(self.boss)
+        row = next(x for x in Api.admin_pos_devices()["devices"] if x["id"] == self.cfg_dwd.id)
+        self.assertEqual((row["branch_id"], row["orders"], row["synced_days"]), (False, 1, 0))
+        d = Api.admin_dashboard(fields.Date.to_string(self.day), fields.Date.to_string(self.day), None, self.dwd.id)
+        self.assertFalse(any(r["system"] for r in d["sales"]))
+        # an employee of another branch cannot own it
+        r = Api.admin_pos_link(self.cfg_dwd.id, self.dwd.id, self.hubour.id)
+        self.assertEqual(r["error"], "invalid")
+        self.assertFalse(self.cfg_dwd.navitta_branch_id)
+        self.assertTrue(Api.admin_pos_link(self.cfg_dwd.id, self.dwd.id, self.reem.id)["ok"])
+        self.assertEqual((self.cfg_dwd.navitta_branch_id, self.cfg_dwd.navitta_employee_id), (self.dwd, self.reem))
+        row = next(x for x in Api.admin_pos_devices()["devices"] if x["id"] == self.cfg_dwd.id)
+        self.assertEqual((row["synced_days"], row["synced_sales"]), (1, 460))
+        ds = self.env["navitta.daily.sales"].search([("branch_id", "=", self.dwd.id), ("day", "=", self.day)])
+        self.assertEqual((ds.sales, ds.source), (460, "pos"))
+        # a branch device may not use the card
+        dev = self.env["res.users"].search([("navitta_branch_id", "=", self.dwd.id)], limit=1)
+        if dev:
+            with self.assertRaises(Exception):
+                self.env["navitta.api"].with_user(dev).admin_pos_devices()
