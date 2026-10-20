@@ -131,6 +131,12 @@ export const now = () => Date.now() + OFFSET;
 /** Joins the non-empty values (templates can't use Boolean). */
 export const jn = (arr, sep = " · ") => arr.filter((x) => x).join(sep);
 export const f0 = (n) => new Intl.NumberFormat("en-US").format(Math.round(+n || 0));
+/** An amount rounded to the halala: no decimals when whole (1,000), else two (999.50, 0.25). */
+export const r2 = (n) => Math.round((+n || 0) * 100) / 100;
+export const f2 = (n) => {
+    const v = r2(n);
+    return Number.isInteger(v) ? f0(v) : new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+};
 export const pc = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 /** On-hand stock of a model found in the Odoo products (m.stock, at the branch's own stock): of one color (size left out)
  * or of one color and size (bags: size ""). null when there is no stock to show (models file, no branch). */

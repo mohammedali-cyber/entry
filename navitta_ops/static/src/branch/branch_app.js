@@ -15,6 +15,7 @@ import { Dots } from "../common/cases";
 import { FloatCard, FloatEnd, TasksCard, endLeft } from "../common/tasks";
 import { IncomingShipments } from "../common/shipments";
 import { Defects, ShortageList } from "./shortage";
+import { StockTab } from "./stock";
 import {
     DailyQuote, FaceCam, ModelPicker, ModelSearch, NvModal, PhotoLink, PhotoPicker, PinPad, SignModal, TargetBar,
 } from "../common/components";
@@ -22,7 +23,7 @@ import {
 const MFG = "manufacture", OTHER = "__other";
 const newDraft = (buy = false) => ({
     buy, exch: false, no: false, reason: "", other: "", note: "", m: null, manual: "", color: "", colorOther: "", size: "", sizeOther: "",
-    mfgNote: "", call: false, phone: "", cname: "", req: false, err: "",
+    mfgNote: "", call: false, phone: "", cname: "", req: false, err: "", sat: 0,
 });
 const H = { jn, f0, minuteNow, mmss, clock, longDate, h12, dTxt, days, ago, photoUrl, swatch, stockQty, icon, dcsText, vlabel, LOSTL, LOST, LOSTFULL, SUP, EXPICON, RQST, EXST, CASEST, LEAVEST };
 
@@ -37,6 +38,8 @@ class Outcome extends Component {
         this.OUTOF = OUTOF;
         this.MFG = MFG;
         this.OTHER = OTHER;
+        // the customer's satisfaction (optional): 1–5, as the report's scale
+        this.SATF = [1, 2, 3, 4, 5].map((n) => [n, vlabel(SAT[n]), ["", "😞", "🙁", "😐", "🙂", "😍"][n]]);
     }
     set(patch) {
         Object.assign(this.x, { err: "" }, patch);
@@ -241,6 +244,9 @@ class Counter extends Component {
     taskLine(x) {
         return x.who === "any" ? x.title : `${x.title} (${x.for_name})`;
     }
+    piecesText(n) {
+        return +n === 1 ? _t("1 piece") : _t("%s pieces", f0(n));
+    }
     tasks(emp) {
         const p = this.pane(emp);
         this.state.block = { emp, open: p.open, tasks: p.tasks, autos: p.autos };
@@ -379,7 +385,7 @@ class Counter extends Component {
             return;
         }
         const data = {
-            buy: x.buy, exch: x.exch, no: x.no, reason: r, other: x.other, note: x.note, request: OUTOF.includes(r) && x.req,
+            buy: x.buy, exch: x.exch, no: x.no, reason: r, other: x.other, note: x.note, request: OUTOF.includes(r) && x.req, sat: x.sat || 0,
             lost: x.no ? {
                 item_no: (x.m && x.m.item_no) || null, model: model || null, color: color || null, size: size || null,
                 price: (x.m && x.m.price) || null, custom: colorCustom || sizeCustom || (!!x.manual && r === MFG),
@@ -655,7 +661,7 @@ class Requests extends Component {
         this.orm = useService("orm");
         this.notification = useService("notification");
         this.state = useState({
-            tab: this.props.tab || "goods", d: null, sign: null,
+            tab: this.props.tab || "goods", d: null, sign: null, expOpen: false,
             s: { supply: "bags", qty: 1, what: "", note: "" }, x: { amount: "", category: "delivery", details: "", receipt: null },
             err: "",
         });
@@ -690,6 +696,9 @@ class Requests extends Component {
     }
     get waiting() {
         return this.state.d.waiting.filter((w) => !w.contacted_at);
+    }
+    get pendingExp() {
+        return this.state.d.pending_expenses || [];
     }
     get pendingDefects() {
         return this.state.d.defects.filter((x) => x.state === "pending").length;
@@ -757,9 +766,12 @@ class Report extends Component {
     setup() {
         this.orm = useService("orm");
         this.notification = useService("notification");
-        this.state = useState({ d: null, f: null, saved: false, err: "" });
+        this.state = useState({ d: null, f: null, saved: false, err: "", draftAt: null });
         Object.assign(this, H);
         Object.assign(this, { COLORS, SIZES, TYPES, TRIED, SAT, NOBUY, LOSTFULL });
+        // «💾 Save»: the form is kept on this device (with «Last saved …») until it is sent, and every 20 s while typing
+        onMounted(() => (this.autosave = setInterval(() => this.saveDraft(false), 20000)));
+        onWillUnmount(() => clearInterval(this.autosave));
         // aria-labels of the +/- steppers
         this.L = {
             invoices: _t("Number of invoices"), items: _t("Number of items"), roll_invoice: _t("Receipt roll"), roll_card: _t("Card roll"),
@@ -790,14 +802,74 @@ class Report extends Component {
             damage_text: "", emergency: "none", improve: "", suggest: "", cash: 0, card: 0, deposit: 0, emp: empRows,
             used: { roll_invoice: 0, roll_card: 0, bags: 0 }, photo_card: null, photo_inv: null, cash_note: "", card_note: "",
         };
+        const fv = d.from_visits;
         if (d.report) {
             const rep = d.report;
             const emp = empRows.map((x) => Object.assign(x, rep.emp.find((y) => y.employee_id === x.employee_id) || {}));
             this.state.f = Object.assign(base, rep, { emp });
             this.state.saved = true;
         } else {
-            this.state.f = Object.assign(base, d.from_visits, { invoices: d.from_visits.invoices });
+            this.state.f = Object.assign(base, { visitors: fv.visitors, nonBuy: fv.nonBuy, lost: fv.lost, invoices: fv.invoices },
+                fv.sat ? { sat: Math.min(5, Math.max(1, Math.round(fv.sat))) } : {});
         }
+        // a draft saved on this device today (not sent yet, or edited after sending) comes back as it was
+        const draft = this.readDraft();
+        if (draft && (!d.report || draft.at > (d.report_at || ""))) {
+            const emp = this.state.f.emp.map((x) => Object.assign(x, (draft.f.emp || []).find((y) => y.employee_id === x.employee_id) || {}));
+            Object.assign(this.state.f, draft.f, { emp });
+            this.state.draftAt = draft.at;
+        }
+        this.lastJson = JSON.stringify(this.state.f);
+    }
+    get draftKey() {
+        const d = this.state.d;
+        return `nav-report-${d.branch_id}-${d.day}`;
+    }
+    readDraft() {
+        try {
+            const x = JSON.parse(localStorage.getItem(this.draftKey) || "null");
+            return x && x.f ? x : null;
+        } catch {
+            return null;
+        }
+    }
+    /** «💾 Save»: keeps the form on this device (the server gets it when it is sent). Quiet when nothing changed. */
+    saveDraft(manual) {
+        const f = this.state.f;
+        if (!f) {
+            return;
+        }
+        const json = JSON.stringify(f);
+        if (!manual && json === this.lastJson) {
+            return;
+        }
+        this.lastJson = json;
+        const at = new Date(now()).toISOString();
+        try {
+            localStorage.setItem(this.draftKey, JSON.stringify({ at, f }));
+        } catch {
+            // private mode: the draft just isn't kept on this device
+        }
+        this.state.draftAt = at;
+        if (manual) {
+            this.notification.add(_t("Saved on this device. Send the report when you finish."), { type: "success" });
+        }
+    }
+    clearDraft() {
+        try {
+            localStorage.removeItem(this.draftKey);
+        } catch {
+            // nothing to clear
+        }
+        this.state.draftAt = null;
+    }
+    get lastSaved() {
+        return _t("Last saved %s", clock(this.state.draftAt));
+    }
+    /** «رضا العملاء» in the counter block: the average of today's rated visits (1–5), or — when none was rated. */
+    get satText() {
+        const s = this.state.d.from_visits.sat;
+        return s ? `${(Math.round(s * 10) / 10).toFixed(1)} / 5` : "—";
     }
     empName(id) {
         return (this.state.d.employees.find((e) => e.id === id) || {}).name || "";
@@ -838,8 +910,8 @@ class Report extends Component {
     }
     get boxes() {
         return [
-            { ...this.box("cash"), title: _t("💵 Cash"), lab: _t("✋ Cash you counted in the drawer (SAR)") },
-            { ...this.box("card"), title: _t("💳 Card"), lab: _t("✋ Card terminal settlement total (SAR)") },
+            { ...this.box("cash"), title: _t("💵 Cash in the drawer"), lab: _t("✋ Cash you counted in the drawer (SAR)") },
+            { ...this.box("card"), title: _t("💳 Card terminal"), lab: _t("✋ Card terminal settlement total (SAR)") },
         ];
     }
     diffText(b) {
@@ -886,6 +958,8 @@ class Report extends Component {
             return;
         }
         this.state.saved = true;
+        this.clearDraft();
+        this.lastJson = JSON.stringify(f);
         this.notification.add(_t("Daily report sent to Management"), { type: "success" });
     }
 }
@@ -893,11 +967,11 @@ class Report extends Component {
 // ---------------------------------------------------------------- root
 export class BranchApp extends Component {
     static template = "navitta_ops.BranchApp";
-    static components = { Counter, Inbox, Requests, Report, ModelSearch, Bulb, HelpLayer, TourBtn, ThemeToggle };
+    static components = { Counter, Inbox, Requests, Report, StockTab, ModelSearch, Bulb, HelpLayer, TourBtn, ThemeToggle };
     static props = { ...standardActionServiceProps };
     setup() {
         this.state = useState({ tab: "counter", inboxOpen: "", inboxEmp: null, reqTab: "", branch: "", key: 1, branches: null, bid: 0, unread: 0,
-            login: "", ready: false });
+            login: "", ready: false, stockOn: false });
         this.theme = useTheme();
         this.orm = useService("orm");
         this.DIR = DIR;
@@ -913,6 +987,8 @@ export class BranchApp extends Component {
             if (a.device) {
                 CTX.branch = 0;
                 this.state.branch = a.branch.name;
+                // «🔎 Display & stock» only for a branch with an Odoo stock (navitta_ops_pos)
+                this.state.stockOn = !!a.branch.stock;
                 await this.loadUnread();
                 return;
             }
@@ -956,6 +1032,10 @@ export class BranchApp extends Component {
         CTX.branch = b ? b.id : 0;
         this.state.bid = CTX.branch;
         this.state.branch = b ? b.name : "";
+        this.state.stockOn = !!(b && b.stock);
+        if (this.state.tab === "stock" && !this.state.stockOn) {
+            this.state.tab = "counter";
+        }
         try {
             localStorage.setItem("navitta_admin_branch", String(CTX.branch));
         } catch {

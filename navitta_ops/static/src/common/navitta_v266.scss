@@ -1,0 +1,91 @@
+// Navitta Pro 26.6 screens: the camera scan button, «🔎 Display & stock», the counter's weekly best sellers, the daily
+// report's «From the counter (automatic)» block, the expenses header. Same rules as navitta.scss: scoped under
+// .o_navitta, logical properties only, rtlcss must not flip them.
+/*rtl:begin:ignore*/
+.o_navitta {
+  .camscan { display: block; width: 100%; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 10px;
+    padding: 10px 12px; font: inherit; font-weight: 700; font-size: 13.5px; cursor: pointer; text-align: center; margin-block-end: 8px; }
+  .camscan:hover { border-color: var(--fg-3); }
+  .msw .camscan { margin-block-end: 0; }
+
+  // counter: «🏆 Most requested this week»
+  .topw { margin-block: 12px; }
+  .topw h2 { margin: 0; font-size: 16px; }
+  .topw .sub { margin: 2px 0 6px; }
+  .topw .empty { padding: 4px 0; text-align: start; }
+  .topw-l { margin: 0; padding-inline-start: 22px; display: flex; flex-direction: column; gap: 6px; }
+  .topw-l li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .topw-l li .chip { margin-inline-start: auto; }
+
+  // visit outcome: the optional satisfaction
+  .vsat { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-block: 8px 2px; }
+  .vsat .lt { margin: 0; flex-basis: 100%; }
+  .vsat button { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; width: 40px; height: 36px; font-size: 18px;
+    cursor: pointer; line-height: 1; }
+  .vsat button.on { border-color: var(--fg); background: var(--surface-2); box-shadow: 0 0 0 2px var(--fg) inset; }
+
+  // daily report: «📊 From the counter (automatic)»
+  .ca4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .ca4 > div { border: 1px solid var(--line); border-radius: 12px; padding: 12px 8px; text-align: center; background: var(--surface); }
+  .ca4 b { display: block; font-size: 22px; line-height: 1.2; }
+  .ca4 span { font-size: 12px; color: var(--muted); }
+  @media (max-width: 640px) { .ca4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  // expenses header: what the branch is owed (awaiting approval)
+  .bal b.ok { color: #3ddc84; }
+  .bal b.due { color: #ffb74d; }
+  .bal > .nv-btn { background: #fff; color: #0b0b0b; border-color: #fff; }
+
+  // «🔎 Display & stock»
+  .sk-tabs { display: flex; gap: 4px; border-block-end: 1px solid var(--line); margin-block-end: 12px; overflow-x: auto; }
+  .sk-tabs button { border: 0; background: transparent; color: var(--fg-3); font: inherit; font-weight: 600; font-size: 13.5px; padding: 8px 12px;
+    border-block-end: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+  .sk-tabs button.on { color: var(--fg); border-block-end-color: var(--fg); font-weight: 800; }
+  .dc, .sc { display: flex; flex-direction: column; gap: 10px; margin-block-end: 12px; }
+  .dc h2, .sc h2 { margin: 0; }
+  .dc .sub, .sc .sub { margin: 2px 0 0; }
+  .dc-p { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--fg-2); }
+  .dc-p .pbar { flex-basis: 100%; }
+  .dc-done { display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 10px 12px; border-radius: 10px; background: var(--good-bg); color: var(--good); }
+  .dc-f { flex-wrap: wrap; }
+  .dc-l { display: flex; flex-direction: column; gap: 8px; margin-block-end: 12px; }
+  .dc-i { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; border: 1px solid var(--line);
+    border-radius: 12px; padding: 10px 12px; background: var(--surface); scroll-margin-top: 80px; }
+  .dc-i.shown { border-color: var(--good); background: var(--good-bg); }
+  .dc-i.missing { border-color: var(--bad); }
+  .dc-i.hi { box-shadow: 0 0 0 2px var(--focus); }
+  .dc-m { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+  .dc-c { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--fg-2); }
+  .dc-c > span { display: inline-flex; align-items: center; gap: 4px; }
+  .dc-a { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .dc-a button { border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 6px 12px;
+    font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .dc-a button.ok.on { background: var(--good); border-color: var(--good); color: #fff; }
+  .dc-a button.no.on { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .dc-a button:disabled { cursor: default; opacity: .75; }
+  .dc-r { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; }
+  .dc-send { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-block: 4px 16px; }
+  .sc-start { display: flex; flex-wrap: wrap; gap: 10px; }
+  .sc-add { display: flex; gap: 8px; }
+  .sc-add .ctl { flex: 1; min-width: 0; }
+  .sc-l { display: flex; flex-direction: column; gap: 10px; margin-block-end: 12px; }
+  .sc-g { display: flex; flex-direction: column; gap: 6px; padding: 12px; }
+  .sc-g .nv-card-h { align-items: center; gap: 8px; }
+  .sc-g .nv-card-h b { flex: 1; min-width: 0; }
+  .sc-r { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-block: 4px; border-block-start: 1px solid var(--grid); }
+  .sc-r .stepper { max-width: 160px; }
+  .sc-h { margin-block-end: 12px; }
+
+  // management: the counts and the display checks
+  .skr .sub { margin-block: 2px 8px; }
+  .skr-t td.neg { color: var(--bad); font-weight: 700; }
+  .skr-t td.pos { color: var(--warn); font-weight: 700; }
+  .skr-m { margin: 6px 0 0; padding-inline-start: 18px; font-size: 13px; color: var(--fg-2); }
+  .exp-det h2 { margin-block-start: 0; font-size: 16px; }
+  @media (max-width: 640px) {
+    .dc-i { grid-template-columns: minmax(0, 1fr); }
+    .dc-a { justify-content: flex-start; }
+    .sc-add { flex-wrap: wrap; }
+  }
+}
+/*rtl:end:ignore*/

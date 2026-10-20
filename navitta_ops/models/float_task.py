@@ -1,6 +1,7 @@
 """«عهدة اليوم» (the branch float) and «مهام اليوم» (today's tasks), as on the site (Navitta Pro 26.3).
 
-Float: a fixed amount per branch (navitta.branch.float_amount, default 1000 SAR), counted note by note (100/50/10/5/1).
+Float: a fixed amount per branch (navitta.branch.float_amount, default 1000 SAR), counted note by note and coin by coin
+(200/100/50/20/10/5/2/1/0.50/0.25, as on the site 26.6).
 At the start of the day a checked-in employee counts it with a photo of the drawer and signs with her PIN; a colleague on
 shift then confirms it with her own PIN, or reports a shortage with a note (management is alerted). At the end of the
 day it is counted again inside the daily report, which can't be sent before. A total that differs from the amount needs
@@ -17,7 +18,19 @@ from odoo import _, api, fields, models
 
 from .common import app_minute, app_today, dow, hours_to_min, iso
 
-DENOMS = (100, 50, 10, 5, 1)
+# the site's denominations (Navitta Pro 26.6): notes and coins in SAR. Each has its own count column «n<key>» (0.50 -> n050);
+# the columns of the old list (100/50/10/5/1) are unchanged, so the counts saved before stay readable.
+DENOMS = (200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.25)
+
+
+def denom_key(d):
+    """The screen's key of a denomination: 200 -> "200", 0.5 -> "0.50", 0.25 -> "0.25"."""
+    return "%.2f" % d if d < 1 else str(int(d))
+
+
+def denom_field(d):
+    """The count column of a denomination: 200 -> "n200", 0.5 -> "n050", 0.25 -> "n025"."""
+    return "n" + denom_key(d).replace(".", "")
 FLOAT_KINDS = [("start", "Start of shift"), ("end", "End of shift")]
 FLOAT_STATES = [("pending", "Waiting for confirmation"), ("ok", "Complete"), ("short", "Short")]
 PHASES = [("start", "🌅 Start of shift"), ("mid", "☀️ Mid-shift"), ("end", "🌙 End of shift")]
@@ -38,11 +51,16 @@ class NavittaFloat(models.Model):
     amount = fields.Float("Counted", digits=(12, 2))
     difference = fields.Float("Difference", digits=(12, 2), compute="_compute_difference", store=True,
                               help="Counted − float amount: negative = short, positive = over")
+    n200 = fields.Integer("200 SAR")
     n100 = fields.Integer("100 SAR")
     n50 = fields.Integer("50 SAR")
+    n20 = fields.Integer("20 SAR")
     n10 = fields.Integer("10 SAR")
     n5 = fields.Integer("5 SAR")
+    n2 = fields.Integer("2 SAR")
     n1 = fields.Integer("1 SAR")
+    n050 = fields.Integer("0.50 SAR")
+    n025 = fields.Integer("0.25 SAR")
     photo_id = fields.Many2one("navitta.photo", "Photo", ondelete="set null")
     counted_by = fields.Many2one("navitta.employee", "Counted by", ondelete="restrict")
     counted_at = fields.Datetime("Count time")
@@ -54,7 +72,8 @@ class NavittaFloat(models.Model):
 
     _sql_constraints = [
         ("float_uniq", "unique(branch_id, day, kind)", "The float is counted once a day at the start and once at the end"),
-        ("n_positive", "CHECK(n100 >= 0 AND n50 >= 0 AND n10 >= 0 AND n5 >= 0 AND n1 >= 0)", "Counts cannot be negative"),
+        ("n_positive", "CHECK(n200 >= 0 AND n100 >= 0 AND n50 >= 0 AND n20 >= 0 AND n10 >= 0 AND n5 >= 0 AND n2 >= 0 AND n1 >= 0"
+                       " AND n050 >= 0 AND n025 >= 0)", "Counts cannot be negative"),
     ]
 
     @api.depends("amount", "expected")
@@ -70,23 +89,28 @@ class NavittaFloat(models.Model):
 
     @api.model
     def _counts(self, counts):
-        """Note counts from the screen {"100": 8, "50": 3, …} -> ({"n100": 8, …}, total), or (None, None) when one is invalid."""
+        """Counts from the screen {"200": 1, "100": 8, "0.50": 3, …} -> ({"n200": 1, "n100": 8, "n050": 3, …}, total rounded to
+        the halala), or (None, None) when one is invalid. "0.5" is accepted for "0.50"."""
         counts = counts or {}
         vals = {}
         try:
             for d in DENOMS:
-                n = int(counts.get(str(d)) or counts.get(d) or 0)
-                if n < 0 or n > 100000:
+                k = denom_key(d)
+                raw = counts.get(k)
+                if raw in (None, ""):
+                    raw = counts.get(str(d)) or counts.get(d) or 0
+                n = int(raw)
+                if n < 0 or n > 100000 or n != float(raw):
                     return None, None
-                vals["n%d" % d] = n
+                vals[denom_field(d)] = n
         except (TypeError, ValueError, AttributeError):
             return None, None
-        return vals, float(sum(d * vals["n%d" % d] for d in DENOMS))
+        return vals, round(sum(d * vals[denom_field(d)] for d in DENOMS), 2)
 
     def _dict(self):
         self.ensure_one()
         return {"id": self.id, "kind": self.kind, "expected": self.expected, "amount": self.amount, "difference": self.difference,
-                "counts": {str(d): self["n%d" % d] for d in DENOMS}, "photo_id": self.photo_id.id or False,
+                "counts": {denom_key(d): self[denom_field(d)] or 0 for d in DENOMS}, "photo_id": self.photo_id.id or False,
                 "counted_by": self.counted_by.id or False, "counted_name": self.counted_by.name or "", "counted_at": iso(self.counted_at),
                 "confirm_needed": self.confirm_needed, "confirmed_by": self.confirmed_by.id or False,
                 "confirmed_name": self.confirmed_by.name or "", "confirmed_at": iso(self.confirmed_at),

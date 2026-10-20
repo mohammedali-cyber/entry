@@ -11,6 +11,7 @@
                         <a href="#" data-help="b-counter" t-att-class="state.tab === 'counter' ? 'on' : ''" t-on-click.prevent="() => this.go('counter')">Visit counter<Bulb id="'b-counter'"/></a>
                         <a href="#" data-help="b-inbox" t-att-class="state.tab === 'inbox' ? 'on' : ''" t-on-click.prevent="() => this.go('inbox')">My alerts<span t-if="state.unread" class="nb num" t-esc="state.unread"/><Bulb id="'b-inbox'"/></a>
                         <a href="#" data-help="b-requests" t-att-class="state.tab === 'requests' ? 'on' : ''" t-on-click.prevent="() => this.go('requests')">📦 Branch requests<Bulb id="'b-requests'"/></a>
+                        <a t-if="state.stockOn" href="#" data-help="b-stock" t-att-class="state.tab === 'stock' ? 'on' : ''" t-on-click.prevent="() => this.go('stock')">🔎 Display &amp; stock<Bulb id="'b-stock'"/></a>
                         <a href="#" data-help="b-report" t-att-class="state.tab === 'report' ? 'on' : ''" t-on-click.prevent="() => this.go('report')">Daily report<Bulb id="'b-report'"/></a>
                         <a t-if="!state.branches" href="/web/session/logout" class="logout">Sign out</a>
                     </nav>
@@ -39,6 +40,7 @@
                     <Counter t-if="state.tab === 'counter'" t-key="state.key" goto="(tab, opts) => this.go(tab, opts)"/>
                     <Inbox t-if="state.tab === 'inbox'" t-key="state.key" open="state.inboxOpen" empId="state.inboxEmp" onRead="() => this.loadUnread()"/>
                     <Requests t-if="state.tab === 'requests'" t-key="state.key" tab="state.reqTab"/>
+                    <StockTab t-if="state.tab === 'stock' and state.stockOn" t-key="state.key"/>
                     <Report t-if="state.tab === 'report'" t-key="state.key"/>
                 </t>
             </div>
@@ -84,6 +86,15 @@
                 </div>
             </NvModal>
             <TargetBar/>
+            <div t-if="d.top_week" class="nv-card topw">
+                <h2>🏆 Most requested this week</h2>
+                <p class="sub">Display them in a clear place</p>
+                <ol t-if="d.top_week.length" class="topw-l">
+                    <li t-foreach="d.top_week" t-as="x" t-key="x_index"><b class="num">🏷️ <t t-esc="x.item_no"/></b><span t-if="x.model and x.model !== x.item_no" t-esc="x.model"/>
+                        <span class="chip neutral num" t-esc="piecesText(x.qty)"/></li>
+                </ol>
+                <p t-else="" class="empty">No item sales in this period</p>
+            </div>
             <FloatCard fl="d.float" emps="d.employees" att="d.attendance" onChange="() => this.load()"/>
             <div id="tasks-card"><TasksCard t="d.tasks" emps="d.employees" att="d.attendance" tick="state.tick" onChange="() => this.load()"/></div>
             <div class="split">
@@ -219,6 +230,11 @@
             <button type="button" t-att-class="x.buy ? 'on' : ''" t-att-aria-pressed="x.buy ? 'true' : 'false'" t-on-click="() => this.set({buy: !x.buy, no: false})">✅ Bought</button>
             <button type="button" t-att-class="x.exch ? 'on' : ''" t-att-aria-pressed="x.exch ? 'true' : 'false'" t-on-click="() => this.set({exch: !x.exch, no: false})">🔄 Exchange</button>
             <button type="button" t-att-class="'no' + (x.no ? ' on' : '')" t-att-aria-pressed="x.no ? 'true' : 'false'" t-on-click="() => this.set({no: !x.no, buy: false, exch: false})">❌ Didn't buy</button>
+        </div>
+        <div class="vsat" role="group" aria-label="Customer satisfaction (optional)">
+            <span class="lt">Customer satisfaction (optional)</span>
+            <t t-foreach="SATF" t-as="o" t-key="o[0]"><button type="button" t-att-class="x.sat === o[0] ? 'on' : ''" t-att-aria-pressed="x.sat === o[0] ? 'true' : 'false'"
+                t-att-title="o[1]" t-att-aria-label="o[1]" t-on-click="() => this.set({sat: x.sat === o[0] ? 0 : o[0]})" t-esc="o[2]"/></t>
         </div>
         <div t-if="x.no" class="ls">
             <div class="lt">💸 Lost sale: what did the customer want?</div>
@@ -522,6 +538,20 @@
                 <div class="bal" style="margin-bottom:14px">
                     <div><div class="s">💰 Current Cash box balance</div><b class="num"><t t-esc="f0(d.cash.balance)"/> SAR</b></div>
                     <div><div class="s">Expenses this month</div><b class="num"><t t-esc="f0(d.cash.month_expenses)"/> SAR</b></div>
+                    <div><div class="s">💸 Owed to the branch (awaiting approval)</div>
+                        <b t-att-class="'num ' + (d.cash.pending_expenses ? 'due' : 'ok')"><t t-esc="f0(d.cash.pending_expenses)"/> SAR<t t-if="!d.cash.pending_expenses"> ✓</t></b></div>
+                    <button type="button" class="nv-btn" t-att-aria-expanded="state.expOpen ? 'true' : 'false'" t-on-click="() => state.expOpen = !state.expOpen">📋 View details</button>
+                </div>
+                <div t-if="state.expOpen" class="nv-card exp-det" style="margin-bottom:14px">
+                    <h2>📋 Expenses awaiting management's approval</h2>
+                    <div class="visits">
+                        <div t-foreach="pendingExp" t-as="x" t-key="x.id" class="it">
+                            <div class="h"><b><t t-esc="EXPICON[x.category] or '📦'"/> <t t-esc="x.category_label"/> · <span class="num"><t t-esc="f0(x.amount)"/> SAR</span></b><span class="chip info" t-esc="EXST[x.state][1]"/></div>
+                            <div class="m"><t t-esc="x.details"/> · <t t-esc="x.employee or '—'"/> · <t t-esc="longDate(x.day)"/></div>
+                        </div>
+                        <div t-if="!pendingExp.length" class="empty">Nothing is waiting: management approved every expense ✓</div>
+                    </div>
+                    <p class="sub">An approved expense is taken off the Cash box balance; a rejected one isn't.</p>
                 </div>
                 <div class="rq-grid">
                     <div class="nv-card frm"><h2>💸 Record an expense</h2>
@@ -532,6 +562,7 @@
                         <label>Details *<input class="ctl" t-model="state.x.details" placeholder="e.g. delivery of a shipment from the warehouse - 3 boxes"/></label>
                         <PhotoPicker value="state.x.receipt" onChange="(id) => state.x.receipt = id" label="receiptLabel"/>
                         <span t-if="!state.x.receipt" class="hint">⚠️ Without a receipt, the expense reaches Management with an alert.</span>
+                        <span class="hint">💰 From the branch's Cash box · it is taken off the balance once management approves it</span>
                         <button type="button" class="nv-btn primary" t-on-click="submitExpense">🔒 Record expense (employee PIN)</button>
                         <span class="hint err" t-esc="state.err"/>
                     </div>
@@ -626,7 +657,7 @@
                         <span t-if="!f.photo_inv" class="er">⚠️ The invoices photo is required before sending the report</span></div>
                 </div>
             </fieldset>
-            <fieldset><legend>💵 Cash <small t-if="d.system">From the Point of Sale + your own count</small></legend>
+            <fieldset><legend>💵 Cash and card <small t-if="d.system">From the Point of Sale + your own count</small></legend>
                 <div class="mx fld full">
                     <div t-foreach="boxes" t-as="b" t-key="b.k" class="mbox"><h4 t-esc="b.title"/>
                         <div t-if="b.o !== null" class="oline"><div><div class="lk">🔒 Per Point of Sale</div><div class="v num"><t t-esc="f0(b.o)"/> SAR</div></div><span class="lk">Filled in automatically</span></div>
@@ -667,6 +698,15 @@
                 <div class="fld"><span class="lab">🧾 Receipt roll</span><t t-call="navitta_ops.Stepper"><t t-set="obj" t-value="f.used"/><t t-set="key" t-value="'roll_invoice'"/><t t-set="label" t-value="L.roll_invoice"/></t></div>
                 <div class="fld"><span class="lab">💳 Card roll</span><t t-call="navitta_ops.Stepper"><t t-set="obj" t-value="f.used"/><t t-set="key" t-value="'roll_card'"/><t t-set="label" t-value="L.roll_card"/></t></div>
                 <div class="fld"><span class="lab">🛍️ Bags</span><t t-call="navitta_ops.Stepper"><t t-set="obj" t-value="f.used"/><t t-set="key" t-value="'bags'"/><t t-set="label" t-value="L.bags"/></t></div>
+            </fieldset>
+            <fieldset class="ctr-auto"><legend>📊 From the counter (automatic) <small>No need to fill it in: it adds up the visits you logged as you went</small></legend>
+                <t t-set="fv" t-value="d.from_visits"/>
+                <div class="ca4 fld full num">
+                    <div><b t-esc="fv.visitors"/><span>Customers came in</span></div>
+                    <div><b t-esc="fv.bought"/><span>Bought</span></div>
+                    <div><b t-esc="fv.nonBuy"/><span>Didn't buy</span></div>
+                    <div><b t-esc="satText"/><span>Customer satisfaction</span></div>
+                </div>
             </fieldset>
             <fieldset><legend>Customers <small>from the Visit counter, can be edited</small></legend>
                 <div class="fld"><span class="lab">Number of customers who came in</span><t t-call="navitta_ops.Stepper"><t t-set="obj" t-value="f"/><t t-set="key" t-value="'visitors'"/><t t-set="label" t-value="L.visitors"/></t></div>
@@ -717,11 +757,14 @@
                 </t>
                 <div class="fld full"><span class="lab">Any emergency beyond your control?</span><div class="opts"><t t-foreach="d.choices.emergencies" t-as="o" t-key="o[0]"><label class="opt"><input type="radio" t-att-checked="f.emergency === o[0]" t-on-change="() => f.emergency = o[0]"/><span t-esc="o[1]"/></label></t></div></div>
             </fieldset>
-            <fieldset><legend>Ideas and notes</legend>
-                <div class="fld full"><label class="lab">What could improve sales?</label><textarea class="ctl" rows="2" t-model="f.improve"/></div>
-                <div class="fld full"><label class="lab">Notes or suggestions to improve the work</label><textarea class="ctl" rows="2" t-model="f.suggest"/></div>
+            <fieldset><legend>💡 Suggestions and notes <small>(optional)</small></legend>
+                <div class="fld full"><label class="lab">What could improve sales?</label><textarea class="ctl" rows="2" t-model="f.improve" placeholder="e.g. customers keep asking for size 41"/></div>
+                <div class="fld full"><label class="lab">Notes or suggestions to improve the work</label><textarea class="ctl" rows="2" t-model="f.suggest" placeholder="Anything you want management to know about today"/></div>
             </fieldset>
-            <div class="actions"><button type="submit" class="nv-btn primary" t-esc="submitLabel"/><span class="hint err" role="alert" t-esc="state.err"/></div>
+            <div class="actions"><button type="button" class="nv-btn" t-on-click="() => this.saveDraft(true)">💾 Save</button>
+                <button type="submit" class="nv-btn primary" t-esc="submitLabel"/>
+                <span t-if="state.draftAt" class="hint ok">💾 <t t-esc="lastSaved"/></span>
+                <span class="hint err" role="alert" t-esc="state.err"/></div>
         </form>
     </t>
 </templates>

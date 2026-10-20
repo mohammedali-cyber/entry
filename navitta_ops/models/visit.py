@@ -25,6 +25,9 @@ class NavittaVisit(models.Model):
     lost_color = fields.Char("Requested color")
     lost_size = fields.Char("Requested size")
     saved = fields.Boolean("Saved", index=True)
+    sat = fields.Integer("Customer satisfaction (1-5)", aggregator="avg",
+                         help="Optional, chosen with the visit outcome on the counter (0 = not rated). The daily report shows "
+                              "the day's average in «From the counter (automatic)».")
     outcome = fields.Selection([("buy", "Bought"), ("exchange", "Exchange"), ("buy_exchange", "Bought and exchange"), ("lost", "Didn't buy")],
                                compute="_compute_outcome", store=True, string="Outcome")
     visit_count = fields.Integer("Number of visits", default=1, readonly=True, help="For reports")

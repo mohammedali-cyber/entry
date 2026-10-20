@@ -45,7 +45,7 @@ GOODS_REASONS = [("asked", _lt("Customer asked, not available")), ("sold_out", _
 SHORTAGE_REASONS = [("customer", "Customer request"), ("sold_out", "Sold out at the branch"), ("other", "Other")]
 # 26.3 defective items: what is wrong and where the item came from
 DEFECT_TYPES = [
-    ("heel", "Broken heel"), ("stitching", "Open stitching"), ("stains", "Stains or faded color"), ("scratch", "Scratch or peeling"),
+    ("sponge", "Sponge came off the heel base (glue)"), ("heel", "Broken heel"), ("stitching", "Open stitching"), ("stains", "Stains or faded color"), ("scratch", "Scratch or peeling"),
     ("zipper", "Broken zipper or buckle"), ("two_sizes", "Two different sizes in the box"), ("other", "Other"),
 ]
 DEFECT_SOURCES = [("shipment", "Arrived like this in the shipment"), ("display", "From the display"), ("returned", "Returned by a customer")]

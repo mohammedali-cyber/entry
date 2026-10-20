@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="navitta_ops.StockReviews">
+        <div t-if="!state.d" class="nv-card c12 empty">Loading…</div>
+        <t t-else="">
+            <div class="nv-card c12 skr">
+                <h2>📦 Stock counts <span t-if="waiting.length" class="chip warn"><t t-esc="waiting.length"/> waiting for you</span></h2>
+                <p class="sub">The branch counts blind. Odoo's stock changes only when you approve: each variant is set to the counted figure (the difference is taken against Odoo's quantity now, as an inventory adjustment at the branch's stock location). A count older than <t t-esc="state.d.max_age"/> days can't be approved: ask for a recount.</p>
+                <div class="reqs">
+                    <div t-foreach="waiting.concat(others)" t-as="c" t-key="c.id" t-att-class="'req' + (c.state === 'submitted' ? ' pending' : '')">
+                        <div class="req-main"><span t-att-class="'chip ' + STATEC[c.state]" t-esc="c.state === 'draft' ? TXrecount : c.state_label"/>
+                            <div style="flex:1;min-width:0"><div class="what"><b t-esc="c.name"/> · <t t-esc="c.scope_label"/></div>
+                                <div class="meta num" t-esc="countLine(c)"/>
+                                <div class="meta" t-esc="sentLine(c)"/>
+                                <div t-if="c.decided_at" class="meta"><t t-esc="decidedLine(c)"/><t t-if="c.admin_note"> · «<t t-esc="c.admin_note"/>»</t><t t-if="c.recount_note and c.state === 'draft'"> · «<t t-esc="c.recount_note"/>»</t></div>
+                                <div t-if="c.stale" class="meta" style="color:var(--bad)">⚠️ Older than <t t-esc="state.d.max_age"/> days: it can't be approved, ask for a recount</div>
+                                <button t-if="c.rows.length" type="button" class="linkbtn" t-on-click="() => state.open[c.id] = !state.open[c.id]">
+                                    <t t-if="state.open[c.id] or c.state === 'submitted'">Differences ▴</t><t t-else="">Differences ▾</t></button>
+                                <div t-if="c.rows.length and (state.open[c.id] or c.state === 'submitted')" class="tscroll"><table class="nv-tbl skr-t"><thead><tr>
+                                    <th>Variant</th><th>Odoo when sent</th><th>Counted</th><th>Difference</th>
+                                    <th t-if="c.state === 'submitted'">Odoo now</th><th t-esc="c.state === 'approved' ? TXapplied : TXtoApply"/></tr></thead><tbody>
+                                    <tr t-foreach="c.rows" t-as="r" t-key="r.id"><td class="num" t-esc="what(r)"/>
+                                        <td class="n" t-esc="f2(r.expected)"/><td class="n"><b t-esc="f2(r.counted)"/></td>
+                                        <td t-att-class="'n ' + (r.difference &lt; 0 ? 'neg' : r.difference &gt; 0 ? 'pos' : '')"><bdi dir="ltr" t-esc="sgn(r.difference)"/></td>
+                                        <td t-if="c.state === 'submitted'" class="n" t-esc="f2(r.now)"/>
+                                        <td t-att-class="'n ' + (r.diff_now &lt; 0 ? 'neg' : r.diff_now &gt; 0 ? 'pos' : '')"><bdi dir="ltr" t-esc="c.state === 'rejected' ? '—' : sgn(r.diff_now)"/></td></tr>
+                                </tbody></table></div>
+                                <div t-if="!c.rows.length and c.state !== 'draft'" class="meta">✓ No difference from Odoo</div>
+                            </div></div>
+                        <div t-if="c.state === 'submitted'" class="req-act">
+                            <textarea class="ctl" rows="2" placeholder="Note to the branch (required to reject or ask a recount)" t-model="state.notes[c.id]"/>
+                            <t t-if="state.confirm === c.id">
+                                <span class="hint" t-esc="confirmText(c)"/>
+                                <button type="button" class="nv-btn primary" t-att-disabled="state.busy === c.id" t-on-click="() => this.decide(c, 'approve')">✅ Yes, apply to Odoo's stock</button>
+                                <button type="button" class="nv-btn" t-on-click="() => state.confirm = 0">Cancel</button>
+                            </t>
+                            <t t-else="">
+                                <button type="button" class="nv-btn primary" t-att-disabled="c.stale" t-on-click="() => state.confirm = c.id">✅ Approve</button>
+                                <button type="button" class="nv-btn" t-on-click="() => this.decide(c, 'recount')">🔁 Request a recount</button>
+                                <button type="button" class="nv-btn" t-on-click="() => this.decide(c, 'reject')">✕ Reject</button>
+                            </t>
+                        </div>
+                    </div>
+                    <div t-if="!state.d.counts.length" class="empty">No stock counts yet</div>
+                </div>
+            </div>
+
+            <div class="nv-card c12 skr">
+                <h2>👀 Display checks <small class="sub">· last 30 days</small></h2>
+                <div class="reqs">
+                    <div t-foreach="checks" t-as="c" t-key="c.id" t-att-class="'req' + (c.missing ? ' pending' : '')">
+                        <div class="req-main"><span t-att-class="'chip ' + (c.state !== 'done' ? 'neutral' : c.missing ? 'bad' : 'good')" t-esc="c.state !== 'done' ? '⏳' : c.missing ? '⚠️ ' + c.missing : '✓'"/>
+                            <div style="flex:1;min-width:0"><div class="what"><b t-esc="c.branch"/> · <t t-esc="longDate(c.day)"/></div>
+                                <div class="meta num" t-esc="checkLine(c)"/>
+                                <div t-if="c.submitted_at" class="meta"><t t-esc="c.employee"/> · <t t-esc="clock(c.submitted_at)"/></div>
+                                <ul t-if="c.lines.length" class="skr-m"><li t-foreach="c.lines" t-as="l" t-key="l.id"><b class="num" t-esc="l.item_no"/>
+                                    <t t-if="l.model and l.model !== l.item_no"> <t t-esc="l.model"/></t><t t-if="l.colors.length"> (<t t-esc="l.colors.join(', ')"/>)</t>
+                                    — <t t-esc="l.reason_label"/><t t-if="l.note">: <t t-esc="l.note"/></t></li></ul>
+                            </div></div>
+                    </div>
+                    <div t-if="!checks.length" class="empty">No display checks in the last 30 days</div>
+                </div>
+            </div>
+        </t>
+    </t>
+</templates>

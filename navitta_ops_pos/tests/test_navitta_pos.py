@@ -786,3 +786,216 @@ class NavittaPosCase(TransactionCase):
         if dev:
             with self.assertRaises(Exception):
                 self.env["navitta.api"].with_user(dev).admin_pos_devices()
+
+    # ------------------------------------------------------------------ 26.6: «🔎 المعروض والجرد» and the week's best sellers
+    def _stock_setup(self):
+        """The shoe (4 variants) and a bag in the dwd branch's stock; the qsm branch on its own warehouse."""
+        Q = self.env["stock.quant"]
+        v = self._shoe()
+        for i, x in enumerate(v.values()):
+            x.barcode = "62817000000%02d" % i
+        self.wh1 = self.cfg_dwd.picking_type_id.warehouse_id
+        wh2 = self.env["stock.warehouse"].create({"name": "مستودع القصيم", "code": "QSM"})
+        self.cfg_qsm.picking_type_id = wh2.pos_type_id
+        self.shelf = self.env["stock.location"].create({"name": "رف", "location_id": self.wh1.lot_stock_id.id, "usage": "internal"})
+        bag = self.env["product.template"].create({"name": "21169999- شنطة", "list_price": 100, "available_in_pos": True, "is_storable": True,
+                                                   "barcode": "5550002"})
+        empty = self.env["product.template"].create({"name": "21168888- صندل", "list_price": 90, "available_in_pos": True, "is_storable": True})
+        Q._update_available_quantity(v[("أسود", "37")], self.wh1.lot_stock_id, 3)
+        Q._update_available_quantity(v[("أسود", "37")], self.shelf, 2)
+        Q._update_available_quantity(v[("بيج", "36")], self.wh1.lot_stock_id, 2)
+        Q._update_available_quantity(bag.product_variant_id, self.wh1.lot_stock_id, 1)
+        Q._update_available_quantity(empty.product_variant_id, wh2.lot_stock_id, 7)          # only at the other branch
+        return v, bag, empty
+
+    def _branch_qty(self, product):
+        return sum(self.env["stock.quant"].search([("product_id", "=", product.id), ("location_id", "child_of", self.wh1.lot_stock_id.id)])
+                   .mapped("quantity"))
+
+    def test_display_check_flow(self):
+        """«👀 فحص المعروض»: every model with stock > 0 at the branch is listed (no quantities), marked on display or not
+        (with a reason), saved as she goes and resumed, sent once a day with a PIN; management is alerted and sees it."""
+        v, bag, empty = self._stock_setup()
+        api = self.env["navitta.api"].with_user(self.dev)
+        self.assertTrue(api.branch_access()["branch"]["stock"])
+        d = api.display_state()
+        self.assertTrue(d["available"])
+        c = d["check"]
+        self.assertEqual([(l["item_no"], l["model"]) for l in c["lines"]], [("21169999", "شنطة"), ("21170001", "حذاء")])
+        shoe = next(l for l in c["lines"] if l["item_no"] == "21170001")
+        self.assertEqual(sorted(shoe["colors"]), ["أسود", "بيج"])
+        self.assertFalse(any(k in l for l in c["lines"] for k in ("qty", "quantity", "expected")))   # no quantities to the device
+        bagl = next(l for l in c["lines"] if l["item_no"] == "21169999")
+        # a scanned barcode jumps to its model; a code of another branch's model / unknown code is refused
+        self.assertEqual(api.display_find(v[("بيج", "36")].barcode)["line_id"], shoe["id"])
+        self.assertEqual(api.display_find("21170001")["line_id"], shoe["id"])
+        self.assertEqual(api.display_find("9999999999")["error"], "unknown_code")
+        self.assertEqual(api.display_find(empty.product_variant_id.barcode or "21168888")["error"], "unknown_code")
+        # marking, saved as she goes; the check can be resumed (same check, marks kept)
+        self.assertTrue(api.display_mark(shoe["id"], "shown")["ok"])
+        self.assertEqual(api.display_submit(self.reem.id, "2468")["error"], "not_marked")
+        self.assertTrue(api.display_mark(bagl["id"], "missing")["ok"])
+        self.assertEqual(api.display_submit(self.reem.id, "2468")["error"], "display_reason")
+        api.display_mark(bagl["id"], "missing", "other")
+        self.assertEqual(api.display_submit(self.reem.id, "2468")["error"], "display_reason")
+        api.display_mark(bagl["id"], "missing", "store_only", "")
+        again = api.display_state()["check"]
+        self.assertEqual(again["id"], c["id"])
+        self.assertEqual({l["item_no"]: (l["status"], l["reason"]) for l in again["lines"]},
+                         {"21170001": ("shown", ""), "21169999": ("missing", "store_only")})
+        # the device can't write it directly, nor another branch's device through the API
+        line = self.env["navitta.display.check.line"].with_user(self.dev).browse(bagl["id"])
+        with self.assertRaises(Exception):
+            line.write({"status": "shown"})
+        dev_qsm = self.env["res.users"].create({"name": "جهاز القصيم", "login": "qsm-dc-device", "navitta_branch_id": self.qsm.id,
+                                                "groups_id": [(6, 0, [self.env.ref("base.group_user").id, self.env.ref("navitta_ops.group_navitta_branch").id])]})
+        with self.assertRaises(Exception):
+            self.env["navitta.api"].with_user(dev_qsm).display_mark(bagl["id"], "shown")
+        self.assertEqual(self.env["navitta.display.check"].with_user(dev_qsm).search_count([]), 0)
+        # sent with her PIN: management is alerted with the models missing from the display
+        self.assertEqual(api.display_submit(self.reem.id, "0000")["error"], "wrong_pin")
+        r = api.display_submit(self.reem.id, "2468")
+        self.assertEqual((r["ok"], r["missing"]), (True, 1))
+        n = self.env["navitta.notification"].search([("subject", "like", "Display check")], limit=1)
+        self.assertIn("21169999", n.body)
+        self.assertIn("Only in the store room", n.body)
+        # one check per branch and day
+        self.assertEqual(api.display_submit(self.reem.id, "2468")["error"], "check_sent")
+        self.assertEqual(api.display_mark(shoe["id"], "missing", "damaged")["error"], "check_sent")
+        st = api.display_state()["check"]
+        self.assertEqual((st["id"], st["state"], st["missing"], st["employee"]), (c["id"], "done", 1, "ريم"))
+        self.assertEqual(self.env["navitta.display.check"].search_count([("branch_id", "=", self.dwd.id)]), 1)
+        # management: the result in Branch requests → Display & stock
+        rv = self.env["navitta.api"].with_user(self.boss).admin_stock_reviews(self.dwd.id)
+        self.assertEqual([(x["missing"], [l["item_no"] for l in x["lines"]]) for x in rv["checks"]], [(1, ["21169999"])])
+        with self.assertRaises(Exception):
+            api.admin_stock_reviews()
+
+    def test_stock_count_blind_submit_and_approve(self):
+        """«📦 جرد المخزن»: a blind count (the device never gets Odoo's quantities) by scanning (+1) or typing; sent with a
+        PIN, the server compares with Odoo then; Odoo's stock changes only when management approves, as an inventory
+        adjustment against the quantity at approval; approval is refused twice, and a device can't approve."""
+        v, bag, empty = self._stock_setup()
+        b37, b36, g36, g37 = v[("أسود", "37")], v[("أسود", "36")], v[("بيج", "36")], v[("بيج", "37")]
+        api = self.env["navitta.api"].with_user(self.dev)
+        boss = self.env["navitta.api"].with_user(self.boss)
+        self.assertFalse(api.count_state()["count"])
+        self.assertTrue(api.count_start("all")["ok"])
+        for _i in range(4):
+            r = api.count_scan(b37.barcode)
+        self.assertEqual(r["line"]["counted"], 4)                                  # each scan +1
+        self.assertEqual(api.count_scan("000")["error"], "unknown_code")
+        r = api.count_add("21170001")                                              # the model's variants, to type
+        self.assertEqual(len(r["count"]["lines"]), 4)
+        self.assertTrue(api.count_set(g36.id, 2)["ok"])
+        self.assertTrue(api.count_set(b36.id, 1)["ok"])
+        self.assertEqual(api.count_set(b36.id, -1)["error"], "bad_qty")
+        self.assertEqual(api.count_set(b36.id, 1.5)["error"], "bad_qty")
+        # blind: no Odoo quantity in what the device gets, nor readable directly
+        st = api.count_state()
+        for l in st["count"]["lines"]:
+            self.assertEqual(set(l), {"id", "product_id", "tmpl_id", "item_no", "model", "color", "size", "barcode", "counted"})
+        line = self.env["navitta.stock.count.line"].with_user(self.dev).browse(st["count"]["lines"][0]["id"])
+        with self.assertRaises(Exception):
+            line.read(["expected"])
+        with self.assertRaises(Exception):
+            line.write({"counted": 50})
+        # sent with her PIN: compared with Odoo now (5 = 3 + 2 on the shelf; the bag in stock but not counted = 0)
+        self.assertEqual(api.count_submit(self.reem.id, "0000")["error"], "wrong_pin")
+        r = api.count_submit(self.reem.id, "2468")
+        self.assertTrue(r["ok"])
+        self.assertFalse(any("expected" in l for l in r["count"]["lines"]))
+        c = self.env["navitta.stock.count"].search([("branch_id", "=", self.dwd.id)])
+        got = {l.product_id: (l.expected, l.counted, l.difference) for l in c.line_ids}
+        self.assertEqual(got, {b37: (5, 4, -1), g36: (2, 2, 0), b36: (0, 1, 1), bag.product_variant_id: (1, 0, -1)})
+        self.assertEqual((c.state, c.employee_id, c.diff_count), ("submitted", self.reem, 3))
+        self.assertTrue(self.env["navitta.notification"].search([("subject", "like", "Stock count waiting")]))
+        self.assertEqual(api.count_scan(b37.barcode)["error"], "count_open")       # sent: no more counting
+        self.assertEqual(self._branch_qty(b37), 5)                                 # nothing changed yet
+        # a device can't approve
+        with self.assertRaises(Exception):
+            api.admin_count_decide(c.id, "approve")
+        # the stock moved since: the counted figure is the truth, the difference is taken against Odoo now
+        self.env["stock.quant"]._update_available_quantity(g36, self.wh1.lot_stock_id, -1)            # sold one: 1 left in Odoo
+        row = {r["product_id"]: r for r in boss.admin_stock_reviews(self.dwd.id)["counts"][0]["rows"]}
+        self.assertEqual((row[g36.id]["now"], row[g36.id]["diff_now"]), (1, 1))
+        self.assertTrue(boss.admin_count_decide(c.id, "approve", "تمام")["ok"])
+        self.assertEqual((self._branch_qty(b37), self._branch_qty(g36), self._branch_qty(b36), self._branch_qty(bag.product_variant_id)),
+                         (4, 2, 1, 0))
+        self.assertEqual(sum(self.env["stock.quant"].search([("product_id", "=", b37.id), ("location_id", "=", self.shelf.id)]).mapped("quantity")), 2)
+        self.assertEqual((c.state, c.decided_by, c.admin_note), ("approved", self.boss, "تمام"))
+        moves = c.move_ids
+        self.assertEqual(len(moves), 4)                                            # b37 −1, g36 +1, b36 +1, bag −1
+        self.assertTrue(all(m.is_inventory and m.state == "done" and m.name.startswith("Navitta stock count #%s" % c.id) for m in moves))
+        self.assertEqual({l.product_id: l.applied_diff for l in c.line_ids},
+                         {b37: -1, g36: 1, b36: 1, bag.product_variant_id: -1})
+        self.assertEqual(boss.admin_count_decide(c.id, "approve")["error"], "count_done")
+        self.assertEqual(len(c.move_ids), 4)
+        self.assertTrue(self.env["navitta.notification"].search([("employee_id", "=", self.reem.id), ("subject", "like", "approved")]))
+
+    def test_stock_count_recount_reject_and_stale(self):
+        """Reject or ask a recount (with a note): Odoo's stock is untouched; the recount goes back to the branch. A count
+        sent more than 7 days ago can't be approved."""
+        v, bag, empty = self._stock_setup()
+        b37 = v[("أسود", "37")]
+        api = self.env["navitta.api"].with_user(self.dev)
+        boss = self.env["navitta.api"].with_user(self.boss)
+        self.assertEqual(api.count_submit(self.reem.id, "2468")["error"], "count_empty")
+        api.count_start("models")
+        self.assertEqual(api.count_submit(self.reem.id, "2468")["error"], "count_empty")
+        api.count_scan(b37.barcode)
+        c = self.env["navitta.stock.count"].search([("branch_id", "=", self.dwd.id)])
+        self.assertEqual(c.product_tmpl_ids, b37.product_tmpl_id)                  # the scanned model joined the chosen models
+        self.assertTrue(api.count_submit(self.reem.id, "2468")["ok"])
+        self.assertEqual({l.product_id: l.counted for l in c.line_ids}, {b37: 1, v[("بيج", "36")]: 0})   # in stock, not counted: 0
+        self.assertEqual(boss.admin_count_decide(c.id, "recount")["error"], "note_needed")
+        self.assertTrue(boss.admin_count_decide(c.id, "recount", "عدّي الرف كمان")["ok"])
+        self.assertEqual((c.state, c.recount_count, c.recount_note), ("draft", 1, "عدّي الرف كمان"))
+        self.assertEqual(self._branch_qty(b37), 5)
+        self.assertEqual(api.count_state()["count"]["recount_note"], "عدّي الرف كمان")
+        self.assertTrue(self.env["navitta.notification"].search([("employee_id", "=", self.reem.id), ("subject", "like", "recount")]))
+        for _i in range(4):
+            api.count_scan(b37.barcode)
+        self.assertTrue(api.count_submit(self.shima.id, "2468")["ok"])
+        self.assertEqual(c.line_ids.filtered(lambda l: l.product_id == b37).counted, 5)
+        self.assertEqual(boss.admin_count_decide(c.id, "reject")["error"], "note_needed")
+        self.assertTrue(boss.admin_count_decide(c.id, "reject", "غلط")["ok"])
+        self.assertEqual((c.state, self._branch_qty(b37), len(c.move_ids)), ("rejected", 5, 0))
+        self.assertEqual(boss.admin_count_decide(c.id, "approve")["error"], "count_done")
+        # stale: sent 8 days ago
+        api.count_start("all")
+        api.count_scan(b37.barcode)
+        self.assertTrue(api.count_submit(self.reem.id, "2468")["ok"])
+        c2 = self.env["navitta.stock.count"].search([("branch_id", "=", self.dwd.id), ("state", "=", "submitted")])
+        c2.submitted_at = fields.Datetime.now() - timedelta(days=8)
+        self.assertTrue(boss.admin_stock_reviews()["counts"][0]["stale"])
+        self.assertEqual(boss.admin_count_decide(c2.id, "approve")["error"], "count_stale")
+        self.assertEqual((c2.state, self._branch_qty(b37)), ("submitted", 5))
+        # the other branch's device sees none of dwd's counts
+        dev_qsm = self.env["res.users"].create({"name": "جهاز القصيم", "login": "qsm-sc-device", "navitta_branch_id": self.qsm.id,
+                                                "groups_id": [(6, 0, [self.env.ref("base.group_user").id, self.env.ref("navitta_ops.group_navitta_branch").id])]})
+        self.assertEqual(self.env["navitta.stock.count"].with_user(dev_qsm).search_count([]), 0)
+        self.assertEqual(self.env["navitta.stock.count.line"].with_user(dev_qsm).search_count([]), 0)
+        self.assertFalse(self.env["navitta.api"].with_user(dev_qsm).count_state()["count"])
+
+    def test_week_top_on_the_counter(self):
+        """«🏆 الأكثر طلبًا هالأسبوع»: the models the branch sold most (pieces, returns deducted) in the last 7 days."""
+        v = self._shoe()
+        self.prod.name = "21160003- حذاء نسائي"
+        api = self.env["navitta.api"].with_user(self.dev)
+        self.assertEqual(api.branch_state()["top_week"], [])
+        reem_hr, _shima_hr = self.link()
+        s = self._open(self.cfg_dwd, reem_hr)
+        self._order(s, 3, self.cash, reem_hr)
+        self._order(s, -1, self.cash, reem_hr)
+        o = self._order(s, 1, self.cash, reem_hr)
+        o.lines.write({"product_id": v[("أسود", "36")].id})
+        old = self._order(s, 5, self.cash, reem_hr)
+        old.lines.write({"product_id": v[("بيج", "37")].id})
+        old.date_order = fields.Datetime.now() - timedelta(days=9)                # not this week
+        top = api.branch_state()["top_week"]
+        self.assertEqual([(x["item_no"], x["qty"]) for x in top], [("21160003", 2), ("21170001", 1)])
+        # the qsm branch sold nothing
+        dev_qsm = self.env["res.users"].create({"name": "جهاز القصيم", "login": "qsm-top-device", "navitta_branch_id": self.qsm.id,
+                                                "groups_id": [(6, 0, [self.env.ref("base.group_user").id, self.env.ref("navitta_ops.group_navitta_branch").id])]})
+        self.assertEqual(self.env["navitta.api"].with_user(dev_qsm).branch_state()["top_week"], [])

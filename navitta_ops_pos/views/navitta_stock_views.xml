@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 26.6: «👀 فحص المعروض» (display checks) and «📦 جرد المخزن» (stock counts). They are made on the branch screen and
+         decided in the management screens (Branch requests → Display & stock); these lists are for looking things up. -->
+    <record id="view_display_check_list" model="ir.ui.view">
+        <field name="name">navitta.display.check.list</field>
+        <field name="model">navitta.display.check</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" decoration-danger="missing_count &gt; 0" decoration-muted="state == 'draft'">
+                <field name="day"/><field name="branch_id"/><field name="state"/><field name="employee_id"/><field name="submitted_at"/>
+                <field name="total_count" sum="Total"/><field name="shown_count" sum="Total"/><field name="missing_count" sum="Total"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_display_check_form" model="ir.ui.view">
+        <field name="name">navitta.display.check.form</field>
+        <field name="model">navitta.display.check</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0">
+                <sheet>
+                    <group>
+                        <group><field name="branch_id"/><field name="day"/><field name="state"/></group>
+                        <group><field name="employee_id"/><field name="submitted_at"/>
+                            <field name="total_count"/><field name="shown_count"/><field name="missing_count"/></group>
+                    </group>
+                    <field name="line_ids">
+                        <list decoration-danger="status == 'missing'" decoration-muted="not status">
+                            <field name="item_no"/><field name="model"/><field name="colors"/><field name="product_tmpl_id" optional="hide"/>
+                            <field name="status"/><field name="reason"/><field name="note"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_display_check_search" model="ir.ui.view">
+        <field name="name">navitta.display.check.search</field>
+        <field name="model">navitta.display.check</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="branch_id"/>
+                <filter name="missing" string="Models not on display" domain="[('missing_count', '&gt;', 0)]"/>
+                <filter name="sent" string="Sent" domain="[('state', '=', 'done')]"/>
+                <group><filter name="by_branch" string="Branch" context="{'group_by': 'branch_id'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="action_display_checks" model="ir.actions.act_window">
+        <field name="name">Display checks</field>
+        <field name="res_model">navitta.display.check</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_stock_count_list" model="ir.ui.view">
+        <field name="name">navitta.stock.count.list</field>
+        <field name="model">navitta.stock.count</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" decoration-info="state == 'submitted'" decoration-success="state == 'approved'"
+                  decoration-muted="state in ('draft', 'rejected')">
+                <field name="name"/><field name="branch_id"/><field name="scope"/><field name="state"/><field name="employee_id"/>
+                <field name="submitted_at"/><field name="counted_total"/><field name="diff_count"/><field name="decided_by"/><field name="decided_at"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_stock_count_form" model="ir.ui.view">
+        <field name="name">navitta.stock.count.form</field>
+        <field name="model">navitta.stock.count</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0">
+                <header><field name="state" widget="statusbar"/></header>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group><field name="branch_id"/><field name="scope"/><field name="product_tmpl_ids" widget="many2many_tags" invisible="scope != 'models'"/>
+                            <field name="employee_id"/><field name="submitted_at"/><field name="location_ids" widget="many2many_tags"/><field name="company_id"/></group>
+                        <group><field name="counted_total"/><field name="diff_count"/><field name="decided_by"/><field name="decided_at"/>
+                            <field name="admin_note"/><field name="recount_count"/><field name="recount_note"/></group>
+                    </group>
+                    <notebook>
+                        <page string="Lines" name="lines">
+                            <field name="line_ids" groups="navitta_ops.group_navitta_admin">
+                                <list decoration-danger="difference &lt; 0" decoration-warning="difference &gt; 0">
+                                    <field name="item_no"/><field name="model"/><field name="color"/><field name="size"/><field name="barcode" optional="hide"/>
+                                    <field name="product_id" optional="hide"/>
+                                    <field name="expected"/><field name="counted"/><field name="difference"/>
+                                    <field name="qty_at_approval" optional="show"/><field name="applied_diff" optional="show"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Inventory adjustments" name="moves">
+                            <field name="move_ids" groups="navitta_ops.group_navitta_admin"><list><field name="date"/><field name="reference"/><field name="product_id"/>
+                                <field name="location_id"/><field name="location_dest_id"/><field name="quantity"/><field name="state"/></list></field>
+                        </page>
+                    </notebook>
+                    <div class="text-muted">The branch counts blind (it never sees Odoo's quantities). Odoo's stock changes only when management approves the count: the difference against the quantity at that moment is applied as an inventory adjustment at the branch's stock location (valuation entries follow the product's costing method). A count older than 7 days can't be approved.</div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_stock_count_search" model="ir.ui.view">
+        <field name="name">navitta.stock.count.search</field>
+        <field name="model">navitta.stock.count</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="branch_id"/>
+                <filter name="waiting" string="Waiting for management" domain="[('state', '=', 'submitted')]"/>
+                <filter name="approved" string="Approved and applied" domain="[('state', '=', 'approved')]"/>
+                <group><filter name="by_branch" string="Branch" context="{'group_by': 'branch_id'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="action_stock_counts" model="ir.actions.act_window">
+        <field name="name">Stock counts</field>
+        <field name="res_model">navitta.stock.count</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_rec_display_checks" name="Display checks" parent="navitta_ops.menu_records" action="action_display_checks" sequence="17"/>
+    <menuitem id="menu_rec_stock_counts" name="Stock counts" parent="navitta_ops.menu_records" action="action_stock_counts" sequence="17"/>
+</odoo>

@@ -4,4 +4,6 @@ from . import pos
 from . import pos_day
 from . import res_users
 from . import catalog
+from . import stock_check
 from . import api
+from . import api_stock

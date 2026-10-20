@@ -21,6 +21,7 @@
         <NvModal onClose="props.onClose" cls="'rcvm'">
             <div class="rcv">
                 <div class="nv-card-h"><h2>📦 Receive shipment</h2><button type="button" class="nv-btn" t-on-click="() => props.onClose()">Close</button></div>
+                <CamScan onScan="(c) => this.camScanned(c)"/>
                 <div t-att-class="'rcv-in ' + (state.msg ? state.msg.k : '')">
                     <span aria-hidden="true">📟</span>
                     <input t-ref="scan" class="num" inputmode="numeric" autocomplete="off" t-model="state.code" t-on-keydown="onKey"

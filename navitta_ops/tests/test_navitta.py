@@ -1817,6 +1817,102 @@ class NavittaCase(TransactionCase):
         self.assertIn("login", self.admin().admin_filters())
 
 
+    # ------------------------------------------------------------------ Navitta Pro 26.6 screens
+    def test_float_site_denominations(self):
+        """The float is counted with the site's notes and coins 200/100/50/20/10/5/2/1/0.50/0.25; the totals are kept to
+        the halala, and the floats counted before (100/50/10/5/1) stay readable."""
+        self.assertEqual(self.api().branch_state()["settings"]["denoms"], ["200", "100", "50", "20", "10", "5", "2", "1", "0.50", "0.25"])
+        api = self.api()
+        with freeze_time(utc(15, 20, d=date(2026, 10, 12))):                     # reem is off: shima alone, no confirmation
+            self.assertTrue(api.check_in(self.shima.id, "2468")["ok"])
+            pid = self.photo()
+            self.assertEqual(api.float_count(self.shima.id, "2468", "start", {"100": 1.5}, pid)["error"], "bad_count")
+            counts = {"200": 2, "100": 5, "50": 1, "20": 2, "5": 1, "2": 2, "0.50": 1, "0.25": 2}   # 999.50 + 0.50 = 1000
+            r = api.float_count(self.shima.id, "2468", "start", counts, pid)
+            self.assertEqual((r["state"], r["total"]), ("ok", 1000))
+            f = self.env["navitta.float"].search([("branch_id", "=", self.dwd.id), ("kind", "=", "start")])
+            self.assertEqual((f.n200, f.n100, f.n50, f.n20, f.n10, f.n5, f.n2, f.n1, f.n050, f.n025), (2, 5, 1, 2, 0, 1, 2, 0, 1, 2))
+            self.assertEqual(f._dict()["counts"], {"200": 2, "100": 5, "50": 1, "20": 2, "10": 0, "5": 1, "2": 2, "1": 0, "0.50": 1, "0.25": 2})
+            # the end of the day: 999.75 (a quarter short) needs a reason and alerts management with the halalas
+            self.assertEqual(api.float_count(self.shima.id, "2468", "end", {"200": 4, "100": 1, "50": 1, "20": 2, "5": 1, "2": 2,
+                                                                             "0.5": 1, "0.25": 1})["error"], "float_mismatch")
+            r = api.float_count(self.shima.id, "2468", "end", {"200": 4, "100": 1, "50": 1, "20": 2, "5": 1, "2": 2, "0.5": 1, "0.25": 1},
+                                None, "ربع ريال ناقص")
+            self.assertEqual((r["state"], r["total"]), ("short", 999.75))
+            n = self.env["navitta.notification"].search([("subject", "like", "Float short")])
+            self.assertIn("999.75", n.body)
+        # a float counted before 26.6 (old columns only) reads with the new keys
+        old = self.env["navitta.float"].create({"branch_id": self.qsm.id, "day": DAY, "kind": "start", "expected": 1000, "amount": 1000,
+                                                "n100": 9, "n50": 1, "n10": 4, "n5": 2})
+        self.assertEqual(old._dict()["counts"], {"200": 0, "100": 9, "50": 1, "20": 0, "10": 4, "5": 2, "2": 0, "1": 0, "0.50": 0, "0.25": 0})
+        self.assertEqual(self.env["navitta.float"]._counts(old._dict()["counts"])[1], 1000)
+
+    def test_camera_scan_button_on_every_code_input(self):
+        """«📷 Scan the QR or barcode with the camera» above every barcode / model input: Odoo 18's own scanner
+        (@web/core/barcode/barcode_dialog: BarcodeDetector, or the bundled ZXing reader on the iPad)."""
+        from odoo.tools.misc import file_open
+        dialog = file_open("web/static/src/core/barcode/barcode_dialog.js").read()
+        self.assertIn("export async function scanBarcode(env, facingMode", dialog)
+        self.assertIn("zxing", file_open("web/static/src/core/barcode/barcode_video_scanner.js").read().lower())
+        js = file_open("navitta_ops/static/src/common/components.js").read()
+        self.assertIn('import { scanBarcode } from "@web/core/barcode/barcode_dialog";', js)
+        self.assertIn('scanBarcode(this.env, "environment")', js)
+        xml = file_open("navitta_ops/static/src/common/components.xml").read()
+        self.assertIn("📷 Scan the QR or barcode with the camera", xml)
+        box = xml[xml.index('t-name="navitta_ops.ModelSearchBox"'):]
+        # the model search, the lost sale's model, the shortage list's and the defect's item chooser all use this box
+        self.assertLess(box.index("<CamScan"), box.index("<input"))
+        recv = file_open("navitta_ops/static/src/common/shipments.xml").read()
+        recv = recv[recv.index('t-name="navitta_ops.ReceiveShipment"'):]
+        self.assertLess(recv.index("<CamScan"), recv.index('t-ref="scan"'))
+        stock = file_open("navitta_ops/static/src/branch/stock.xml").read()
+        for tmpl in ("navitta_ops.DisplayCheck", "navitta_ops.StockCount"):
+            part = stock[stock.index('t-name="%s"' % tmpl) + 10:]
+            part = part[:part.index("t-name=")] if "t-name=" in part else part
+            self.assertLess(part.index("<CamScan"), part.index("<input"))
+        for f in ("navitta_ops/static/src/branch/shortage.xml",):
+            self.assertIn("<ModelPicker", file_open(f).read())          # → ModelSearchBox → CamScan
+
+    def test_report_counter_block_and_visit_satisfaction(self):
+        """«📊 From the counter (automatic)»: customers who came in, bought, didn't buy and the customer satisfaction (the
+        average of today's visits rated on the counter, optional)."""
+        api = self.api()
+        with freeze_time(utc(16, 0)):
+            self.assertTrue(api.check_in(self.reem.id, "2468")["ok"])
+            for data in ({"buy": True, "sat": 5}, {"buy": True, "sat": 4}, {"no": True, "reason": "browsing", "sat": 9}, {"no": True, "reason": "price"}):
+                v = api.visit_start(self.reem.id)["id"]
+                api.visit_end(v)
+                self.assertTrue(api.visit_save(v, data)["ok"])
+            sats = self.env["navitta.visit"].search([("branch_id", "=", self.dwd.id)]).mapped("sat")
+            self.assertEqual(sorted(sats), [0, 0, 4, 5])                     # 9 is out of the scale: not rated
+            fv = api.report_get()["from_visits"]
+            self.assertEqual((fv["visitors"], fv["bought"], fv["nonBuy"], fv["sat"], fv["rated"]), (4, 2, 2, 4.5, 2))
+            self.assertTrue(api.branch_state()["visits"][0].get("sat") is not None)
+        with freeze_time(utc(16, 0, d=DAY + timedelta(days=1))):
+            self.assertIsNone(api.report_get()["from_visits"]["sat"])           # nothing rated: «—»
+
+    def test_expenses_owed_and_new_defect_type(self):
+        """The expenses header: what the branch is owed (awaiting approval) with its details; the new defect type
+        «sponge came off the heel base (glue)»."""
+        api = self.api()
+        with freeze_time(utc(16, 0)):
+            self.assertTrue(api.create_expense(self.reem.id, "2468", 120, "cleaning", "منظفات")["ok"])
+            x = api.create_expense(self.reem.id, "2468", 30.5, "other", "ماء")["id"]
+            self.admin().admin_expense_decide(x, True)
+            st = api.requests_state()
+            self.assertEqual(st["cash"]["pending_expenses"], 120)
+            self.assertEqual([e["amount"] for e in st["pending_expenses"]], [120])
+            self.assertEqual(st["choices"]["expense_categories"][0][0], "delivery")
+            self.assertEqual(st["choices"]["defect_types"][0][0], "sponge")
+            r = api.create_defect(self.reem.id, "2468", {"item_no": "12345678", "model": "SANDY", "qty": 1, "defect": "sponge",
+                                                         "source": "display"}, self.photo())
+            self.assertTrue(r["ok"])
+        # without an Odoo stock for the branch: no «🔎 Display & stock» tab and no weekly best sellers card
+        self.assertFalse(self.api().branch_access()["branch"]["stock"])
+        self.assertFalse(any(b["stock"] for b in self.admin().branch_access()["branches"]))
+        self.assertIsNone(self.api().branch_state()["top_week"])
+        self.assertFalse(self.admin().admin_requests()["stock_on"])
+
 @tagged("post_install", "-at_install", "navitta")
 class NavittaHttp(HttpCase):
 

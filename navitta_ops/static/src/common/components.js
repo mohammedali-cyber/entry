@@ -2,6 +2,7 @@
 import { Component, onMounted, onWillStart, onWillUnmount, onWillUpdateProps, useExternalListener, useRef, useState } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
+import { scanBarcode } from "@web/core/barcode/barcode_dialog";
 import {
     LANG, api, addDays, ago, barcodeUrl, compress, dcsText, f0, hourNow, icon, isBag, jn, longDate, minuteNow, mmss, monthEnd, monthName,
     monthStart, photoUrl, pc, sizesOf, stockQty, swatch, today,
@@ -450,9 +451,36 @@ export class DailyQuote extends Component {
     }
 }
 
+/** «📷 Scan the QR or barcode with the camera»: Odoo's own scanner dialog (the browser's BarcodeDetector, or the bundled
+ * ZXing reader where there is none, e.g. on the iPad). The code read goes to onScan, like a code typed or scanned. */
+export class CamScan extends Component {
+    static template = "navitta_ops.CamScan";
+    static props = { onScan: Function, cls: { type: String, optional: true } };
+    setup() {
+        this.notification = useService("notification");
+    }
+    async open() {
+        let code = null;
+        try {
+            code = await scanBarcode(this.env, "environment");
+        } catch (e) {
+            this.notification.add((e && e.message) || _t("Couldn't open the camera. Type the code instead."), { type: "warning" });
+            return;
+        }
+        code = String(code || "").trim();
+        if (code) {
+            if (navigator.vibrate) {
+                navigator.vibrate(80);
+            }
+            this.props.onScan(code);
+        }
+    }
+}
+
 /** Search the models file: 8-digit item number, model name, or a scanned barcode (scanners end with Enter). */
 export class ModelSearchBox extends Component {
     static template = "navitta_ops.ModelSearchBox";
+    static components = { CamScan };
     TX = TX;
     static props = { onResult: Function, placeholder: { type: String, optional: true }, big: { type: Boolean, optional: true } };
     setup() {
@@ -471,13 +499,23 @@ export class ModelSearchBox extends Component {
             this.props.onResult(null, s);
             return;
         }
-        this.h = setTimeout(async () => {
-            this.state.busy = true;
-            const r = await api(this.orm, "catalog_find", s);
-            this.state.busy = false;
-            this.state.done = true;
-            this.props.onResult(r.error ? { models: [] } : r, s);
-        }, 350);
+        this.h = setTimeout(() => this.run(s), 350);
+    }
+    async run(s) {
+        this.state.busy = true;
+        const r = await api(this.orm, "catalog_find", s);
+        this.state.busy = false;
+        this.state.done = true;
+        this.props.onResult(r.error ? { models: [] } : r, s);
+    }
+    /** A code read by the camera: into the same box, searched right away (like a scanner's Enter). */
+    scanned(code) {
+        clearTimeout(this.h);
+        this.state.q = code;
+        if (this.inp.el) {
+            this.inp.el.value = code;
+        }
+        this.run(code);
     }
     onKey(ev) {
         if (ev.key === "Enter") {

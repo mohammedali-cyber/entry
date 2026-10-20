@@ -4,15 +4,15 @@
     <!-- ============================================================ banknote counts -->
     <t t-name="navitta_ops.Denoms">
         <div class="dn">
-            <div t-foreach="DENOMS" t-as="d" t-key="d" class="dn-r">
-                <span class="dn-n num" t-esc="d"/><span class="dn-x">×</span>
-                <div class="stepper"><button type="button" aria-label="Decrease" t-on-click="() => this.step(d, -1)">−</button>
-                    <input type="number" min="0" inputmode="numeric" dir="ltr" t-att-value="c[d] || 0" t-att-aria-label="noteLabel(d)" t-on-input="(e) => this.set(d, e.target.value)"/>
-                    <button type="button" aria-label="Increase" t-on-click="() => this.step(d, 1)">+</button></div>
-                <span class="dn-s num">= <t t-esc="f0(d * (+c[d] || 0))"/></span>
+            <div t-foreach="rows" t-as="r" t-key="r.k" class="dn-r">
+                <span class="dn-n num" t-esc="r.k"/><span class="dn-x">×</span>
+                <div class="stepper"><button type="button" aria-label="Decrease" t-on-click="() => this.step(r.k, -1)">−</button>
+                    <input type="number" min="0" inputmode="numeric" dir="ltr" t-att-value="c[r.k] || 0" t-att-aria-label="noteLabel(r)" t-on-input="(e) => this.set(r.k, e.target.value)"/>
+                    <button type="button" aria-label="Increase" t-on-click="() => this.step(r.k, 1)">+</button></div>
+                <span class="dn-s num">= <t t-esc="line(r)"/></span>
             </div>
             <div t-att-class="'dn-t ' + cls">
-                <span>Total</span><b class="num"><t t-esc="f0(total)"/> / <t t-esc="f0(props.expected)"/> SAR</b>
+                <span>Total</span><b class="num"><t t-esc="f2(total)"/> / <t t-esc="f2(props.expected)"/> SAR</b>
                 <span t-esc="status"/>
             </div>
         </div>

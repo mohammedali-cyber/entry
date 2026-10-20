@@ -16,6 +16,26 @@ msgstr "%(e)s عندها نقطة البيع «%(o)s» من قبل"
 
 #. module: navitta_ops_pos
 #. odoo-python
+#: code:addons/navitta_ops_pos/models/api_stock.py:0
+msgid ""
+"%(e)s checked the display: %(n)s models in stock, %(s)s on display, %(m)s "
+"not on display."
+msgstr ""
+"%(e)s فحصت المعروض: %(n)s موديل في المخزون، %(s)s معروض، %(m)s مو معروض."
+
+#. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/api_stock.py:0
+msgid ""
+"%(e)s sent %(n)s: %(p)s pieces counted, %(d)s lines differ from Odoo. Review"
+" it in Branch requests → Display & stock; Odoo's stock changes only when you"
+" approve it."
+msgstr ""
+"%(e)s أرسلت %(n)s: %(p)s قطعة معدودة، و%(d)s سطر يختلف عن Odoo. راجعه في "
+"طلبات الفروع ← المعروض والجرد؛ والمخزون في Odoo ما يتغير إلا لما توافق."
+
+#. module: navitta_ops_pos
+#. odoo-python
 #: code:addons/navitta_ops_pos/models/branch.py:0
 msgid "%s days were synced from the Point of Sale"
 msgstr "تمت مزامنة %s يوم من نقطة البيع"
@@ -29,7 +49,34 @@ msgid ""
 msgstr "%s موظفة بدون جهاز خاص ولا حساب كاشير (مبيعاتها تروح للحساب العام)"
 
 #. module: navitta_ops_pos
+#: model:ir.model.constraint,message:navitta_ops_pos.constraint_navitta_stock_count_line_counted_pos
+msgid "A count cannot be negative"
+msgstr "المعدود ما يكون بالسالب"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__applied_diff
+msgid "Adjustment applied"
+msgstr "التعديل اللي انطبّق"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_stock_count__state__approved
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_stock_count_search
+msgid "Approved and applied"
+msgstr "انعتمد وانطبّق"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__barcode
+msgid "Barcode"
+msgstr "الباركود"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check__branch_id
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check_line__branch_id
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_pos_day__branch_id
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__branch_id
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__branch_id
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_display_check_search
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_stock_count_search
 msgid "Branch"
 msgstr "الفرع"
 
@@ -71,6 +118,12 @@ msgid "Cashier account (optional)"
 msgstr "حساب الكاشير (اختياري)"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__product_tmpl_ids
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_stock_count__scope__models
+msgid "Chosen models"
+msgstr "الموديلات المختارة"
+
+#. module: navitta_ops_pos
 #. odoo-python
 #: code:addons/navitta_ops_pos/models/pos.py:0
 msgid "Closed"
@@ -83,6 +136,21 @@ msgid "Closing"
 msgstr "قيد الإغلاق"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__color
+msgid "Color"
+msgstr "اللون"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check_line__colors
+msgid "Colors in stock"
+msgstr "الألوان الموجودة"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__company_id
+msgid "Company"
+msgstr "الشركة"
+
+#. module: navitta_ops_pos
 #: model:ir.model.fields,help:navitta_ops_pos.field_navitta_daily_sales__source
 msgid ""
 "Corrected by management: the day was edited in Sales → Edit; the cash "
@@ -92,9 +160,43 @@ msgstr ""
 "يغيّر أرقامه"
 
 #. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/api_stock.py:0
+msgid "Count again and send %(n)s: %(x)s"
+msgstr "عدّي مرة ثانية وأرسلي %(n)s: %(x)s"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__counted
+msgid "Counted"
+msgstr "المعدود"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__counted_total
+msgid "Counted pieces"
+msgstr "القطع المعدودة"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,help:navitta_ops_pos.field_navitta_stock_count_line__applied_diff
+msgid "Counted − Odoo quantity at approval"
+msgstr "المعدود − كمية Odoo وقت الاعتماد"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,help:navitta_ops_pos.field_navitta_stock_count_line__difference
+msgid ""
+"Counted − Odoo quantity when the count was sent: negative = missing, "
+"positive = more than in Odoo"
+msgstr ""
+"المعدود − كمية Odoo وقت إرسال الجرد: السالب = ناقص، والموجب = زيادة عن Odoo"
+
+#. module: navitta_ops_pos
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_pos_order__navitta_visit_id
 msgid "Counter visit"
 msgstr "زيارة العدّاد"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_stock_count__state__draft
+msgid "Counting"
+msgstr "جاري الجرد"
 
 #. module: navitta_ops_pos
 #: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_branch_form_pos
@@ -114,9 +216,26 @@ msgid "Daily target and sales"
 msgstr "التارقت والمبيعات اليومية"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_display_check_line__reason__damaged
+msgid "Damaged"
+msgstr "متضررة"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check__day
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check_line__day
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_pos_day__day
 msgid "Day"
 msgstr "اليوم"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__decided_at
+msgid "Decided at"
+msgstr "وقت القرار"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__decided_by
+msgid "Decided by"
+msgstr "قرّر"
 
 #. module: navitta_ops_pos
 #: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_branch_form_pos
@@ -135,6 +254,33 @@ msgstr ""
 "تارقت الفرع (%)» ÷ 100 (التارقت نفسه ينحط للفرع). اترك الحصة فاضية (0) في كل"
 " الأجهزة عشان ينقسم تارقت الفرع عليها بالتساوي؛ والأجهزة الفاضية تتقاسم "
 "الباقي من 100% بالتساوي."
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__difference
+msgid "Difference"
+msgstr "الفرق"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check_line__status
+msgid "Display"
+msgstr "العرض"
+
+#. module: navitta_ops_pos
+#: model:ir.model,name:navitta_ops_pos.model_navitta_display_check
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check_line__check_id
+msgid "Display check"
+msgstr "فحص المعروض"
+
+#. module: navitta_ops_pos
+#: model:ir.model,name:navitta_ops_pos.model_navitta_display_check_line
+msgid "Display check model"
+msgstr "موديل في فحص المعروض"
+
+#. module: navitta_ops_pos
+#: model:ir.actions.act_window,name:navitta_ops_pos.action_display_checks
+#: model:ir.ui.menu,name:navitta_ops_pos.menu_rec_display_checks
+msgid "Display checks"
+msgstr "فحوصات المعروض"
 
 #. module: navitta_ops_pos
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_pos_config__navitta_target_share_eff
@@ -189,6 +335,17 @@ msgid "Her own device (point of sale)"
 msgstr "جهازها الخاص (نقطة البيع)"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_display_check__state__draft
+msgid "In progress"
+msgstr "جاري الفحص"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__move_ids
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_stock_count_form
+msgid "Inventory adjustments"
+msgstr "تعديلات المخزون"
+
+#. module: navitta_ops_pos
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_pos_day__invoices
 msgid "Invoices"
 msgstr "الفواتير"
@@ -209,10 +366,38 @@ msgid "Last update from the Point of Sale"
 msgstr "آخر تحديث من نقطة البيع"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__line_ids
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_stock_count_form
+msgid "Lines"
+msgstr "الأسطر"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__diff_count
+msgid "Lines with a difference"
+msgstr "أسطر فيها فرق"
+
+#. module: navitta_ops_pos
 #. odoo-python
 #: code:addons/navitta_ops_pos/models/api.py:0
 msgid "Link branches to the Point of Sale"
 msgstr "ربط الفروع بنقطة البيع"
+
+#. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/api_stock.py:0
+msgid "Management approved %(n)s; Odoo's stock now matches your count.%(x)s"
+msgstr "الإدارة اعتمدت %(n)s، ومخزون Odoo صار مثل جردك.%(x)s"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__admin_note
+msgid "Management note"
+msgstr "ملاحظة الإدارة"
+
+#. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/api_stock.py:0
+msgid "Management rejected %(n)s: %(x)s"
+msgstr "الإدارة رفضت %(n)s: %(x)s"
 
 #. module: navitta_ops_pos
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_pos_order__navitta_checked
@@ -220,9 +405,36 @@ msgid "Matched with the counter"
 msgstr "انطابقت مع العدّاد"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check_line__model
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__model
+msgid "Model"
+msgstr "الموديل"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check_line__item_no
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__item_no
+msgid "Model number"
+msgstr "رقم الموديل"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check__line_ids
+msgid "Models"
+msgstr "الموديلات"
+
+#. module: navitta_ops_pos
 #: model:ir.model,name:navitta_ops_pos.model_navitta_catalog_item
 msgid "Models file item"
 msgstr "قطعة في ملف الموديلات"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check__total_count
+msgid "Models in stock"
+msgstr "الموديلات في المخزون"
+
+#. module: navitta_ops_pos
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_display_check_search
+msgid "Models not on display"
+msgstr "موديلات مو معروضة"
 
 #. module: navitta_ops_pos
 #: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_pos_config_form_navitta
@@ -237,6 +449,12 @@ msgstr "نافيتا"
 #: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_pos_settings_navitta
 msgid "Navitta branch"
 msgstr "فرع نافيتا"
+
+#. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/stock_check.py:0
+msgid "Navitta stock count #%(id)s – %(b)s"
+msgstr "جرد نافيتا رقم %(id)s – %(b)s"
 
 #. module: navitta_ops_pos
 #: model:ir.actions.server,name:navitta_ops_pos.cron_pos_sync_ir_actions_server
@@ -255,14 +473,61 @@ msgid "No session"
 msgstr "لا توجد جلسة"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_display_check_line__reason__no_space
+msgid "No space on the display"
+msgstr "ما فيه مكان في العرض"
+
+#. module: navitta_ops_pos
 #: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_pos_config_form_navitta
 msgid "None: each sale counts for the cashier picked"
 msgstr "بدون: كل بيعة تنحسب للكاشير المختار"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check__missing_count
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_display_check_line__status__missing
+msgid "Not on display"
+msgstr "مو معروض"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check_line__note
+msgid "Note"
+msgstr "ملاحظة"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__qty_at_approval
+msgid "Odoo quantity at approval"
+msgstr "كمية Odoo وقت الاعتماد"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__expected
+msgid "Odoo quantity when sent"
+msgstr "كمية Odoo وقت الإرسال"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check__shown_count
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_display_check_line__status__shown
+msgid "On display"
+msgstr "معروض"
+
+#. module: navitta_ops_pos
+#: model:ir.model.constraint,message:navitta_ops_pos.constraint_navitta_display_check_display_check_uniq
+msgid "One display check per branch and day"
+msgstr "فحص معروض واحد لكل فرع ويوم"
+
+#. module: navitta_ops_pos
+#: model:ir.model.constraint,message:navitta_ops_pos.constraint_navitta_stock_count_line_stock_count_line_uniq
+msgid "One line per variant in a count"
+msgstr "سطر واحد لكل متغيّر في الجرد"
+
+#. module: navitta_ops_pos
 #: model:ir.model.constraint,message:navitta_ops_pos.constraint_navitta_pos_day_config_day_uniq
 msgid "One row per point of sale and day"
 msgstr "سطر واحد لكل نقطة بيع ويوم"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_display_check_line__reason__store_only
+msgid "Only in the store room"
+msgstr "موجودة في المخزن بس"
 
 #. module: navitta_ops_pos
 #. odoo-python
@@ -299,6 +564,11 @@ msgid "Orders"
 msgstr "الطلبات"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_display_check_line__reason__other
+msgid "Other"
+msgstr "أخرى"
+
+#. module: navitta_ops_pos
 #: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_branch_form_pos
 msgid "Owner employee"
 msgstr "الموظفة صاحبة الجهاز"
@@ -331,6 +601,31 @@ msgid "Points of Sale"
 msgstr "نقاط البيع"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check_line__product_tmpl_id
+msgid "Product"
+msgstr "المنتج"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__recount_note
+msgid "Recount request"
+msgstr "طلب إعادة الجرد"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__recount_count
+msgid "Recounts"
+msgstr "مرات إعادة الجرد"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__name
+msgid "Reference"
+msgstr "المرجع"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_stock_count__state__rejected
+msgid "Rejected"
+msgstr "مرفوضة"
+
+#. module: navitta_ops_pos
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_pos_day__returns
 msgid "Returns (items)"
 msgstr "المرتجع (قطع)"
@@ -346,16 +641,72 @@ msgid "Sales (incl. VAT)"
 msgstr "المبيعات (شامل الضريبة)"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_display_check__state__done
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_display_check_search
+msgid "Sent"
+msgstr "أُرسل"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check__submitted_at
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__submitted_at
+msgid "Sent at"
+msgstr "وقت الإرسال"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check__employee_id
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__employee_id
+msgid "Sent by"
+msgstr "أرسلته"
+
+#. module: navitta_ops_pos
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_pos_config__navitta_target_share
 #: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_branch_form_pos
 msgid "Share of the branch target (%)"
 msgstr "حصة الجهاز من تارقت الفرع (%)"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__size
+msgid "Size"
+msgstr "المقاس"
+
+#. module: navitta_ops_pos
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_daily_sales__source
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_employee_sales__source
 msgid "Source"
 msgstr "المصدر"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__day
+msgid "Started on"
+msgstr "بدأ في"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check__state
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__state
+msgid "Status"
+msgstr "الحالة"
+
+#. module: navitta_ops_pos
+#: model:ir.model,name:navitta_ops_pos.model_navitta_stock_count
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__count_id
+msgid "Stock count"
+msgstr "جرد المخزن"
+
+#. module: navitta_ops_pos
+#: model:ir.model,name:navitta_ops_pos.model_navitta_stock_count_line
+msgid "Stock count line"
+msgstr "سطر جرد"
+
+#. module: navitta_ops_pos
+#: model:ir.actions.act_window,name:navitta_ops_pos.action_stock_counts
+#: model:ir.ui.menu,name:navitta_ops_pos.menu_rec_stock_counts
+msgid "Stock counts"
+msgstr "جرود المخزن"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__location_ids
+msgid "Stock locations"
+msgstr "مواقع المخزون"
 
 #. module: navitta_ops_pos
 #: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_branch_form_pos
@@ -373,6 +724,20 @@ msgid "Target shares warning"
 msgstr "تنبيه حصص التارقت"
 
 #. module: navitta_ops_pos
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_stock_count_form
+msgid ""
+"The branch counts blind (it never sees Odoo's quantities). Odoo's stock "
+"changes only when management approves the count: the difference against the "
+"quantity at that moment is applied as an inventory adjustment at the "
+"branch's stock location (valuation entries follow the product's costing "
+"method). A count older than 7 days can't be approved."
+msgstr ""
+"الفرع يجرد بدون ما يشوف كميات Odoo. مخزون Odoo ما يتغير إلا لما توافق "
+"الإدارة على الجرد: الفرق مقابل الكمية وقتها ينطبّق كتعديل مخزون في موقع "
+"مخزون الفرع (قيود التقييم حسب طريقة تكلفة المنتج). الجرد اللي صار له أكثر من"
+" 7 أيام ما ينعتمد."
+
+#. module: navitta_ops_pos
 #: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_branch_form_pos
 msgid ""
 "The branch's sales, VAT, cash and each employee's sales are computed from the (paid) orders of these points of sale: every 10 minutes, when a session is closed, and for any period opened in the management screens (the whole history).\n"
@@ -386,6 +751,11 @@ msgstr ""
 "                        نقطة البيع اللي لها «الموظفة صاحبة الجهاز» هي جهازها الخاص: كل بيعة عليه تنحسب لها مهما كان الكاشير المختار.\n"
 "                        نقطة البيع بدون صاحبة: كل بيعة تنحسب للموظفة اللي انختار حسابها ككاشير («حسابها ككاشير في نقطة البيع»، اختياري)، وإلا تظهر «الحساب العام».\n"
 "                        نقطة البيع نفسها ما تتغير: قائمة الكاشيرات وإعداداتها تبقى مثل ما تضبطها."
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,help:navitta_ops_pos.field_navitta_stock_count__location_ids
+msgid "The branch's stock locations when it was sent"
+msgstr "مواقع مخزون الفرع وقت الإرسال"
 
 #. module: navitta_ops_pos
 #. odoo-python
@@ -447,6 +817,11 @@ msgid "The share of the branch target this device gets, after the equal split"
 msgstr "حصة الجهاز من تارقت الفرع بعد التقسيم بالتساوي"
 
 #. module: navitta_ops_pos
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_stock_count__scope__all
+msgid "The whole stock"
+msgstr "المخزن كامل"
+
+#. module: navitta_ops_pos
 #: model:ir.model.fields,help:navitta_ops_pos.field_pos_config__navitta_target_share
 msgid ""
 "This device's share of its branch's daily target: device target = branch "
@@ -478,6 +853,11 @@ msgid "This point of sale's sales count for this Navitta branch"
 msgstr "مبيعات نقطة البيع هذي تنحسب لفرع نافيتا هذا"
 
 #. module: navitta_ops_pos
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_display_check_list
+msgid "Total"
+msgstr "المجموع"
+
+#. module: navitta_ops_pos
 #: model:ir.model,name:navitta_ops_pos.model_res_users
 msgid "User"
 msgstr "المستخدم"
@@ -486,3 +866,60 @@ msgstr "المستخدم"
 #: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_pos_day__tax
 msgid "VAT"
 msgstr "الضريبة"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count_line__product_id
+msgid "Variant"
+msgstr "المتغيّر"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields.selection,name:navitta_ops_pos.selection__navitta_stock_count__state__submitted
+#: model_terms:ir.ui.view,arch_db:navitta_ops_pos.view_stock_count_search
+msgid "Waiting for management"
+msgstr "بانتظار الإدارة"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_stock_count__scope
+msgid "What is counted"
+msgstr "وش ينجرد"
+
+#. module: navitta_ops_pos
+#: model:ir.model.fields,field_description:navitta_ops_pos.field_navitta_display_check_line__reason
+msgid "Why not on display"
+msgstr "ليش مو معروض"
+
+#. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/api_stock.py:0
+msgid "👀 Display check: %(b)s · %(m)s not on display"
+msgstr "👀 فحص المعروض: %(b)s · %(m)s مو معروض"
+
+#. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/api_stock.py:0
+msgid "👀 Display check: %s · everything on display ✓"
+msgstr "👀 فحص المعروض: %s · كل شي معروض ✓"
+
+#. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/api_stock.py:0
+msgid "📦 Stock count waiting for your review: %s"
+msgstr "📦 جرد ينتظر مراجعتك: %s"
+
+#. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/api_stock.py:0
+msgid "📦 Your stock count was approved"
+msgstr "📦 جردك انعتمد"
+
+#. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/api_stock.py:0
+msgid "📦 Your stock count was rejected"
+msgstr "📦 جردك انرفض"
+
+#. module: navitta_ops_pos
+#. odoo-python
+#: code:addons/navitta_ops_pos/models/api_stock.py:0
+msgid "🔁 Management asks for a recount"
+msgstr "🔁 الإدارة تطلب إعادة الجرد"

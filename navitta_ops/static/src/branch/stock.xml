@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- «🔎 المعروض والجرد» -->
+    <t t-name="navitta_ops.StockTab">
+        <div class="sk-tabs" role="tablist">
+            <button type="button" role="tab" t-att-aria-selected="state.tab === 'display' ? 'true' : 'false'" t-att-class="state.tab === 'display' ? 'on' : ''" t-on-click="() => this.go('display')">👀 Display check</button>
+            <button type="button" role="tab" t-att-aria-selected="state.tab === 'count' ? 'true' : 'false'" t-att-class="state.tab === 'count' ? 'on' : ''" t-on-click="() => this.go('count')">📦 Stock count</button>
+        </div>
+        <DisplayCheck t-if="state.tab === 'display'"/>
+        <StockCount t-else=""/>
+    </t>
+
+    <!-- «👀 فحص المعروض» -->
+    <t t-name="navitta_ops.DisplayCheck">
+        <div t-if="!state.d" class="empty">Loading…</div>
+        <div t-elif="!state.d.available or !c.lines.length" class="nv-card">
+            <h2>👀 Display check</h2>
+            <p class="sub">There is no stock recorded in Odoo for your branch yet. As soon as there is, every model that must be on display shows here.</p>
+        </div>
+        <t t-else="">
+            <div class="nv-card dc">
+                <div class="nv-card-h"><div><h2>👀 Display check</h2>
+                    <p class="sub">Every model in stock at your branch must be on display. Mark each model, then send the check with your PIN. It is saved as you go: you can finish it later today.</p></div>
+                    <span t-if="!open" class="chip good">✓ Sent</span></div>
+                <div t-if="!open" class="dc-done">
+                    <b t-esc="TX.sentBy(c.employee, clock(c.submitted_at))"/>
+                    <span class="num"><t t-esc="c.total"/> models · <t t-esc="c.shown"/> on display · <t t-esc="c.missing"/> not on display</span>
+                </div>
+                <div class="dc-p"><span class="num" t-esc="TX.progress(checked, c.lines.length)"/><span t-if="missing.length" class="chip bad num" t-esc="TX.missingN(missing.length)"/>
+                    <div class="pbar"><i t-att-style="'width:' + pct + '%'"/></div></div>
+                <CamScan onScan="(code) => this.find(code)"/>
+                <input class="ctl num" t-model="state.q" t-on-keydown="onKey" t-att-placeholder="TX.searchPh" aria-label="Search model"/>
+                <div class="seg dc-f">
+                    <button type="button" t-att-aria-pressed="state.filter === 'all' ? 'true' : 'false'" t-on-click="() => state.filter = 'all'">All (<t t-esc="c.lines.length"/>)</button>
+                    <button type="button" t-att-aria-pressed="state.filter === 'todo' ? 'true' : 'false'" t-on-click="() => state.filter = 'todo'">Not checked (<t t-esc="c.lines.length - checked"/>)</button>
+                    <button type="button" t-att-aria-pressed="state.filter === 'missing' ? 'true' : 'false'" t-on-click="() => state.filter = 'missing'">Not on display (<t t-esc="missing.length"/>)</button>
+                </div>
+            </div>
+            <div class="dc-l">
+                <div t-foreach="lines" t-as="l" t-key="l.id" t-att-id="'dl-' + l.id" t-att-class="'dc-i ' + (l.status || 'todo') + (state.hi === l.id ? ' hi' : '')">
+                    <div class="dc-m"><b class="num">🏷️ <t t-esc="l.item_no"/></b><span t-if="l.model and l.model !== l.item_no" t-esc="l.model"/>
+                        <div class="dc-c"><t t-foreach="l.colors" t-as="col" t-key="col"><span class="num"><span class="sw9" t-att-style="'background:' + swatch(col)"/><t t-esc="col"/></span></t></div></div>
+                    <div class="dc-a">
+                        <button type="button" t-att-class="'ok' + (l.status === 'shown' ? ' on' : '')" t-att-disabled="!open" t-att-aria-pressed="l.status === 'shown' ? 'true' : 'false'" t-on-click="() => this.mark(l, 'shown')">On display ✓</button>
+                        <button type="button" t-att-class="'no' + (l.status === 'missing' ? ' on' : '')" t-att-disabled="!open" t-att-aria-pressed="l.status === 'missing' ? 'true' : 'false'" t-on-click="() => this.mark(l, 'missing')">Not on display</button>
+                    </div>
+                    <div t-if="l.status === 'missing'" class="dc-r">
+                        <div class="cc"><t t-foreach="state.d.reasons" t-as="r" t-key="r[0]">
+                            <button type="button" t-att-class="l.reason === r[0] ? 'on' : ''" t-att-disabled="!open" t-on-click="() => this.reason(l, r[0])" t-esc="r[1]"/></t></div>
+                        <input t-if="l.reason === 'other' or l.note" class="ctl" t-att-value="l.note" t-att-disabled="!open" t-att-placeholder="TX.otherPh" t-on-input="(e) => this.note(l, e.target.value)"/>
+                    </div>
+                </div>
+                <div t-if="!lines.length" class="empty">No models match</div>
+            </div>
+            <div t-if="open" class="dc-send">
+                <button type="button" class="nv-btn primary" t-att-disabled="!ready" t-on-click="() => state.sign = true">🔒 Send the check to management (employee PIN)</button>
+                <span t-if="!ready" class="hint">Mark every model; a model not on display needs its reason.</span>
+            </div>
+            <SignModal t-if="state.sign" emps="state.d.employees" title="TX.sendCheck" onClose="() => state.sign = false" onSign="(e, pin) => this.send(e, pin)"/>
+        </t>
+    </t>
+
+    <!-- «📦 جرد المخزن» -->
+    <t t-name="navitta_ops.StockCount">
+        <div t-if="!state.d" class="empty">Loading…</div>
+        <div t-elif="!state.d.available" class="nv-card">
+            <h2>📦 Stock count</h2>
+            <p class="sub">There is no stock recorded in Odoo for your branch yet.</p>
+        </div>
+        <t t-else="">
+            <div t-if="!c" class="nv-card sc">
+                <h2>📦 Stock count</h2>
+                <p class="sub">Count what is really in the branch: scan each piece (every scan adds 1) or type the quantities. You don't see Odoo's quantities; management compares your count with the system and decides.</p>
+                <div class="sc-start">
+                    <button type="button" class="nv-btn primary" t-on-click="() => this.start('all')">📦 Count the whole stock</button>
+                    <button type="button" class="nv-btn" t-on-click="() => this.start('models')">🏷️ Count chosen models only</button>
+                </div>
+            </div>
+            <t t-elif="c.state === 'submitted'">
+                <div class="nv-card sc">
+                    <div class="nv-card-h"><h2 t-esc="TX.countTitle(c.id)"/><span t-att-class="'chip ' + STATEL.submitted[0]" t-esc="STATEL.submitted[1]"/></div>
+                    <p t-esc="TX.sentAt(clock(c.submitted_at), c.employee)"/>
+                    <p class="sub"><t t-esc="TX.pieces(c.pieces)"/> · Odoo's stock changes only when management approves your count.</p>
+                </div>
+            </t>
+            <t t-else="">
+                <div class="nv-card sc">
+                    <div class="nv-card-h"><div><h2 t-esc="TX.countTitle(c.id)"/>
+                        <p class="sub"><t t-if="c.scope === 'all'">The whole stock</t><t t-else="">Chosen models only</t> · Saved automatically as you count</p></div>
+                        <span class="chip neutral num" t-esc="TX.counted(pieces)"/></div>
+                    <div t-if="c.recount_note" class="warnbar"><b t-esc="TX.recountTitle"/>: <t t-esc="c.recount_note"/></div>
+                    <CamScan onScan="(code) => this.camScanned(code)"/>
+                    <div t-att-class="'rcv-in ' + (state.msg ? state.msg.k : '')">
+                        <span aria-hidden="true">📟</span>
+                        <input t-ref="scan" class="num" inputmode="numeric" autocomplete="off" t-model="state.code" t-on-keydown="onKey"
+                               t-att-placeholder="TX.scanPh" t-att-aria-label="TX.scanPh"/>
+                        <button type="button" class="nv-btn" t-on-click="scan">Add</button>
+                    </div>
+                    <div t-if="state.msg" t-att-class="'rcv-msg ' + state.msg.k" role="status" t-esc="state.msg.t"/>
+                    <div class="sc-add">
+                        <input class="ctl num" t-model="state.add" t-on-keydown="onAddKey" t-att-placeholder="TX.addPh" aria-label="Add a model"/>
+                        <button type="button" class="nv-btn" t-on-click="addModel">➕ Add model</button>
+                    </div>
+                    <p class="hint">You don't see Odoo's quantities: count what is really there. A piece without a barcode: add its model and type the quantity.</p>
+                </div>
+                <div class="sc-l">
+                    <div t-foreach="groups" t-as="g" t-key="g.tmpl_id" class="nv-card sc-g">
+                        <div class="nv-card-h"><b class="num">🏷️ <t t-esc="g.item_no"/><t t-if="g.model and g.model !== g.item_no"> · <t t-esc="g.model"/></t></b>
+                            <span class="chip neutral num" t-esc="TX.pieces(total(g))"/>
+                            <button type="button" class="del" aria-label="Remove" title="Remove" t-on-click="() => this.drop(g)">✕</button></div>
+                        <div t-foreach="g.lines" t-as="l" t-key="l.product_id" class="sc-r">
+                            <span class="num"><t t-esc="l.color or '—'"/><t t-if="l.size"> · <t t-esc="l.size"/></t></span>
+                            <div class="stepper"><button type="button" aria-label="Decrease" t-on-click="() => this.step(l, -1)">−</button>
+                                <input type="number" min="0" inputmode="numeric" dir="ltr" t-att-value="l.counted" aria-label="Counted" t-on-input="(e) => this.set(l, e.target.value)"/>
+                                <button type="button" aria-label="Increase" t-on-click="() => this.step(l, 1)">+</button></div>
+                        </div>
+                    </div>
+                    <div t-if="!groups.length" class="empty">Nothing counted yet: scan the first piece</div>
+                </div>
+                <div class="dc-send">
+                    <button type="button" class="nv-btn primary" t-att-disabled="!canSend" t-on-click="() => state.sign = true">🔒 Send the count to management (employee PIN)</button>
+                </div>
+                <SignModal t-if="state.sign" emps="state.d.employees" title="TX.sendCount" onClose="() => state.sign = false" onSign="(e, pin) => this.send(e, pin)"/>
+            </t>
+            <div t-if="state.d.history.length" class="nv-card sc-h">
+                <h2>Latest counts</h2>
+                <div class="visits">
+                    <div t-foreach="state.d.history" t-as="x" t-key="x.id" class="it">
+                        <div class="h"><b t-esc="TX.countTitle(x.id)"/><span t-att-class="'chip ' + STATEL[x.state][0]" t-esc="STATEL[x.state][1]"/></div>
+                        <div class="m"><t t-esc="TX.pieces(x.pieces)"/> · <t t-esc="x.employee or '—'"/> · <t t-esc="longDate(x.submitted_at or x.day)"/><t t-if="x.admin_note"> · Management: «<t t-esc="x.admin_note"/>»</t></div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </t>
+</templates>

@@ -41,4 +41,54 @@
         <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('base.group_system'))]"/>
     </record>
+    <!-- 26.6 display check and stock count: a branch device reads its own branch's (read-only; it changes them only through
+         the screen API, and the Odoo quantities of a count are management-only fields); management reads and decides all -->
+    <record id="rule_branch_display_check" model="ir.rule">
+        <field name="name">Navitta: own branch display checks</field>
+        <field name="model_id" ref="model_navitta_display_check"/>
+        <field name="domain_force">[('branch_id', '=', user.navitta_branch_id.id)]</field>
+        <field name="groups" eval="[(4, ref('navitta_ops.group_navitta_branch'))]"/>
+    </record>
+    <record id="rule_admin_display_check" model="ir.rule">
+        <field name="name">Navitta admin: all display checks</field>
+        <field name="model_id" ref="model_navitta_display_check"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('navitta_ops.group_navitta_admin'))]"/>
+    </record>
+    <record id="rule_branch_display_check_line" model="ir.rule">
+        <field name="name">Navitta: own branch display check models</field>
+        <field name="model_id" ref="model_navitta_display_check_line"/>
+        <field name="domain_force">[('branch_id', '=', user.navitta_branch_id.id)]</field>
+        <field name="groups" eval="[(4, ref('navitta_ops.group_navitta_branch'))]"/>
+    </record>
+    <record id="rule_admin_display_check_line" model="ir.rule">
+        <field name="name">Navitta admin: all display check models</field>
+        <field name="model_id" ref="model_navitta_display_check_line"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('navitta_ops.group_navitta_admin'))]"/>
+    </record>
+    <record id="rule_branch_stock_count" model="ir.rule">
+        <field name="name">Navitta: own branch stock counts</field>
+        <field name="model_id" ref="model_navitta_stock_count"/>
+        <field name="domain_force">[('branch_id', '=', user.navitta_branch_id.id)]</field>
+        <field name="groups" eval="[(4, ref('navitta_ops.group_navitta_branch'))]"/>
+    </record>
+    <record id="rule_admin_stock_count" model="ir.rule">
+        <field name="name">Navitta admin: all stock counts</field>
+        <field name="model_id" ref="model_navitta_stock_count"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('navitta_ops.group_navitta_admin'))]"/>
+    </record>
+    <record id="rule_branch_stock_count_line" model="ir.rule">
+        <field name="name">Navitta: own branch stock count lines</field>
+        <field name="model_id" ref="model_navitta_stock_count_line"/>
+        <field name="domain_force">[('branch_id', '=', user.navitta_branch_id.id)]</field>
+        <field name="groups" eval="[(4, ref('navitta_ops.group_navitta_branch'))]"/>
+    </record>
+    <record id="rule_admin_stock_count_line" model="ir.rule">
+        <field name="name">Navitta admin: all stock count lines</field>
+        <field name="model_id" ref="model_navitta_stock_count_line"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('navitta_ops.group_navitta_admin'))]"/>
+    </record>
 </odoo>

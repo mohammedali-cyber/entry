@@ -3,12 +3,14 @@
 import { Component, useState } from "@odoo/owl";
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
-import { api, clock, f0, h12, minuteNow } from "./utils";
+import { api, clock, f0, f2, h12, minuteNow, r2 } from "./utils";
 import { FileThumb, NvModal, PhotoPicker, PinPad, SignModal } from "./components";
 import { Bulb } from "./help";
 
-export const DENOMS = [100, 50, 10, 5, 1];
-export const floatTotal = (c) => DENOMS.reduce((s, d) => s + d * (+c[d] || 0), 0);
+// the site's notes and coins (Navitta Pro 26.6); the counts are keyed «200», «100», …, «1», «0.50», «0.25» (same keys as the server)
+export const DENOMS = [200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.25];
+export const dKey = (d) => (d < 1 ? d.toFixed(2) : String(d));
+export const floatTotal = (c) => r2(DENOMS.reduce((s, d) => s + d * (+c[dKey(d)] || 0), 0));
 
 /** The three periods of the day: [key, label]. */
 export const phases = () => [["start", _t("🌅 Start of shift")], ["mid", _t("☀️ Mid-shift")], ["end", _t("🌙 End of shift")]];
@@ -18,7 +20,7 @@ export const groupOf = (x) => (x.who === "any" ? "👥 " + _t("Either one") : x.
 /** A period's state at minute `now`: locked (not open yet), open, or past. */
 export const phaseState = (w, now) => (now < w[0] ? "locked" : now > w[1] ? "past" : "open");
 
-const counts = (c) => Object.fromEntries(DENOMS.map((d) => [String(d), Math.max(0, Math.floor(+c[d] || 0))]));
+const counts = (c) => Object.fromEntries(DENOMS.map((d) => [dKey(d), Math.max(0, Math.floor(+c[dKey(d)] || 0))]));
 
 /** Banknote counts: one stepper per note, with the running total against the float amount. */
 export class Denoms extends Component {
@@ -26,28 +28,34 @@ export class Denoms extends Component {
     static props = { c: Object, expected: Number };
     setup() {
         this.c = useState(this.props.c);
-        this.DENOMS = DENOMS;
+        this.rows = DENOMS.map((d) => ({ d, k: dKey(d), coin: d < 1 }));
         this.f0 = f0;
+        this.f2 = f2;
     }
     get total() {
         return floatTotal(this.c);
     }
-    step(d, n) {
-        this.c[d] = Math.max(0, (+this.c[d] || 0) + n);
+    step(k, n) {
+        this.c[k] = Math.max(0, (+this.c[k] || 0) + n);
     }
-    set(d, v) {
-        this.c[d] = Math.max(0, Math.floor(+v || 0));
+    set(k, v) {
+        this.c[k] = Math.max(0, Math.floor(+v || 0));
     }
-    noteLabel(d) {
-        return _t("%s riyal", d);
+    /** = the row's value: whole riyals without decimals, the halala coins with two (as on the site: «= 0.00»). */
+    line(r) {
+        const v = r2(r.d * (+this.c[r.k] || 0));
+        return r.coin ? v.toFixed(2) : f0(v);
+    }
+    noteLabel(r) {
+        return _t("%s riyal", r.k);
     }
     get cls() {
         const t = this.total;
-        return t === this.props.expected ? "ok" : t ? "no" : "";
+        return t === r2(this.props.expected) ? "ok" : t ? "no" : "";
     }
     get status() {
-        const t = this.total, e = this.props.expected;
-        return t === e ? "✓ " + _t("Complete") : !t ? "" : t < e ? _t("%s short", f0(e - t)) : _t("%s over", f0(t - e));
+        const t = this.total, e = r2(this.props.expected);
+        return t === e ? "✓ " + _t("Complete") : !t ? "" : t < e ? _t("%s short", f2(e - t)) : _t("%s over", f2(t - e));
     }
 }
 
@@ -82,13 +90,13 @@ export class FloatCard extends Component {
         return this.props.emps.filter((e) => e.id !== this.f.counted_by);
     }
     get ready() {
-        return !!this.state.photo && this.total > 0 && (this.total === this.exp || !!this.state.note.trim());
+        return !!this.state.photo && this.total > 0 && (this.total === r2(this.exp) || !!this.state.note.trim());
     }
     get hint() {
         return !this.total ? _t("Count the money first") : !this.state.photo ? _t("The photo is required first") : _t("Write the reason for the difference");
     }
     get title() {
-        return _t("💰 Today's float · %s SAR", f0(this.exp));
+        return _t("💰 Today's float · %s SAR", f2(this.exp));
     }
     get sub() {
         return "📍 " + (this.props.fl.place || "—") + " · " + _t("Either of you can count it");
@@ -105,14 +113,14 @@ export class FloatCard extends Component {
     }
     get pendingSub() {
         const f = this.f;
-        return _t("%(n)s counted it %(t)s: %(a)s SAR", { n: f.counted_name || "—", t: clock(f.counted_at), a: f0(f.amount) });
+        return _t("%(n)s counted it %(t)s: %(a)s SAR", { n: f.counted_name || "—", t: clock(f.counted_at), a: f2(f.amount) });
     }
     get doneLine() {
         const f = this.f;
         let s = f.state === "ok" ? "✓ " : "⚠️ ";
-        s += f0(f.amount) + " " + _t("SAR");
+        s += f2(f.amount) + " " + _t("SAR");
         if (f.state === "short") {
-            s += " " + _t("of %s", f0(f.expected));
+            s += " " + _t("of %s", f2(f.expected));
         }
         return s;
     }
@@ -139,7 +147,7 @@ export class FloatCard extends Component {
     sign(emp) {
         const s = this.state;
         s.pin = {
-            emp, run: (code) => this.run("float_count", [emp.id, code, "start", counts(s.c), s.photo, this.total === this.exp ? null : s.note],
+            emp, run: (code) => this.run("float_count", [emp.id, code, "start", counts(s.c), s.photo, this.total === r2(this.exp) ? null : s.note],
                 (r) => (r.state === "pending" ? _t("Done, now your colleague confirms") : r.state === "short"
                     ? _t("Float recorded and the difference sent to management") : _t("Float recorded"))),
         };
@@ -176,21 +184,21 @@ export class FloatEnd extends Component {
         return floatTotal(this.state.c);
     }
     get can() {
-        return this.total > 0 && (this.total === this.exp || !!this.state.note.trim());
+        return this.total > 0 && (this.total === r2(this.exp) || !!this.state.note.trim());
     }
     get title() {
         return _t("End-of-shift float");
     }
     get line() {
         const f = this.f;
-        return (f.state === "ok" ? "✓ " : "⚠️ ") + f0(f.amount) + " / " + f0(f.expected) + " " + _t("SAR");
+        return (f.state === "ok" ? "✓ " : "⚠️ ") + f2(f.amount) + " / " + f2(f.expected) + " " + _t("SAR");
     }
     get counted() {
         return _t("Counted by %(n)s %(t)s", { n: this.f.counted_name || "—", t: clock(this.f.counted_at) });
     }
     async onSign(emp, pin) {
         const s = this.state;
-        const r = await api(this.orm, "float_count", emp.id, pin, "end", counts(s.c), null, this.total === this.exp ? null : s.note);
+        const r = await api(this.orm, "float_count", emp.id, pin, "end", counts(s.c), null, this.total === r2(this.exp) ? null : s.note);
         if (r.error) {
             return r.message;
         }

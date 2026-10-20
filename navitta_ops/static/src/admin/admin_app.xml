@@ -468,7 +468,7 @@
             <t t-set="d" t-value="state.d"/>
             <t t-set="w" t-value="this.v"/>
             <div class="filters">
-                <div class="seg"><t t-foreach="REQKINDS" t-as="k" t-key="k[0]">
+                <div class="seg"><t t-foreach="REQKINDS.filter((k) => k[0] !== 'stock' or d.stock_on)" t-as="k" t-key="k[0]">
                     <button type="button" t-att-aria-pressed="state.kind === k[0] ? 'true' : 'false'" t-on-click="() => state.kind = k[0]"><t t-esc="k[1]"/><t t-if="k[0] === 'defect' and w.defOpen.length"> (<t t-esc="w.defOpen.length"/>)</t></button></t></div>
             </div>
             <div class="kpis">
@@ -534,7 +534,9 @@
                     <div t-if="!w.pendX.length" class="empty">No expenses awaiting you</div>
                 </div></div>
 
-                <div class="nv-card c12"><h2>📦 Supplies and Cash box balance per branch</h2><div class="tscroll"><table class="nv-tbl"><thead><tr>
+                <StockReviews t-if="w.showStock" br="br"/>
+
+                <div t-if="state.kind !== 'stock'" class="nv-card c12"><h2>📦 Supplies and Cash box balance per branch</h2><div class="tscroll"><table class="nv-tbl"><thead><tr>
                     <th>Branch</th><th t-esc="SUP.roll_invoice"/><th t-esc="SUP.roll_card"/><th t-esc="SUP.bags"/><th>💰 Cash box balance</th><th>This month's expenses</th></tr></thead><tbody>
                     <t t-foreach="d.branches.filter((b) => !br or b.id === br)" t-as="b" t-key="b.id">
                         <t t-set="bx" t-value="branchExp(b)"/>
@@ -684,7 +686,7 @@
                         <div class="tscroll"><table class="nv-tbl"><thead><tr><th/><th>Amount</th><th>Counted by</th><th>Confirmed by</th><th>Status</th><th>Photo</th><th/></tr></thead><tbody>
                             <tr t-foreach="k.floats" t-as="x" t-key="x.k"><t t-set="fs" t-value="floatState(x.f)"/>
                                 <td t-esc="x.label"/>
-                                <td class="n"><b t-if="x.f"><t t-esc="f0(x.f.amount)"/> / <t t-esc="f0(x.f.expected)"/></b><t t-else="">—</t></td>
+                                <td class="n"><b t-if="x.f"><t t-esc="f2(x.f.amount)"/> / <t t-esc="f2(x.f.expected)"/></b><t t-else="">—</t></td>
                                 <td t-esc="floatWho(x.f, 'counted')"/>
                                 <td t-esc="floatWho(x.f, 'confirmed')"/>
                                 <td><span t-att-class="'chip ' + fs[0]" t-esc="fs[1]"/></td>

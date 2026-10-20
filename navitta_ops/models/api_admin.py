@@ -11,6 +11,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 from odoo.tools import config
 
+from .api_branch import _amount
 from .common import (app_today, cashier_text, company_tz, dow, fmt_time, hours_to_min, iso,
                      is_shared_cashier, sel_label, selection)
 
@@ -654,6 +655,8 @@ class NavittaApiAdmin(models.AbstractModel):
             "requests": [self._request_dict(r) for r in reqs], "expenses": [self._expense_dict(x) for x in exps],
             "stock": {str(k): v for k, v in branches._stock_summary().items()},
             "cash": {str(k): v for k, v in branches._cash_summary().items()},
+            # «🔎 Display & stock» (display checks and stock counts): only with an Odoo stock (navitta_ops_pos)
+            "stock_on": any(self._stock_on(b) for b in branches),
         }
 
     @api.model
@@ -749,8 +752,8 @@ class NavittaApiAdmin(models.AbstractModel):
             tasks = TaskDef._day_list(b, day) if TaskDef.search_count([]) else []
             for f in bf.filtered(lambda f: f.state == "short"):
                 events.append({"level": "bad", "title": _("Float short"), "text": "%s: %s" % (b.name, _(
-                    "%(k)s · %(a)s SAR of %(x)s SAR%(n)s", k=sel_label(S, "navitta.float", "kind", f.kind), a="{:,.0f}".format(f.amount),
-                    x="{:,.0f}".format(f.expected), n=(" · " + f.note) if f.note else ""))})
+                    "%(k)s · %(a)s SAR of %(x)s SAR%(n)s", k=sel_label(S, "navitta.float", "kind", f.kind), a=_amount(f.amount),
+                    x=_amount(f.expected), n=(" · " + f.note) if f.note else ""))})
             rs = reps.filtered(lambda r: r.branch_id == b)
             bs = ds.filtered(lambda r: r.branch_id == b)
             vs = visits.filtered(lambda v: v.branch_id == b)

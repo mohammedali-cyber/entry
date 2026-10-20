@@ -116,6 +116,12 @@ msgstr "%(n)s صارت على %(s)s"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid "%(n)s models in stock · %(s)s on display · %(m)s not on display"
+msgstr "%(n)s موديل في المخزون · %(s)s معروض · %(m)s مو معروض"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/daycal.js:0
 #: code:addons/navitta_ops/static/src/common/cases.js:0
 #: code:addons/navitta_ops/static/src/common/tasks.js:0
@@ -128,6 +134,12 @@ msgstr "%(n)s من %(m)s"
 #: code:addons/navitta_ops/static/src/common/tasks.js:0
 msgid "%(n)s of %(m)s done"
 msgstr "خلصت %(n)s من %(m)s"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "%(n)s of %(m)s models checked"
+msgstr "فحصتي %(n)s من %(m)s موديل"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -164,6 +176,27 @@ msgstr "%(n)s أرسلت %(c)s طلب:"
 #: code:addons/navitta_ops/static/src/common/tasks.js:0
 msgid "%(n)s tasks left · until %(t)s"
 msgstr "باقي %(n)s مهمة · لين %(t)s"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid ""
+"%(n)s variants will be adjusted in Odoo's stock to the counted figures "
+"(against the quantity now). Continue?"
+msgstr ""
+"بيتعدّل %(n)s متغيّر في مخزون Odoo على المعدود (مقابل الكمية الحين). تكمّل؟"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid "%(p)s pieces counted · %(l)s lines · %(d)s with a difference"
+msgstr "%(p)s قطعة معدودة · %(l)s سطر · %(d)s فيها فرق"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid "%(s)s by %(n)s · %(d)s"
+msgstr "%(s)s من %(n)s · %(d)s"
 
 #. module: navitta_ops
 #. odoo-python
@@ -328,6 +361,12 @@ msgstr "%s يوم جديد"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "%s not on display"
+msgstr "%s مو معروض"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/components.js:0
 msgid "%s of 4"
 msgstr "%s من 4"
@@ -346,6 +385,8 @@ msgstr "%s بالشهر"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
 #: code:addons/navitta_ops/static/src/common/shipments.js:0
 msgid "%s pieces"
 msgstr "%s قطعة"
@@ -454,6 +495,12 @@ msgstr "(المرة %s)"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "(optional)"
+msgstr "(اختياري)"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "): from"
 msgstr ": من"
 
@@ -528,6 +575,16 @@ msgstr ""
 "0 حضور، 1 انصراف، 2-5 استراحة/إضافي (حسب إعداد الجهاز). لا يُعتمد عليه"
 
 #. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_float__n025
+msgid "0.25 SAR"
+msgstr "0.25 ر.س"
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_float__n050
+msgid "0.50 SAR"
+msgstr "0.50 ر.س"
+
+#. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_float__n1
 msgid "1 SAR"
 msgstr "1 ريال"
@@ -537,6 +594,12 @@ msgstr "1 ريال"
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "1 day"
 msgstr "يوم واحد"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "1 piece"
+msgstr "قطعة وحدة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -562,6 +625,21 @@ msgid ""
 msgstr ""
 "المرة الأولى إلى الرابعة لكل شريحة تأخير. راجعه مع لائحة الجزاءات المعتمدة "
 "لديكم."
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_float__n2
+msgid "2 SAR"
+msgstr "2 ر.س"
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_float__n20
+msgid "20 SAR"
+msgstr "20 ر.س"
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_float__n200
+msgid "200 SAR"
+msgstr "200 ر.س"
 
 #. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_float__n5
@@ -919,9 +997,16 @@ msgstr "المبيعات الفعلية"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
 #: code:addons/navitta_ops/static/src/common/shipments.xml:0
 msgid "Add"
 msgstr "إضافة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "Add a model"
+msgstr "إضافة موديل"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -1056,6 +1141,12 @@ msgstr "الكل"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "All ("
+msgstr "الكل ("
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "All branches"
@@ -1163,6 +1254,14 @@ msgstr ""
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid ""
+"An approved expense is taken off the Cash box balance; a rejected one isn't."
+msgstr ""
+"المصروف اللي توافق عليه الإدارة ينخصم من رصيد الصندوق، والمرفوض ما ينخصم."
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.js:0
 msgid ""
 "An invoice of %(a)s SAR was made under your name at %(t)s while the counter "
@@ -1194,9 +1293,21 @@ msgstr ""
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "Anything you want management to know about today"
+msgstr "أي شي تبين الإدارة تعرفه عن اليوم"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/help.xml:0
 msgid "Appearance"
 msgstr "المظهر"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid "Applied"
+msgstr "انطبّق"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -1283,6 +1394,12 @@ msgstr "وافقت الإدارة"
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "Approved ✓"
 msgstr "معتمد ✓"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid "Approved: Odoo's stock was adjusted"
+msgstr "انعتمد: تعدّل مخزون Odoo"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -1633,11 +1750,6 @@ msgstr "إيداع البنك"
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_daily_report__deposit
 msgid "Bank deposit from the cash box"
 msgstr "إيداع البنك من الصندوق"
-
-#. module: navitta_ops
-#: model_terms:ir.ui.view,arch_db:navitta_ops.view_float_form
-msgid "Banknotes"
-msgstr "الفئات"
 
 #. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_catalog_item__alu
@@ -2197,6 +2309,7 @@ msgstr "ما ينحذف لأنه مربوط ببيانات ثانية"
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: code:addons/navitta_ops/static/src/admin/ideas.xml:0
 #: code:addons/navitta_ops/static/src/admin/sales_tools.xml:0
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 #: code:addons/navitta_ops/static/src/common/del.xml:0
@@ -2453,6 +2566,16 @@ msgstr "سجلي حضورك أولًا"
 #: code:addons/navitta_ops/static/src/common/help.js:0
 msgid "Check in with your PIN as soon as you arrive."
 msgstr "سجّلي حضورك برمزك أول ما توصلين."
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/help.js:0
+msgid ""
+"Check that every model in stock is on display, and count the stock room; "
+"both come from the branch's Odoo stock."
+msgstr ""
+"تتأكدين إن كل موديل موجود في المخزون معروض، وتجردين المخزن؛ الثنتين من مخزون"
+" الفرع في Odoo."
 
 #. module: navitta_ops
 #. odoo-python
@@ -2777,6 +2900,12 @@ msgid "Choose where the item came from"
 msgstr "اختاري من وين القطعة"
 
 #. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+msgid "Choose why it isn't on display"
+msgstr "اختاري ليش مو معروض"
+
+#. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.js:0
 msgid "Choose why she didn't buy"
@@ -2805,6 +2934,12 @@ msgstr "اختاري اسمك لعرض تنبيهاتك"
 #: code:addons/navitta_ops/static/src/branch/branch_app.js:0
 msgid "Choose “Other” for color or size and type what is needed"
 msgstr "اختاري «أخرى» في اللون أو المقاس واكتبي المطلوب"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "Chosen models only"
+msgstr "موديلات مختارة بس"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -2916,6 +3051,13 @@ msgid ""
 " into account when ordering stock."
 msgstr ""
 "ألوان ومقاسات طلبتها العميلات وما نوفرها أساسًا. احسب حسابها لما تطلب بضاعة."
+
+#. module: navitta_ops
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_branch__company_id
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_device__company_id
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_employee__company_id
+msgid "Company"
+msgstr "الشركة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -3108,6 +3250,12 @@ msgstr ""
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/components.js:0
+msgid "Couldn't open the camera. Type the code instead."
+msgstr "ما قدرنا نفتح الكاميرا. اكتبي الرقم بدالها."
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/components.js:0
 msgid "Couldn't open the camera. Use your phone or choose a file."
 msgstr "ما قدرنا نفتح الكاميرا. استخدمي الجوال أو اختاري ملف."
 
@@ -3129,10 +3277,22 @@ msgid "Count"
 msgstr "العدد"
 
 #. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+msgid "Count at least one item first"
+msgstr "عدّي قطعة وحدة على الأقل أول"
+
+#. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/tasks.xml:0
 msgid "Count it before closing"
 msgstr "عدّيها قبل ما تسكرين"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid "Count rejected; the stock is unchanged"
+msgstr "انرفض الجرد، والمخزون ما تغيّر"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -3172,6 +3332,20 @@ msgid "Count time"
 msgstr "وقت العدّ"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid ""
+"Count what is really in the branch: scan each piece (every scan adds 1) or "
+"type the quantities. You don't see Odoo's quantities; management compares "
+"your count with the system and decides."
+msgstr ""
+"عدّي الموجود فعلًا في الفرع: امسحي كل قطعة (كل مسحة تضيف 1) أو اكتبي "
+"الكميات. ما تشوفين كميات Odoo، والإدارة تقارن جردك بالنظام وتقرر."
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_float__amount
 msgid "Counted"
 msgstr "المعدود"
@@ -3201,6 +3375,12 @@ msgid "Counted cash minus the Point of Sale cash (when the report was sent)"
 msgstr "الكاش المعدود ناقص كاش نقطة البيع (وقت إرسال التقرير)"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "Counted so far: %s pieces"
+msgstr "عدّيتي لين الحين: %s قطعة"
+
+#. module: navitta_ops
 #: model:ir.model.fields,help:navitta_ops.field_navitta_float__difference
 msgid "Counted − float amount: negative = short, positive = over"
 msgstr "المعدود − مبلغ العهدة: بالسالب ناقص، وبالموجب زايد"
@@ -3210,6 +3390,12 @@ msgstr "المعدود − مبلغ العهدة: بالسالب ناقص، وب
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 msgid "Counter customers"
 msgstr "عميلات العدّاد"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "Counting"
+msgstr "جاري الجرد"
 
 #. module: navitta_ops
 #: model:ir.model.constraint,message:navitta_ops.constraint_navitta_float_n_positive
@@ -3380,13 +3566,21 @@ msgstr "طلب زبونة: اكتبي اسمها ورقم جوالها"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Customer satisfaction"
 msgstr "رضا العملاء"
 
 #. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_daily_report__sat
+#: model:ir.model.fields,field_description:navitta_ops.field_navitta_visit__sat
 msgid "Customer satisfaction (1-5)"
 msgstr "رضا العملاء (1-5)"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "Customer satisfaction (optional)"
+msgstr "رضا العميلة (اختياري)"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -3426,6 +3620,12 @@ msgstr "العملاء"
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "Customers (counter)"
 msgstr "العميلات (العدّاد)"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "Customers came in"
+msgstr "عميلة دخلت"
 
 #. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_lost_search
@@ -3690,6 +3890,7 @@ msgstr "أعتذر"
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 #: code:addons/navitta_ops/static/src/branch/shortage.xml:0
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
 #: code:addons/navitta_ops/static/src/common/tasks.xml:0
 msgid "Decrease"
 msgstr "إنقاص"
@@ -3933,6 +4134,8 @@ msgid "Didn't arrive"
 msgstr "ما وصل"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_visit__outcome__lost
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_visit_search
 msgid "Didn't buy"
@@ -3949,6 +4152,7 @@ msgstr "الجودة لم تعجبهم"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_float__difference
 msgid "Difference"
 msgstr "الفرق"
@@ -3958,6 +4162,36 @@ msgstr "الفرق"
 #: code:addons/navitta_ops/static/src/branch/branch_app.js:0
 msgid "Difference: %s · goes to Management with the reason"
 msgstr "الفرق: %s · يوصل للإدارة مع السبب"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "Differences ▴"
+msgstr "الفروقات ▴"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "Differences ▾"
+msgstr "الفروقات ▾"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/help.js:0
+msgid "Display & stock"
+msgstr "المعروض والجرد"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "Display check"
+msgstr "فحص المعروض"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "Display them in a clear place"
+msgstr "اعرضيها في مكان واضح"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -4592,6 +4826,17 @@ msgid ""
 "Every day is kept with its events; 🗑️ deletes a record with the delete "
 "password"
 msgstr "كل يوم محفوظ بأحداثه، و🗑️ يحذف أي سجل بكلمة سر الحذف"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid ""
+"Every model in stock at your branch must be on display. Mark each model, "
+"then send the check with your PIN. It is saved as you go: you can finish it "
+"later today."
+msgstr ""
+"كل موديل موجود في مخزون فرعكم لازم يكون معروض. علّمي كل موديل، وبعدين أرسلي "
+"الفحص برمزك. ينحفظ أول بأول وتقدرين تكمّلينه بعدين اليوم."
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -5648,12 +5893,6 @@ msgstr "الأفكار"
 
 #. module: navitta_ops
 #. odoo-javascript
-#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
-msgid "Ideas and notes"
-msgstr "أفكار وملاحظات"
-
-#. module: navitta_ops
-#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/help.js:0
 msgid "If a task is missed, management gets an alert."
 msgstr "إذا فاتت مهمة توصل الإدارة تنبيه."
@@ -5729,6 +5968,12 @@ msgid "In"
 msgstr "دخلت"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid "In progress: %(k)s of %(n)s models checked"
+msgstr "جاري الفحص: %(k)s من %(n)s موديل"
+
+#. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_shipment_line__in_catalog
 msgid "In the models file"
 msgstr "في ملف الموديلات"
@@ -5737,6 +5982,7 @@ msgstr "في ملف الموديلات"
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 #: code:addons/navitta_ops/static/src/branch/shortage.xml:0
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
 #: code:addons/navitta_ops/static/src/common/tasks.xml:0
 msgid "Increase"
 msgstr "زيادة"
@@ -6072,6 +6318,12 @@ msgid "Last received:"
 msgstr "آخر استلام:"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "Last saved %s"
+msgstr "آخر حفظ %s"
+
+#. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_idea__updated_at
 msgid "Last update"
 msgstr "آخر تحديث"
@@ -6178,6 +6430,12 @@ msgstr "لاحقًا"
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "Latest completed requests"
 msgstr "آخر الطلبات المنتهية"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "Latest counts"
+msgstr "آخر الجرود"
 
 #. module: navitta_ops
 #: model:ir.model,name:navitta_ops.model_navitta_leave
@@ -6287,7 +6545,9 @@ msgstr "القائمة (%s)"
 #: code:addons/navitta_ops/static/src/admin/ideas.xml:0
 #: code:addons/navitta_ops/static/src/admin/sales_tools.xml:0
 #: code:addons/navitta_ops/static/src/admin/settings.xml:0
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
 #: code:addons/navitta_ops/static/src/common/components.js:0
 msgid "Loading…"
 msgstr "جارٍ التحميل…"
@@ -6532,6 +6792,18 @@ msgid "Mark as deducted"
 msgstr "علّمها انخصمت"
 
 #. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+msgid "Mark every model first: on display or not"
+msgstr "علّمي كل موديل أول: معروض أو لا"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "Mark every model; a model not on display needs its reason."
+msgstr "علّمي كل موديل، والموديل اللي مو معروض لازم سببه."
+
+#. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/help.js:0
 msgid "Mark it when it's done."
@@ -6722,6 +6994,18 @@ msgstr "ألوان الموديل"
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_daily_report_lost__model
 msgid "Model number"
 msgstr "رقم الموديل"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "Model number (8 digits) or scan a barcode, to type its quantities"
+msgstr "رقم المؤسسة (8 أرقام) أو امسحي باركود، عشان تكتبين كمياته"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "Model number or name, or scan the barcode"
+msgstr "رقم المؤسسة أو اسم الموديل، أو امسحي الباركود"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -7214,6 +7498,12 @@ msgstr "ما فيه أجهزة"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "No display checks in the last 30 days"
+msgstr "ما فيه فحص معروض في آخر 30 يوم"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_notification__state__no_email
 #: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_pin_wizard__mail__no_email
@@ -7302,6 +7592,12 @@ msgstr "لا توجد فواتير اليوم في نقطة البيع"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "No item sales in this period"
+msgstr "ما فيه مبيعات بالقطع في هالفترة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "No late arrival alerts"
 msgstr "لا توجد تنبيهات تأخير"
 
@@ -7343,9 +7639,21 @@ msgstr "ما فيه ملف موديلات بعد"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "No models match"
+msgstr "ما فيه موديلات مطابقة"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/settings.js:0
 msgid "No morning shift on %s: morning employees work the evening shift."
 msgstr "بدون شفت صباح أيام %s: موظفات الصباح يداومون على شفت المساء."
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "No need to fill it in: it adds up the visits you logged as you went"
+msgstr "ما تحتاجين تعبينه، ينجمع من الزيارات اللي سجلتيها أول بأول"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -7448,6 +7756,12 @@ msgstr "بدون مقاس"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "No stock counts yet"
+msgstr "ما فيه جرد للحين"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 msgid "No target set for this period"
 msgstr "ما فيه تارقت لهذي الفترة"
@@ -7474,6 +7788,12 @@ msgstr "لم يشتروا"
 #: model_terms:ir.ui.view,arch_db:navitta_ops.report_daily_summary
 msgid "None"
 msgstr "لا يوجد"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "Not checked ("
+msgstr "ما انفحص ("
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -7524,6 +7844,18 @@ msgstr "غير مربوط"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Not linked to an employee"
 msgstr "غير مربوط بموظفة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "Not on display"
+msgstr "مو معروض"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "Not on display ("
+msgstr "مو معروض ("
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -7590,6 +7922,12 @@ msgid "Note to the branch (optional)"
 msgstr "ملاحظة للفرع (اختياري)"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "Note to the branch (required to reject or ask a recount)"
+msgstr "ملاحظة للفرع (إجبارية مع الرفض أو إعادة الجرد)"
+
+#. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_branch_request_form
 msgid "Note to the branch (sent with the update)"
 msgstr "ملاحظة للفرع (تُرسل مع التحديث)"
@@ -7612,10 +7950,27 @@ msgid "Notes"
 msgstr "الشرح"
 
 #. module: navitta_ops
+#: model_terms:ir.ui.view,arch_db:navitta_ops.view_float_form
+msgid "Notes and coins"
+msgstr "الأوراق والعملات"
+
+#. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Notes or suggestions to improve the work"
 msgstr "ملاحظات أو اقتراحات لتطوير العمل"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "Nothing counted yet: scan the first piece"
+msgstr "ما عدّيتي شي للحين: امسحي أول قطعة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "Nothing is waiting: management approved every expense ✓"
+msgstr "ما فيه شي ينتظر: الإدارة وافقت على كل المصروفات ✓"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -7746,6 +8101,18 @@ msgstr "أكتوبر"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "Odoo now"
+msgstr "Odoo الحين"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "Odoo when sent"
+msgstr "Odoo وقت الإرسال"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "Of branch target"
 msgstr "من تارقت الفرع"
@@ -7762,6 +8129,12 @@ msgid ""
 "On %s days with a report: the report figures differ from the Point of Sale "
 "invoices"
 msgstr "في %s يوم فيه تقرير: المكتوب في التقرير يختلف عن فواتير نقطة البيع"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "On display ✓"
+msgstr "معروض ✓"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -7938,6 +8311,15 @@ msgstr "تنفتح الساعة %(a)s وتكون مفتوحة لين %(b)s"
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_device_form
 msgid "Optional"
 msgstr "اختياري"
+
+#. module: navitta_ops
+#: model:ir.model.fields,help:navitta_ops.field_navitta_visit__sat
+msgid ""
+"Optional, chosen with the visit outcome on the counter (0 = not rated). The "
+"daily report shows the day's average in «From the counter (automatic)»."
+msgstr ""
+"اختياري، تختاره مع نتيجة الزيارة في العدّاد (0 = بدون تقييم). التقرير اليومي"
+" يعرض متوسط اليوم في «من العدّاد تلقائي»."
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -8782,6 +9164,12 @@ msgstr "إعادة العد"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid "Recount requested; the stock is unchanged"
+msgstr "انطلب إعادة الجرد، والمخزون ما تغيّر"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "Recurring phrase: «"
 msgstr "العبارة المتكررة: «"
@@ -8867,6 +9255,7 @@ msgstr "باقي %s ريال"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/ideas.xml:0
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
 msgid "Remove"
 msgstr "إزالة"
 
@@ -9385,6 +9774,12 @@ msgstr "ينحفظ في سجل تعديلات التارقت مع اسم الم�
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "Saved on this device. Send the report when you finish."
+msgstr "انحفظ في الجهاز. أرسلي التقرير لما تخلصين."
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 msgid "Saved; the employees sign again"
 msgstr "تم الحفظ، والموظفات يوقّعون من جديد"
@@ -9408,6 +9803,7 @@ msgstr "امسحي كود QR بجوالك"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
 #: code:addons/navitta_ops/static/src/common/shipments.js:0
 #: code:addons/navitta_ops/static/src/common/shipments.xml:0
 msgid "Scan the item's barcode"
@@ -9425,6 +9821,7 @@ msgstr "خدش أو قشر"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "Search model"
 msgstr "بحث موديل"
@@ -9522,6 +9919,14 @@ msgstr "إرسال قائمة النواقص"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/help.js:0
+msgid ""
+"Send the count with your PIN; Odoo's stock changes only when management "
+"approves it."
+msgstr "أرسلي الجرد برمزك؛ والمخزون في Odoo ما يتغير إلا لما توافق الإدارة."
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "Send to Management"
 msgstr "إرسال للإدارة"
@@ -9546,6 +9951,36 @@ msgstr "أُرسل"
 #: model_terms:ir.ui.view,arch_db:navitta_ops.report_daily_summary
 msgid "Sent automatically every night by the Navitta Branches system in Odoo"
 msgstr "يُرسل تلقائيًا كل ليلة من نظام فروع نافيتا في Odoo"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "Sent by %(n)s at %(t)s"
+msgstr "أرسلته %(n)s الساعة %(t)s"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid "Sent by %(n)s · %(d)s %(t)s"
+msgstr "أرسلته %(n)s · %(d)s %(t)s"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "Sent to management: %s models not on display"
+msgstr "انرسل للإدارة: %s موديل مو معروض"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "Sent to management: everything is on display ✓"
+msgstr "انرسل للإدارة: كل شي معروض ✓"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "Sent to management; Odoo's stock changes only when they approve it"
+msgstr "انرسل للإدارة، والمخزون في Odoo ما يتغير إلا لما توافق"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -10036,6 +10471,14 @@ msgid "Sold without the counter and not confirmed yet"
 msgstr "انباعت بدون عداد وما أكدتيها"
 
 #. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+msgid ""
+"Some products are tracked by lots or serial numbers: adjust them in Odoo "
+"Inventory"
+msgstr "فيه منتجات متتبعة بأرقام دفعات أو تسلسلية: عدّلها من المخزون في Odoo"
+
+#. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "Something went wrong, please try again."
@@ -10051,6 +10494,11 @@ msgstr "حدث خطأ، حاولي مرة ثانية"
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_sales_change_log_search
 msgid "Source"
 msgstr "المصدر"
+
+#. module: navitta_ops
+#: model:ir.model.fields.selection,name:navitta_ops.selection__navitta_defect__defect__sponge
+msgid "Sponge came off the heel base (glue)"
+msgstr "فك الإسفنج عن قاعدة الكعب (صمغ)"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -10162,6 +10610,12 @@ msgstr "الخطوة %(n)s من %(m)s"
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "Stiletto"
 msgstr "كعب رفيع"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "Stock count"
+msgstr "جرد المخزن"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -10537,6 +10991,19 @@ msgstr "الجرس 🔔 على اسمك يعني فيه تنبيه جديد لك
 #: model:ir.model.constraint,message:navitta_ops.constraint_navitta_branch_code_uniq
 msgid "The branch code is already used"
 msgstr "رمز الفرع مستخدم"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid ""
+"The branch counts blind. Odoo's stock changes only when you approve: each "
+"variant is set to the counted figure (the difference is taken against Odoo's"
+" quantity now, as an inventory adjustment at the branch's stock location). A"
+" count older than"
+msgstr ""
+"الفرع يجرد بدون ما يشوف الكميات. مخزون Odoo ما يتغير إلا لما توافق: كل "
+"متغيّر يصير على المعدود (الفرق ينحسب مقابل كمية Odoo الحين، كتعديل مخزون في "
+"موقع مخزون الفرع). الجرد اللي صار له أكثر من"
 
 #. module: navitta_ops
 #: model:ir.model.fields,help:navitta_ops.field_navitta_branch__two_shifts
@@ -11007,6 +11474,12 @@ msgid "The total doesn't match the float, write the reason"
 msgstr "المجموع ما يطابق العهدة، اكتبي السبب"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "The whole stock"
+msgstr "المخزن كامل"
+
+#. module: navitta_ops
 #: model:ir.model.constraint,message:navitta_ops.constraint_navitta_late_case_emp_day_kind_uniq
 msgid "There is already an alert for this day"
 msgstr "يوجد تنبيه لنفس اليوم"
@@ -11016,6 +11489,22 @@ msgstr "يوجد تنبيه لنفس اليوم"
 #: code:addons/navitta_ops/models/attendance.py:0
 msgid "There is no check-in photo for this day"
 msgstr "ما فيه صورة حضور لهذا اليوم"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "There is no stock recorded in Odoo for your branch yet."
+msgstr "ما فيه مخزون مسجّل لفرعكم في Odoo للحين."
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid ""
+"There is no stock recorded in Odoo for your branch yet. As soon as there is,"
+" every model that must be on display shows here."
+msgstr ""
+"ما فيه مخزون مسجّل لفرعكم في Odoo للحين. أول ما ينسجل بيطلع لكم هنا كل موديل"
+" لازم ينعرض."
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -11036,6 +11525,38 @@ msgstr "هذي المهام ما انفتح وقتها بعد"
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_penalty_tier__p3
 msgid "Third time"
 msgstr "المرة الثالثة"
+
+#. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+msgid "This branch has no Odoo stock (its points of sale have no warehouse)"
+msgstr "الفرع ما له مخزون في Odoo (نقاط بيعه ما لها مستودع)"
+
+#. module: navitta_ops
+#. odoo-javascript
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "This code isn't one of our products"
+msgstr "هذا الرمز مو من منتجاتنا"
+
+#. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+msgid "This count is more than 7 days old: ask the branch for a recount"
+msgstr "هذا الجرد صار له أكثر من 7 أيام: اطلب من الفرع يعيد الجرد"
+
+#. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+msgid "This count was already decided"
+msgstr "هذا الجرد انقرر"
+
+#. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+msgid "This count was already sent to management"
+msgstr "هذا الجرد انرسل للإدارة"
 
 #. module: navitta_ops
 #. odoo-python
@@ -11088,6 +11609,12 @@ msgstr "هذا ليس طلب تعديل مدة"
 #: code:addons/navitta_ops/models/attendance.py:0
 msgid "This is now %s's reference photo"
 msgstr "صارت صورة %s المرجعية"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "This model isn't in your branch's stock list"
+msgstr "هذا الموديل مو في قائمة مخزون فرعكم"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -11262,6 +11789,12 @@ msgid "To"
 msgstr "إلى"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid "To apply"
+msgstr "بينطبّق"
+
+#. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_branch_form
 msgid "To change the balance, add an \"Adjustment\" move from \"Supply moves\"."
 msgstr "لتعديل الرصيد أضف حركة «تعديل» من «حركة المستلزمات»."
@@ -11322,6 +11855,12 @@ msgstr "حضور اليوم بالبصمة"
 #: code:addons/navitta_ops/models/api_branch.py:0
 msgid "Today's break is used up"
 msgstr "استُخدمت الاستراحة اليوم"
+
+#. module: navitta_ops
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+msgid "Today's display check was already sent"
+msgstr "فحص المعروض اليوم انرسل"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -11796,6 +12335,12 @@ msgid "Values cannot be negative"
 msgstr "القيم لا يمكن أن تكون سالبة"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "Variant"
+msgstr "المتغيّر"
+
+#. module: navitta_ops
 #: model:ir.model.fields,field_description:navitta_ops.field_navitta_device_punch__verify_mode
 msgid "Verification method"
 msgstr "طريقة التحقق"
@@ -12191,6 +12736,12 @@ msgid "Why didn't they buy? Split the number across the reasons"
 msgstr "لماذا لم يشتروا؟ وزّعي العدد على الأسباب"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "Why? *"
+msgstr "ليش؟ *"
+
+#. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_daily_report_search
 msgid "With complaint"
 msgstr "فيه شكوى"
@@ -12238,6 +12789,14 @@ msgstr "راتب العامل"
 #: code:addons/navitta_ops/static/src/common/shipments.xml:0
 msgid "Working days are Sunday to Thursday"
 msgstr "أيام العمل من الأحد إلى الخميس"
+
+#. module: navitta_ops
+#. odoo-javascript
+#. odoo-python
+#: code:addons/navitta_ops/models/api_branch.py:0
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid "Write a note for the branch"
+msgstr "اكتب ملاحظة للفرع"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -12468,6 +13027,16 @@ msgstr "ما غيّرت شي"
 #: code:addons/navitta_ops/models/api_branch.py:0
 msgid "You don't have permission"
 msgstr "ليس لديك صلاحية"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid ""
+"You don't see Odoo's quantities: count what is really there. A piece without"
+" a barcode: add its model and type the quantity."
+msgstr ""
+"ما تشوفين كميات Odoo: عدّي الموجود فعلًا. القطعة اللي ما لها باركود: ضيفي "
+"موديلها واكتبي الكمية."
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -12744,6 +13313,18 @@ msgid "days"
 msgstr "يوم"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "days can't be approved: ask for a recount."
+msgstr "أيام ما ينعتمد: اطلب إعادة الجرد."
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "days: it can't be approved, ask for a recount"
+msgstr "يوم: ما ينعتمد، اطلب إعادة الجرد"
+
+#. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_employee_form
 msgid "e.g. 5"
 msgstr "مثال: 5"
@@ -12759,6 +13340,12 @@ msgstr "مثال: نسيت أوقف العداد بعد خروج العميلة"
 #: code:addons/navitta_ops/static/src/admin/sales_tools.xml:0
 msgid "e.g. an invoice was recorded twice in the Point of Sale"
 msgstr "مثال: فاتورة انسجلت مرتين في نقطة البيع"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "e.g. customers keep asking for size 41"
+msgstr "مثال: العميلات يسألون عن مقاس 41 كثير"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -12905,6 +13492,12 @@ msgstr "د، ولا توجد عقوبة."
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "models ·"
+msgstr "موديل ·"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 msgid "negative"
 msgstr "سلبية"
@@ -12914,6 +13507,12 @@ msgstr "سلبية"
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "new"
 msgstr "جديدة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "not on display"
+msgstr "مو معروض"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -12952,6 +13551,12 @@ msgstr "من تارقت الفرع"
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "of the target"
 msgstr "من التارقت"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "on display ·"
+msgstr "معروض ·"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -13005,6 +13610,12 @@ msgstr "إلى"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "waiting for you"
+msgstr "تنتظرك"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/shipments.xml:0
 msgid "· Arrives between"
 msgstr "· توصلكم بين"
@@ -13041,6 +13652,7 @@ msgstr "· إجازة"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
 msgid "· Management: «"
 msgstr "· الإدارة: «"
 
@@ -13049,6 +13661,12 @@ msgstr "· الإدارة: «"
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "· Needed per day for the rest of the month"
 msgstr "· المطلوب يوميًا لباقي الشهر"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "· Odoo's stock changes only when management approves your count."
+msgstr "· المخزون في Odoo ما يتغير إلا لما توافق الإدارة على جردك."
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -13077,6 +13695,12 @@ msgstr "· استلمته"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "· Saved automatically as you count"
+msgstr "· ينحفظ تلقائي أول بأول"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "· Urgent"
 msgstr "· عاجل"
@@ -13098,6 +13722,12 @@ msgstr "· طلبتِ تعديل المدة إلى"
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "· about"
 msgstr "· تقريبًا"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "· last 30 days"
+msgstr "· آخر 30 يوم"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -13164,6 +13794,23 @@ msgstr "«تعديل التارقت» يحتاج كلمة سر الإدارة."
 #: code:addons/navitta_ops/static/src/common/shipments.xml:0
 msgid "“Received” unlocks when “In the shipment” is empty"
 msgstr "«تم الاستلام» تنفتح لما تفضى قائمة «في الشحنة»"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/help.js:0
+msgid ""
+"“👀 Display check”: mark each model on display or not (with the reason), then"
+" send it with your PIN."
+msgstr ""
+"«👀 فحص المعروض»: علّمي كل موديل معروض أو لا (مع السبب)، وبعدين أرسليه برمزك."
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/help.js:0
+msgid ""
+"“📦 Stock count”: scan every piece or type the quantities; you don't see "
+"Odoo's figures."
+msgstr "«📦 جرد المخزن»: امسحي كل قطعة أو اكتبي الكميات؛ ما تشوفين أرقام Odoo."
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -13258,9 +13905,21 @@ msgstr "⏳ لسا"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "⏳ Sent to management %(t)s by %(n)s, waiting for their review"
+msgstr "⏳ انرسل للإدارة %(t)s من %(n)s، ينتظر مراجعتهم"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "⏳ Violations awaiting your decision"
 msgstr "⏳ مخالفات تنتظر قرارك"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "⏳ Waiting for management"
+msgstr "⏳ بانتظار الإدارة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -13572,6 +14231,12 @@ msgstr "⚠️ اللي ما وصل:"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "⚠️ Older than"
+msgstr "⚠️ أقدم من"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_pin_wizard
 msgid "⚠️ She has no email on file; give her the PIN yourself"
@@ -13639,6 +14304,7 @@ msgstr "⚠️ جنب التاريخ يعني تغيّر شي بعد التقف�
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_defect_form
 msgid "✅ Approve"
 msgstr "✅ موافقة"
@@ -13650,6 +14316,12 @@ msgstr "✅ موافقة"
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "✅ Approved"
 msgstr "✅ موافقة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "✅ Approved and applied"
+msgstr "✅ انعتمد وانطبّق"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -13698,6 +14370,12 @@ msgstr ""
 "2. امسحي باركود كل قطعة، تنتقل من «في الشحنة» إلى «وصل».\n"
 "3. صوّري الرولات والأكياس.\n"
 "4. إذا كل شي وصل اضغطي «تم الاستلام»، وإذا فيه نقص اضغطي «فيه نقص»."
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "✅ Yes, apply to Odoo's stock"
+msgstr "✅ إيه، طبّقه على مخزون Odoo"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -13852,6 +14530,12 @@ msgstr "✓ ما فيه فرق"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "✓ No difference from Odoo"
+msgstr "✓ ما فيه فرق عن Odoo"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/ideas.xml:0
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "✓ Photo attached"
@@ -13872,6 +14556,7 @@ msgstr "✓ إرسال"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
 #: model_terms:ir.ui.view,arch_db:navitta_ops.report_daily_summary
 msgid "✓ Sent"
 msgstr "✓ أُرسل"
@@ -13912,6 +14597,7 @@ msgstr "✕ لا"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
 #: model_terms:ir.ui.view,arch_db:navitta_ops.view_defect_form
 msgid "✕ Reject"
 msgstr "✕ رفض"
@@ -13920,6 +14606,7 @@ msgstr "✕ رفض"
 #. odoo-javascript
 #. odoo-python
 #: code:addons/navitta_ops/models/shipment.py:0
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "✕ Rejected"
 msgstr "✕ مرفوض"
@@ -13948,6 +14635,12 @@ msgstr "➕ إضافة نظام"
 #: code:addons/navitta_ops/static/src/admin/ideas.xml:0
 msgid "➕ Add an idea"
 msgstr "➕ إضافة فكرة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "➕ Add model"
+msgstr "➕ إضافة موديل"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -14118,6 +14811,12 @@ msgstr "🎯 تارقت اليوم"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "🏆 Most requested this week"
+msgstr "🏆 الأكثر طلبًا هالأسبوع"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/settings.xml:0
 msgid "🏖️ Current and upcoming leaves"
 msgstr "🏖️ الإجازات الحالية والقادمة"
@@ -14171,6 +14870,24 @@ msgstr "🏭 يحتاج تصنيع"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "🏭 We don't normally carry this color or size"
 msgstr "🏭 هذا اللون أو المقاس ما نوفره أساسًا"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "🏷️ Count chosen models only"
+msgstr "🏷️ جرد موديلات أختارها بس"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "👀 Display check"
+msgstr "👀 فحص المعروض"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "👀 Display checks"
+msgstr "👀 فحص المعروض"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -14237,6 +14954,12 @@ msgstr "💡 الأفكار"
 #: code:addons/navitta_ops/static/src/admin/ideas.xml:0
 msgid "💡 New idea"
 msgstr "💡 فكرة جديدة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "💡 Suggestions and notes"
+msgstr "💡 اقتراحات وملاحظات"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -14334,6 +15057,14 @@ msgstr "💰 عهدة ناقصة"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid ""
+"💰 From the branch's Cash box · it is taken off the balance once management "
+"approves it"
+msgstr "💰 من صندوق الفرع · ينخصم من رصيد الصندوق لما توافق الإدارة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "💰 Her sales today"
 msgstr "💰 مبيعاتها اليوم"
 
@@ -14378,7 +15109,6 @@ msgstr "💰 عهدة اليوم · %s ر.س"
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 #: code:addons/navitta_ops/static/src/admin/sales_tools.js:0
-#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "💳 Card"
 msgstr "💳 شبكة"
@@ -14391,6 +15121,12 @@ msgstr "💳 شبكة"
 #: code:addons/navitta_ops/static/src/common/utils.js:0
 msgid "💳 Card roll"
 msgstr "💳 رول شبكة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "💳 Card terminal"
+msgstr "💳 الشبكة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -14408,7 +15144,6 @@ msgstr "💳 الموازنة"
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.js:0
 #: code:addons/navitta_ops/static/src/admin/sales_tools.js:0
-#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "💵 Cash"
 msgstr "💵 نقدي"
@@ -14418,6 +15153,18 @@ msgstr "💵 نقدي"
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "💵 Cash / Card"
 msgstr "💵 نقدي / شبكة"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "💵 Cash and card"
+msgstr "💵 النقدية"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.js:0
+msgid "💵 Cash in the drawer"
+msgstr "💵 الكاش"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -14482,8 +15229,20 @@ msgstr "💸 مبيعات ضائعة"
 #. module: navitta_ops
 #. odoo-javascript
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "💸 Owed to the branch (awaiting approval)"
+msgstr "💸 مستحق للفرع (تنتظر الموافقة)"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "💸 Record an expense"
 msgstr "💸 تسجيل مصروف"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "💾 Save"
+msgstr "💾 حفظ"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -14512,6 +15271,12 @@ msgstr "📊 مقارنة الفروع"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "📊 From the counter (automatic)"
+msgstr "📊 من العدّاد تلقائي"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "📊 This month's violations"
 msgstr "📊 مخالفات الشهر"
@@ -14526,6 +15291,12 @@ msgstr "📋 أنظمة الفرع"
 #: model_terms:ir.ui.view,arch_db:navitta_ops.res_config_settings_view_form
 msgid "📋 Daily tasks"
 msgstr "📋 مهام اليوم"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "📋 Expenses awaiting management's approval"
+msgstr "📋 مصروفات تنتظر موافقة الإدارة"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -14550,6 +15321,12 @@ msgstr "📋 المهام"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "📋 Tasks before check-out ("
 msgstr "📋 مهام قبل الانصراف ("
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "📋 View details"
+msgstr "📋 عرض التفاصيل"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -14663,6 +15440,12 @@ msgstr "📦 طلبات الفرع"
 
 #. module: navitta_ops
 #. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "📦 Count the whole stock"
+msgstr "📦 جرد المخزن كامل"
+
+#. module: navitta_ops
+#. odoo-javascript
 #: code:addons/navitta_ops/static/src/common/shipments.xml:0
 msgid "📦 In the shipment"
 msgstr "📦 في الشحنة"
@@ -14690,6 +15473,24 @@ msgstr "📦 خلص من الفرع"
 #: code:addons/navitta_ops/static/src/common/shipments.xml:0
 msgid "📦 Start receiving"
 msgstr "📦 ابدئي الاستلام"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "📦 Stock count"
+msgstr "📦 جرد المخزن"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "📦 Stock count #%s"
+msgstr "📦 جرد المخزن رقم %s"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "📦 Stock counts"
+msgstr "📦 جرد المخازن"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -14779,6 +15580,12 @@ msgid "📷 Photo of the rolls and bags that arrived *"
 msgstr "📷 صورة الرولات والأكياس اللي وصلت *"
 
 #. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/common/components.xml:0
+msgid "📷 Scan the QR or barcode with the camera"
+msgstr "📷 امسحي الـ QR أو الباركود بالكاميرا"
+
+#. module: navitta_ops
 #: model_terms:ir.ui.view,arch_db:navitta_ops.phone_upload_page
 msgid "📷 Take photo now"
 msgstr "📷 صوّري الآن"
@@ -14800,6 +15607,24 @@ msgstr "📸 التقاط"
 #: code:addons/navitta_ops/static/src/admin/admin_app.xml:0
 msgid "📸 End-of-shift photos"
 msgstr "📸 صور نهاية الدوام"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.js:0
+msgid "🔁 Management asked for a recount"
+msgstr "🔁 الإدارة طلبت إعادة الجرد"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.js:0
+msgid "🔁 Recount requested"
+msgstr "🔁 انطلب إعادة الجرد"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/stockadm.xml:0
+msgid "🔁 Request a recount"
+msgstr "🔁 طلب إعادة الجرد"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -14837,6 +15662,13 @@ msgstr "🔄 إعادة التصوير"
 #: code:addons/navitta_ops/static/src/common/components.xml:0
 msgid "🔄 Returns"
 msgstr "🔄 المرتجع"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/admin/admin_app.js:0
+#: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
+msgid "🔎 Display & stock"
+msgstr "🔎 المعروض والجرد"
 
 #. module: navitta_ops
 #. odoo-javascript
@@ -14909,6 +15741,18 @@ msgstr "🔒 تسجيل المصروف (برمز الموظفة)"
 #: code:addons/navitta_ops/static/src/branch/branch_app.xml:0
 msgid "🔒 Send request (employee PIN)"
 msgstr "🔒 إرسال الطلب (برمز الموظفة)"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "🔒 Send the check to management (employee PIN)"
+msgstr "🔒 إرسال الفحص للإدارة (رمز الموظفة)"
+
+#. module: navitta_ops
+#. odoo-javascript
+#: code:addons/navitta_ops/static/src/branch/stock.xml:0
+msgid "🔒 Send the count to management (employee PIN)"
+msgstr "🔒 إرسال الجرد للإدارة (رمز الموظفة)"
 
 #. module: navitta_ops
 #. odoo-javascript

@@ -5,7 +5,7 @@ import { Component, onMounted, onWillUpdateProps, useExternalListener, useRef, u
 import { _t } from "@web/core/l10n/translation";
 import { useService } from "@web/core/utils/hooks";
 import { SHIPST, SUP, api, f0, jn, longDate, shipState } from "./utils";
-import { FileThumb, NvModal, PhotoPicker, SignModal } from "./components";
+import { CamScan, FileThumb, NvModal, PhotoPicker, SignModal } from "./components";
 import { DelBtn } from "./del";
 
 const SUPS = ["roll_invoice", "roll_card", "bags"];
@@ -79,7 +79,7 @@ export class ItemsTable extends Component {
 // ---------------------------------------------------------------- branch: receiving by scanning
 export class ReceiveShipment extends Component {
     static template = "navitta_ops.ReceiveShipment";
-    static components = { NvModal, PhotoPicker, SignModal };
+    static components = { CamScan, NvModal, PhotoPicker, SignModal };
     static props = { s: Object, emps: Array, onClose: Function, onDone: Function };
     setup() {
         this.orm = useService("orm");
@@ -188,6 +188,11 @@ export class ReceiveShipment extends Component {
             ev.preventDefault();
             this.scan();
         }
+    }
+    /** A code read by the camera goes into the scan box, as a scanner would type it. */
+    camScanned(code) {
+        this.state.code = code;
+        this.scan();
     }
     manual(l) {
         this.add(l, l.supply ? l.qty : 1);

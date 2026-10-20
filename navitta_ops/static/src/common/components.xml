@@ -205,7 +205,12 @@
         </div>
     </t>
 
+    <t t-name="navitta_ops.CamScan">
+        <button type="button" t-att-class="'camscan' + (props.cls ? ' ' + props.cls : '')" t-on-click="open">📷 Scan the QR or barcode with the camera</button>
+    </t>
+
     <t t-name="navitta_ops.ModelSearchBox">
+        <CamScan onScan="(c) => this.scanned(c)"/>
         <div t-att-class="props.big ? 'ms-in' + (state.done ? ' ok' : '') : 'mpick'">
             <span t-if="props.big" aria-hidden="true">📟</span>
             <input t-ref="inp" t-att-class="props.big ? 'num' : 'ctl num'" t-att-value="state.q" t-on-input="onInput" t-on-keydown="onKey"

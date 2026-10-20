@@ -46,6 +46,10 @@ export const HELP = lazy({
     "b-report": () => H("📝", _t("Daily report"), _t("The end-of-shift report for management: sales, cash and card, the photos, and the day's key events."),
         [_t("At the end of the shift open “Daily report”."), _t("Cash and card come from the Point of Sale; match them with the terminal, and if there is a difference write the reason."),
             _t("Photograph the settlement and the invoices and tap “Send”.")]),
+    "b-stock": () => H("🔎", _t("Display & stock"), _t("Check that every model in stock is on display, and count the stock room; both come from the branch's Odoo stock."),
+        [_t("“👀 Display check”: mark each model on display or not (with the reason), then send it with your PIN."),
+            _t("“📦 Stock count”: scan every piece or type the quantities; you don't see Odoo's figures."),
+            _t("Send the count with your PIN; Odoo's stock changes only when management approves it.")]),
     "b-search": () => H("🔎", _t("Find a model"), _t("You find out whether a model is available, its price, sizes and colors, without searching the stockroom."),
         [_t("Tap “Find a model”."), _t("Type the model number or scan the barcode with the camera."), _t("If the size isn't there, record it as a “Lost sale” so management can provide it.")]),
     "b-target": () => H("🎯", _t("Today's and this month's target"), _t("Shows today's target, how much you achieved, how much is left, and this month's target percentage."),
@@ -76,7 +80,7 @@ export const HELP = lazy({
 });
 
 export const TOUR = {
-    branch: ["b-counter", "b-emp", "b-target", "b-search", "b-float", "b-tasks", "b-inbox", "b-requests", "b-report"],
+    branch: ["b-counter", "b-emp", "b-target", "b-search", "b-float", "b-tasks", "b-inbox", "b-requests", "b-stock", "b-report"],
     admin: ["a-home", "a-sales", "a-day", "a-requests", "a-lost", "a-rules", "a-settings", "a-ideas"],
 };
 const TOUR_OFF = "nav-tour-off", TOUR_LOGIN = "nav-tour-login";

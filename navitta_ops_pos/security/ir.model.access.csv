@@ -1,2 +1,10 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_navitta_pos_day_admin,navitta.pos.day admin,model_navitta_pos_day,navitta_ops.group_navitta_admin,1,0,0,0
+access_display_check_branch,navitta.display.check branch,model_navitta_display_check,navitta_ops.group_navitta_branch,1,0,0,0
+access_display_check_admin,navitta.display.check admin,model_navitta_display_check,navitta_ops.group_navitta_admin,1,1,0,1
+access_display_check_line_branch,navitta.display.check.line branch,model_navitta_display_check_line,navitta_ops.group_navitta_branch,1,0,0,0
+access_display_check_line_admin,navitta.display.check.line admin,model_navitta_display_check_line,navitta_ops.group_navitta_admin,1,1,0,1
+access_stock_count_branch,navitta.stock.count branch,model_navitta_stock_count,navitta_ops.group_navitta_branch,1,0,0,0
+access_stock_count_admin,navitta.stock.count admin,model_navitta_stock_count,navitta_ops.group_navitta_admin,1,1,0,1
+access_stock_count_line_branch,navitta.stock.count.line branch,model_navitta_stock_count_line,navitta_ops.group_navitta_branch,1,0,0,0
+access_stock_count_line_admin,navitta.stock.count.line admin,model_navitta_stock_count_line,navitta_ops.group_navitta_admin,1,1,0,1

@@ -6,11 +6,12 @@ import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 import {
-    DFST, EXPICON, EXST, LOST, LOSTL, MONTHS, OUTOF, RQST, SREASONL, SUP, WD, addDays, ago, api, clock, dTxt, days, dmy, downloadCsv, f0, h12, longDate,
+    DFST, EXPICON, EXST, LOST, LOSTL, MONTHS, OUTOF, RQST, SREASONL, SUP, WD, addDays, ago, api, clock, dTxt, days, dmy, downloadCsv, f0, f2, h12, longDate,
     mmss, now, pc, setClock, today, weekday, jn, DIR, LANG, vlabel,
 } from "../common/utils";
 import { DailyQuote, EmpBoard, FileThumb, NvModal, PhotoLink, TargetEditor } from "../common/components";
 import { DelBtn } from "../common/del";
+import { StockReviews } from "./stockadm";
 import { Bulb, HelpLayer, ThemeToggle, TourBtn, useTheme } from "../common/help";
 import { DayCalendar } from "./daycal";
 import { PosLink } from "./poslink";
@@ -112,8 +113,9 @@ const CMPCOLS = [["target", _t("Target")], ["sales", _t("Sales")], ["achieved", 
 const CMPCOLS_DEV = [["target", _t("Target")], ["sales", _t("Sales")], ["achieved", _t("Achieved")], ["tax", _t("VAT")], ["invoices", _t("Invoices")],
     ["avg_invoice", _t("Average invoice")], ["items", _t("Items")], ["returns", _t("Returns")], ["visits", _t("Owner's counter customers")],
     ["buy_pct", _t("Purchase rate")]];
-const REQKINDS = [["all", _t("All")], ["goods", _t("Out-of-stock request")], ["defect", _t("🩹 Defective items")], ["supply", _t("Supplies")], ["expense", _t("Expenses")]];
-const H = { jn, f0, mmss, clock, longDate, h12, dTxt, days, ago, pc, dmy, weekday, addDays, LOSTL, SUP, EXPICON, RQST, EXST, DFST, SREASONL, WD, MONTHS, LEAVEADM, NOTIF, PINMAIL,
+const REQKINDS = [["all", _t("All")], ["goods", _t("Out-of-stock request")], ["defect", _t("🩹 Defective items")], ["supply", _t("Supplies")], ["expense", _t("Expenses")],
+    ["stock", _t("🔎 Display & stock")]];
+const H = { jn, f0, f2, mmss, clock, longDate, h12, dTxt, days, ago, pc, dmy, weekday, addDays, LOSTL, SUP, EXPICON, RQST, EXST, DFST, SREASONL, WD, MONTHS, LEAVEADM, NOTIF, PINMAIL,
     TX, CMPCOLS, CMPCOLS_DEV, REQKINDS, SEP, ARROW, vlabel };
 
 // ---------------------------------------------------------------- shared period filter (every tab)
@@ -527,7 +529,7 @@ class Sales extends AdminBase {
 // ---------------------------------------------------------------- requests, expenses, supplies
 class Requests extends AdminBase {
     static template = "navitta_ops.AdminRequests";
-    static components = { PhotoLink, FileThumb, ShipBuilder, ShipLog, DelBtn };
+    static components = { PhotoLink, FileThumb, ShipBuilder, ShipLog, DelBtn, StockReviews };
     setup() {
         super.setup();
         this.state = useState({ d: null, kind: "all", notes: {}, open: null });
@@ -565,6 +567,7 @@ class Requests extends AdminBase {
             pendTotal: d.expenses.filter((x) => x.state === "pending" && this.inB(x.branch_id)).reduce((s, x) => s + Number(x.amount), 0),
             lowB: d.branches.filter((b) => Object.keys(this.mins).some((k) => this.bal(b.id, k) < this.mins[k])),
             showReq: ["all", "goods", "supply"].includes(s.kind), showExp: ["all", "expense"].includes(s.kind), showDef: ["all", "defect"].includes(s.kind),
+            showStock: !!d.stock_on && ["all", "stock"].includes(s.kind),
             ships: d.shipments.filter((x) => this.inB(x.branch_id)).slice(0, 8),
             defOpen: d.defects.filter((x) => x.state === "pending" && this.inB(x.branch_id)),
             defDone: d.defects.filter((x) => x.state !== "pending" && this.inB(x.branch_id)).slice(0, 10),

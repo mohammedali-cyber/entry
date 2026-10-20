@@ -11,7 +11,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import AccessError
 from odoo.tools.translate import LazyTranslate
 
-from .float_task import DENOMS
+from .float_task import DENOMS, denom_key
 from .common import (differs, EXCHANGE_REASONS, LEAVE_TYPES, LOST_REASONS, OUT_OF_STOCK, TOPICS, SUPPLIES,
                      EXPENSE_CATEGORIES, GOODS_REASONS, EMERGENCIES, SHELF, app_minute, app_today, cashier_text, choices,
                      fmt_time, hours_to_min, iso, label, sel_label, selection)
@@ -100,6 +100,18 @@ ERRORS = {
     "bad_shift": _lt("Unknown shift"),
     "no_am_branch": _lt("This employee's branch has no morning shift. Enable it for the branch under “Shift times” first"),
     "idea_required": _lt("Write the idea"),
+    # display check and stock count (26.6, from the Odoo stock: navitta_ops_pos)
+    "no_stock": _lt("This branch has no Odoo stock (its points of sale have no warehouse)"),
+    "check_sent": _lt("Today's display check was already sent"),
+    "not_marked": _lt("Mark every model first: on display or not"),
+    "display_reason": _lt("Choose why it isn't on display"),
+    "unknown_code": _lt("This code isn't one of our products"),
+    "count_empty": _lt("Count at least one item first"),
+    "count_open": _lt("This count was already sent to management"),
+    "count_stale": _lt("This count is more than 7 days old: ask the branch for a recount"),
+    "count_done": _lt("This count was already decided"),
+    "count_tracked": _lt("Some products are tracked by lots or serial numbers: adjust them in Odoo Inventory"),
+    "note_needed": _lt("Write a note for the branch"),
 }
 
 
@@ -152,11 +164,18 @@ class NavittaApi(models.AbstractModel):
         """How the branch screen opens: a device account gets its branch; management gets the branch list to pick from."""
         if self._is_device():
             b = self.env.user.navitta_branch_id
-            return {"device": True, "branch": {"id": b.id, "name": b.name}, "login": self._login_stamp()}
+            return {"device": True, "branch": {"id": b.id, "name": b.name, "stock": self._stock_on(b.sudo())}, "login": self._login_stamp()}
         if self.env.user.has_group("navitta_ops.group_navitta_admin"):
-            return {"device": False, "branches": [{"id": b.id, "name": b.name} for b in self.env["navitta.branch"].sudo().search([])],
+            return {"device": False, "branches": [{"id": b.id, "name": b.name, "stock": self._stock_on(b)}
+                                                  for b in self.env["navitta.branch"].sudo().search([])],
                     "login": self._login_stamp()}
         return self._err("forbidden")
+
+    @api.model
+    def _stock_on(self, branch):
+        """Whether the branch has an Odoo stock to check (the «🔎 Display & stock» tab): only with navitta_ops_pos, for a
+        branch whose points of sale have a warehouse. Without it the tab is hidden."""
+        return False
 
     @api.model
     def _emp(self, branch, emp_id):
@@ -188,7 +207,7 @@ class NavittaApi(models.AbstractModel):
                 "grace": c.navitta_grace, "break_max": c.navitta_break_max, "chances": c.navitta_chances,
                 "min_roll_invoice": c.navitta_min_roll_invoice, "min_roll_card": c.navitta_min_roll_card,
                 "min_bags": c.navitta_min_bags, "tz": c.navitta_tz or "Asia/Riyadh", "vat_rate": c.navitta_vat_rate,
-                "checkin_photo": c.navitta_checkin_photo, "denoms": list(DENOMS)}
+                "checkin_photo": c.navitta_checkin_photo, "denoms": [denom_key(d) for d in DENOMS]}
 
     @api.model
     def _visit_dict(self, v):
@@ -196,7 +215,7 @@ class NavittaApi(models.AbstractModel):
                 "started_at": iso(v.started_at), "ended_at": iso(v.ended_at), "duration_sec": v.duration_sec,
                 "saved": v.saved, "outcomes": v._outcome_list(), "other_text": v.other_text or "", "note": v.note or "",
                 "lost_model": v.lost_model or "", "lost_color": v.lost_color or "", "lost_size": v.lost_size or "",
-                "auto": v.auto, "auto_ack": v.auto_ack, "amount": v.amount}
+                "auto": v.auto, "auto_ack": v.auto_ack, "amount": v.amount, "sat": v.sat}
 
     @api.model
     def _case_dict(self, c):
@@ -262,9 +281,16 @@ class NavittaApi(models.AbstractModel):
             "edit_requests": [{"visit_id": r.visit_id.id, "state": r.state} for r in ereq],
             "emp_sales": {l.employee_id.id: l.amount for l in lines},
             "day_target": target or 0.0,
+            "top_week": self._week_top(b, day),
             "float": self._float_state(b, day),
             "tasks": self._tasks_state(b, day),
         }
+
+    @api.model
+    def _week_top(self, branch, day):
+        """«🏆 الأكثر طلبًا هالأسبوع»: the models the branch sold most (pieces) in the 7 days up to `day`, [{item_no, model,
+        qty}], or None when the sales have no item lines (no Point of Sale: the card is hidden). See navitta_ops_pos."""
+        return None
 
     @api.model
     def _punch_photo(self, branch, data):
@@ -409,6 +435,11 @@ class NavittaApi(models.AbstractModel):
         phone = re.sub(r"\D", "", lost.get("contact_phone") or "")
         if not (buy or exch or no):
             return self._err("outcome_required")
+        try:
+            sat = int(data.get("sat") or 0)
+        except (TypeError, ValueError):
+            sat = 0
+        sat = sat if 1 <= sat <= 5 else 0
         if no:
             buy = exch = False
             if reason not in dict(LOST_REASONS):
@@ -458,6 +489,7 @@ class NavittaApi(models.AbstractModel):
             "note": (data.get("note") or "").strip() or False,
             "lost_model": model if no and model else False, "lost_color": color if no and color else False,
             "lost_size": size if no and size else False, "saved": True,
+            "sat": sat,
         })
         return {"ok": True}
 
@@ -716,6 +748,7 @@ class NavittaApi(models.AbstractModel):
         emps = self.env["navitta.employee"].sudo().search([("branch_id", "=", b.id), ("active", "=", True)], order="slot")
         reqs = self.env["navitta.branch.request"].sudo().search([("branch_id", "=", b.id)], limit=40)
         exps = self.env["navitta.expense"].sudo().search([("branch_id", "=", b.id), ("day", ">=", day.replace(day=1))])
+        pend = self.env["navitta.expense"].sudo().search([("branch_id", "=", b.id), ("state", "=", "pending")])
         wait = self.env["navitta.lost.sale"].sudo().search([("branch_id", "=", b.id), ("contact_phone", "!=", False)], limit=80)
         cash = b._cash_summary()[b.id]
         return {
@@ -724,6 +757,8 @@ class NavittaApi(models.AbstractModel):
             "requests": [self._request_dict(r) for r in reqs],
             "stock": b._stock_summary()[b.id], "cash": cash,
             "expenses": [self._expense_dict(x) for x in exps],
+            # «مستحق للفرع (بانتظار الموافقة)» → «عرض التفاصيل»: every expense still waiting for management (any month)
+            "pending_expenses": [self._expense_dict(x) for x in pend],
             "waiting": [self._lost_dict(w) for w in wait],
             "choices": {"supplies": selection(self.env, "navitta.branch.request", "supply"), "goods_reasons": choices(self.env, GOODS_REASONS),
                         "expense_categories": selection(self.env, "navitta.expense", "category")},
@@ -888,14 +923,17 @@ class NavittaApi(models.AbstractModel):
         rep = self.env["navitta.daily.report"].sudo().search([("branch_id", "=", b.id), ("day", "=", day)], limit=1)
         visits = self.env["navitta.visit"].sudo().search([("branch_id", "=", b.id), ("day", "=", day), ("saved", "=", True)])
         buys = len(visits.filtered("bought"))
+        rated = visits.filtered(lambda v: 1 <= v.sat <= 5)
         return {
-            "day": fields.Date.to_string(day),
+            "day": fields.Date.to_string(day), "branch_id": b.id,
             "employees": [{"id": e.id, "slot": e.slot, "name": e.name} for e in emps],
-            "report": self._report_dict(rep) if rep else False,
+            "report": self._report_dict(rep) if rep else False, "report_at": iso(rep.write_date) if rep else False,
             "system": self._system_day(b, day, force=True),
             "float": self._float_state(b, day),
+            # «📊 من العدّاد تلقائي»: today's saved counter visits (customer satisfaction = the average of the rated ones)
             "from_visits": {
-                "visitors": len(visits), "invoices": buys, "nonBuy": len(visits) - buys,
+                "visitors": len(visits), "invoices": buys, "bought": buys, "nonBuy": len(visits) - buys,
+                "sat": round(sum(rated.mapped("sat")) / len(rated), 2) if rated else None, "rated": len(rated),
                 "lost": [{"model": v.lost_model or "", "color": v.lost_color or "", "size": v.lost_size or ""}
                          for v in visits if v.lost_color or v.lost_size],
             },

@@ -41,12 +41,17 @@
                             <field name="state"/>
                             <field name="note"/>
                         </group>
-                        <group string="Banknotes">
+                        <group string="Notes and coins">
+                            <field name="n200" readonly="1"/>
                             <field name="n100" readonly="1"/>
                             <field name="n50" readonly="1"/>
+                            <field name="n20" readonly="1"/>
                             <field name="n10" readonly="1"/>
                             <field name="n5" readonly="1"/>
+                            <field name="n2" readonly="1"/>
                             <field name="n1" readonly="1"/>
+                            <field name="n050" readonly="1"/>
+                            <field name="n025" readonly="1"/>
                             <field name="amount" readonly="1"/>
                             <field name="expected" readonly="1"/>
                             <field name="difference"/>
