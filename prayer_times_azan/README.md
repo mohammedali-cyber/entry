@@ -11,7 +11,9 @@ Shows the daily prayer times inside the Odoo backend and plays an azan
     method 4). The Odoo **server** needs outbound HTTPS access to `api.aladhan.com`.
     If the API cannot be reached, the built-in calculation is used automatically
     and the error is shown on the location form; the next daily run retries.
-    Ramadan (Umm Al-Qura Isha +30 min) is detected from the Hijri date returned by the API.
+    Ramadan (Umm Al-Qura Isha +30 min) is detected from the Hijri date returned by the API;
+    with the Umm Al-Qura method the API is asked for the official Umm Al-Qura Hijri
+    calendar (`calendarMethod=UAQ`).
   - **Built-in calculation** (offline).
 - **Offline calculation**: the module computes the times itself (astronomical
   formulas) with no external API. Umm Al-Qura is the default method; MWL, Egypt,

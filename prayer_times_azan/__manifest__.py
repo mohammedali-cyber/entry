@@ -1,6 +1,6 @@
 {
     'name': 'Prayer Times & Azan',
-    'version': '18.0.1.1.0',
+    'version': '18.0.1.1.1',
     'category': 'Productivity',
     'summary': 'Daily prayer times with azan sound and notifications in the Odoo backend',
     'description': """

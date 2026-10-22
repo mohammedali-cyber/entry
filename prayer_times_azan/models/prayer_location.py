@@ -295,6 +295,9 @@ class PrayerLocation(models.Model):
             'timezone': self.tz,
             'school': 1 if self.asr_method == 'hanafi' else 0,
             'lat_adjustment': aladhan_client.ALADHAN_LAT_ADJUSTMENT.get(self.high_lat_rule),
+            # Hijri date (Ramadan detection) from the official Umm Al-Qura calendar.
+            'calendar_method': (aladhan_client.UMM_AL_QURA_CALENDAR
+                                if self.method == 'umm_al_qura' else None),
         }
         result = {}
         try:

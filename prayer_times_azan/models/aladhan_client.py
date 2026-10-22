@@ -3,7 +3,7 @@
 No API key is needed. Only the monthly calendar by coordinates is used:
     GET https://api.aladhan.com/v1/calendar
         ?latitude=&longitude=&year=&month=&method=&school=
-         &latitudeAdjustmentMethod=&timezonestring=
+         &latitudeAdjustmentMethod=&timezonestring=&calendarMethod=
 Each day of the response contains ``timings`` ("Fajr": "04:29 (+03)", ...)
 and ``date.gregorian.date`` ("DD-MM-YYYY") / ``date.hijri.month.number``.
 """
@@ -43,6 +43,10 @@ TIMING_KEYS = {
     'isha': 'Isha',
 }
 
+# Hijri calendar used by the API for ``date.hijri`` (HJCoSA, UAQ, DIYANET or
+# MATHEMATICAL). UAQ = Umm Al-Qura, the official calendar of Saudi Arabia.
+UMM_AL_QURA_CALENDAR = 'UAQ'
+
 RAMADAN_MONTH = 9
 
 
@@ -57,7 +61,7 @@ def _parse_time(value):
 
 
 def fetch_month(latitude, longitude, year, month, method, timezone, school=0,
-                lat_adjustment=None, session=None):
+                lat_adjustment=None, calendar_method=None, session=None):
     """Fetch one month of prayer times.
 
     :return: {date: {'times': {prayer key: local decimal hours}, 'hijri_month': int}}
@@ -74,6 +78,8 @@ def fetch_month(latitude, longitude, year, month, method, timezone, school=0,
     }
     if lat_adjustment:
         params['latitudeAdjustmentMethod'] = lat_adjustment
+    if calendar_method:
+        params['calendarMethod'] = calendar_method
     try:
         response = (session or requests).get(
             ALADHAN_CALENDAR_URL, params=params, timeout=TIMEOUT,

@@ -184,6 +184,7 @@ class TestAladhanApi(TransactionCase):
         self.assertEqual(calls[0]['method'], 4)
         self.assertEqual(calls[0]['school'], 1)
         self.assertEqual(calls[0]['timezonestring'], 'Asia/Riyadh')
+        self.assertEqual(calls[0]['calendarMethod'], 'UAQ')
         lines = location.timetable_ids
         self.assertEqual(len(lines), 30)
         self.assertEqual(set(lines.mapped('source')), {'aladhan'})
@@ -215,6 +216,14 @@ class TestAladhanApi(TransactionCase):
             self.env['prayer.location']._cron_generate_timetables()
         self.assertEqual(set(location.timetable_ids.mapped('source')), {'aladhan'})
         self.assertFalse(location.api_last_error)
+
+    def test_api_calendar_method_only_umm_al_qura(self):
+        get, calls = fake_aladhan()
+        with patch.object(requests, 'get', side_effect=get):
+            self._create_location(method='mwl')
+        self.assertTrue(calls)
+        self.assertEqual(calls[0]['method'], 3)
+        self.assertNotIn('calendarMethod', calls[0])
 
     def test_api_ramadan_isha(self):
         get, _calls = fake_aladhan(hijri_month=9, isha='19:10 (+03)')
