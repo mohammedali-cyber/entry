@@ -146,7 +146,7 @@ def fake_aladhan(hijri_month=4, isha='19:40 (+03)'):
     calls = []
 
     def get(url, params=None, timeout=None, headers=None):
-        calls.append(params)
+        calls.append(dict(params, _url=url))
         year, month = params['year'], params['month']
         days = []
         for day in range(1, calendar.monthrange(year, month)[1] + 1):
@@ -158,7 +158,7 @@ def fake_aladhan(hijri_month=4, isha='19:40 (+03)'):
                 },
                 'date': {
                     'gregorian': {'date': '%02d-%02d-%04d' % (day, month, year)},
-                    'hijri': {'month': {'number': hijri_month}},
+                    'hijri': {'day': str(day), 'month': {'number': hijri_month}, 'year': '1448'},
                 },
             })
         return FakeResponse(200, {'code': 200, 'status': 'OK', 'data': days})
@@ -243,6 +243,96 @@ class TestAladhanApi(TransactionCase):
         with patch.object(requests, 'get', side_effect=requests.ConnectionError('offline')):
             with self.assertRaises(ValidationError):
                 self._create_location(method='custom', fajr_angle=18, isha_angle=17)
+
+    def test_mirror_after_connection_error(self):
+        get, calls = fake_aladhan()
+        attempts = []
+
+        def flaky_get(url, **kwargs):
+            attempts.append(url)
+            if len(attempts) == 1:
+                raise requests.ConnectionError('down')
+            return get(url, **kwargs)
+        with patch.object(requests, 'get', side_effect=flaky_get):
+            location = self._create_location()
+        self.assertTrue(attempts[0].startswith('https://api.aladhan.com/v1/calendar'))
+        self.assertTrue(attempts[1].startswith('https://aladhan.api.islamic.network/v1/calendar'))
+        self.assertEqual(set(location.timetable_ids.mapped('source')), {'aladhan'})
+        self.assertFalse(location.api_last_error)
+
+    def test_mirror_after_rate_limit(self):
+        get, _calls = fake_aladhan()
+        answers = iter([FakeResponse(429, {})])
+
+        def limited_get(url, **kwargs):
+            return next(answers, None) or get(url, **kwargs)
+        with patch.object(requests, 'get', side_effect=limited_get):
+            location = self._create_location()
+        self.assertEqual(set(location.timetable_ids.mapped('source')), {'aladhan'})
+
+    def test_all_servers_down(self):
+        with patch.object(requests, 'get', side_effect=requests.ConnectionError('down')) as mock:
+            location = self._create_location()
+        # 2 months x 3 servers would be 6 calls, but the first failing month stops the sync.
+        self.assertEqual(mock.call_count, 3)
+        for host in ('api.aladhan.com', 'aladhan.api.islamic.network', 'aladhan.api.alislam.ru'):
+            self.assertIn(host, location.api_last_error)
+
+    def test_bad_request_message(self):
+        message = ("The geographical coordinates (latitude and longitude) that you specified "
+                   "or we were able to calculate from the address or city are invalid.")
+        with patch.object(requests, 'get',
+                          return_value=FakeResponse(400, {'code': 400, 'data': message})) as mock:
+            location = self._create_location()
+        self.assertEqual(mock.call_count, 1)  # no point asking the mirrors
+        self.assertIn('geographical coordinates', location.api_last_error)
+
+    def test_hijri_date_from_api(self):
+        get, _calls = fake_aladhan(hijri_month=5)
+        with patch.object(requests, 'get', side_effect=get):
+            location = self._create_location()
+        line = location.timetable_ids[0]
+        self.assertEqual((line.hijri_day, line.hijri_month, line.hijri_year),
+                         (line.date.day, 5, 1448))
+        self.assertEqual(line.hijri_date, '%s Jumada al-Ula 1448 AH' % line.date.day)
+        self.env.user.prayer_location_id = location
+        schedule = self.env['prayer.location'].get_user_prayer_schedule()
+        self.assertEqual(schedule['hijri_date'], line.hijri_date)
+
+    def test_hijri_date_from_calendar(self):
+        if prayer_location.Gregorian is None:
+            self.skipTest("hijridate is not installed")
+        location = self._create_location(time_source='calculation')
+        line = location.timetable_ids[0]
+        hijri = prayer_location.Gregorian.fromdate(line.date).to_hijri()
+        self.assertEqual((line.hijri_day, line.hijri_month, line.hijri_year),
+                         (hijri.day, hijri.month, hijri.year))
+        self.assertTrue(line.hijri_date.endswith('%s AH' % hijri.year))
+
+    def test_hijri_backfill(self):
+        if prayer_location.Gregorian is None:
+            self.skipTest("hijridate is not installed")
+        location = self._create_location(time_source='calculation')
+        location.timetable_ids.write({'hijri_day': 0, 'hijri_month': 0, 'hijri_year': 0})
+        location._generate_timetable()
+        self.assertFalse(location.timetable_ids.filtered(lambda line: not line.hijri_month))
+
+    def test_test_connection(self):
+        with patch.object(requests, 'get', side_effect=requests.ConnectionError('down')):
+            location = self._create_location()
+        lines_before = location.timetable_ids
+        get, _calls = fake_aladhan(hijri_month=5)
+        with patch.object(requests, 'get', side_effect=get):
+            action = location.action_test_api_connection()
+        self.assertEqual(action['tag'], 'display_notification')
+        self.assertEqual(action['params']['type'], 'success')
+        self.assertIn('04:30', action['params']['message'])
+        self.assertIn('Jumada al-Ula', action['params']['message'])
+        self.assertEqual(location.timetable_ids, lines_before)  # nothing saved
+        with patch.object(requests, 'get', side_effect=requests.ConnectionError('down')):
+            action = location.action_test_api_connection()
+        self.assertEqual(action['params']['type'], 'danger')
+        self.assertIn('api.aladhan.com', action['params']['message'])
 
     def test_parse_time(self):
         self.assertAlmostEqual(aladhan_client._parse_time('04:29 (+03)'), 4 + 29 / 60)

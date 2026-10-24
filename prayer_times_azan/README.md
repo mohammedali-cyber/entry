@@ -15,6 +15,15 @@ Shows the daily prayer times inside the Odoo backend and plays an azan
     with the Umm Al-Qura method the API is asked for the official Umm Al-Qura Hijri
     calendar (`calendarMethod=UAQ`).
   - **Built-in calculation** (offline).
+  - Resilience: the main server `api.aladhan.com` is tried first, then the mirrors
+    `aladhan.api.islamic.network` and `aladhan.api.alislam.ru` (from the official
+    OpenAPI file) on network errors, HTTP 429 and 5xx. HTTP 400 is not retried and
+    its message is shown on the location.
+  - **Test Connection** button on the location: fetches today's times and shows them
+    in a notification (nothing is saved).
+- **Hijri date** (Umm Al-Qura) shown in the systray menu and in the timetable: from
+  the API, or from `hijridate` with the built-in calculation, or from the browser's
+  Umm Al-Qura calendar as a last resort.
 - **Offline calculation**: the module computes the times itself (astronomical
   formulas) with no external API. Umm Al-Qura is the default method; MWL, Egypt,
   Karachi, ISNA, Gulf, Kuwait, Qatar and Custom are also available.

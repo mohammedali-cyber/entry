@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class PrayerTimetable(models.Model):
@@ -16,10 +16,20 @@ class PrayerTimetable(models.Model):
     asr = fields.Float(aggregator=None)
     maghrib = fields.Float(aggregator=None)
     isha = fields.Float(aggregator=None)
+    hijri_day = fields.Integer(readonly=True)
+    hijri_month = fields.Integer(readonly=True)
+    hijri_year = fields.Integer(readonly=True)
+    hijri_date = fields.Char(string='Hijri Date', compute='_compute_hijri_date')
     source = fields.Selection([
         ('aladhan', 'Aladhan API'),
         ('calculation', 'Built-in calculation'),
     ], required=True, default='calculation', readonly=True)
+
+    @api.depends('hijri_day', 'hijri_month', 'hijri_year')
+    def _compute_hijri_date(self):
+        Location = self.env['prayer.location']
+        for line in self:
+            line.hijri_date = Location._format_hijri(line.hijri_day, line.hijri_month, line.hijri_year)
 
     _sql_constraints = [
         ('location_date_uniq', 'UNIQUE(location_id, date)',

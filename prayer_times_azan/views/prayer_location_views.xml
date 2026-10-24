@@ -29,6 +29,8 @@
                 <header>
                     <button name="action_generate_timetable" type="object" string="Update Timetable"
                             class="btn-primary" icon="fa-calendar"/>
+                    <button name="action_test_api_connection" type="object" string="Test Connection"
+                            class="btn-secondary" icon="fa-plug" invisible="time_source != 'aladhan'"/>
                 </header>
                 <sheet>
                     <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>

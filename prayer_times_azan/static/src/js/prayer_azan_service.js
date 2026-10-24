@@ -3,8 +3,26 @@ import { browser } from "@web/core/browser/browser";
 import { _t } from "@web/core/l10n/translation";
 import { deserializeDateTime } from "@web/core/l10n/dates";
 import { registry } from "@web/core/registry";
+import { user } from "@web/core/user";
 
 const { DateTime } = luxon;
+
+/**
+ * Fallback when the server has no Hijri date: the browser's Umm Al-Qura
+ * calendar (Intl), in the location's timezone.
+ */
+function browserHijriDate(location) {
+    try {
+        return new Intl.DateTimeFormat(`${user.lang || "en"}-u-ca-islamic-umalqura`, {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+            timeZone: (location && location.tz) || undefined,
+        }).format(new Date());
+    } catch {
+        return false;
+    }
+}
 
 const TICK_DELAY = 1000;
 // Events missed by less than this (sleeping laptop, throttled background tab)
@@ -25,6 +43,7 @@ export const prayerAzanService = {
         const state = reactive({
             loaded: false,
             location: false,
+            hijriDate: false,
             prayers: [],
             notify: true,
             playAzan: true,
@@ -60,6 +79,7 @@ export const prayerAzanService = {
                 clockSkew = deserializeDateTime(data.server_now).toMillis() - Date.now();
                 Object.assign(state, {
                     location: data.location,
+                    hijriDate: data.hijri_date || (data.location && browserHijriDate(data.location)),
                     notify: data.notify,
                     playAzan: data.play_azan,
                     reminderMinutes: data.reminder_minutes || 0,

@@ -198,6 +198,29 @@ class PrayerLocation(models.Model):
                 pass
         return self.ramadan_mode
 
+    @api.model
+    def _hijri_from_calendar(self, day):
+        """(day, month, year) in the Umm Al-Qura calendar, None without hijridate."""
+        if Gregorian is None or not day:
+            return None
+        try:
+            hijri = Gregorian.fromdate(day).to_hijri()
+        except (OverflowError, ValueError):
+            return None
+        return (hijri.day, hijri.month, hijri.year)
+
+    @api.model
+    def _format_hijri(self, day, month, year):
+        _ = self.env._
+        names = [
+            _("Muharram"), _("Safar"), _("Rabi al-Awwal"), _("Rabi al-Thani"),
+            _("Jumada al-Ula"), _("Jumada al-Akhirah"), _("Rajab"), _("Shaban"),
+            _("Ramadan"), _("Shawwal"), _("Dhu al-Qadah"), _("Dhu al-Hijjah"),
+        ]
+        if not (day and year and 1 <= (month or 0) <= 12):
+            return False
+        return _("%(day)s %(month)s %(year)s AH", day=day, month=names[month - 1], year=year)
+
     def _get_calculator(self, day=None):
         self.ensure_one()
         return PrayerTimesCalculator(
@@ -262,6 +285,17 @@ class PrayerLocation(models.Model):
             'isha': _("Isha"),
         }
 
+    def _get_hijri_label(self, day):
+        """Hijri date of `day`: from the timetable (API or calendar), else hijridate."""
+        self.ensure_one()
+        line = self.env['prayer.timetable'].search([
+            ('location_id', '=', self.id), ('date', '=', day), ('hijri_month', '!=', 0),
+        ], limit=1)
+        if line:
+            return self._format_hijri(line.hijri_day, line.hijri_month, line.hijri_year)
+        hijri = self._hijri_from_calendar(day)
+        return hijri and self._format_hijri(*hijri) or False
+
     def _get_azan_sound(self, prayer):
         self.ensure_one()
         if prayer == 'fajr' and self.fajr_azan_sound_id:
@@ -291,18 +325,28 @@ class PrayerLocation(models.Model):
                 Timetable.search(domain).unlink()
             elif api_times:
                 Timetable.search(domain + [('date', 'in', list(api_times))]).unlink()
-            existing = set(Timetable.search(domain).mapped('date'))
+            existing_lines = Timetable.search(domain)
+            existing = set(existing_lines.mapped('date'))
+            # Lines created before the Hijri date was stored (or without hijridate).
+            for line in existing_lines.filtered(lambda l: not l.hijri_month):
+                hijri = location._hijri_from_calendar(line.date)
+                if hijri:
+                    line.write({'hijri_day': hijri[0], 'hijri_month': hijri[1], 'hijri_year': hijri[2]})
             vals_list = []
             for day in days_range:
                 if day in existing:
                     continue
                 if day in api_times:
-                    times, source = api_times[day], 'aladhan'
+                    times, hijri = api_times[day]['times'], api_times[day]['hijri']
+                    source = 'aladhan'
                 else:
                     times = location._get_calculator(day).compute(day, location._utc_offset_hours(day))
                     times = {key: round_to_minute(value) for key, value in times.items()}
+                    hijri = location._hijri_from_calendar(day)
                     source = 'calculation'
                 vals = {'location_id': location.id, 'date': day, 'source': source}
+                if hijri:
+                    vals.update(hijri_day=hijri[0], hijri_month=hijri[1], hijri_year=hijri[2])
                 for key in PRAYER_KEYS:
                     value = times.get(key)
                     vals[key] = 0.0 if value is None or math.isnan(value) else value
@@ -314,13 +358,9 @@ class PrayerLocation(models.Model):
         # No network call while the module data is loaded (install / update).
         return not self.env.context.get('install_mode') and not self.env.context.get('prayer_no_api')
 
-    def _fetch_api_times(self, days):
-        """Download the times of `days` from Aladhan, offsets applied.
-
-        :return: {date: {prayer key: local decimal hours}}, empty on error
-        """
+    def _api_params(self):
         self.ensure_one()
-        params = {
+        return {
             'latitude': self.latitude,
             'longitude': self.longitude,
             'method': aladhan_client.ALADHAN_METHODS[self.method],
@@ -331,23 +371,40 @@ class PrayerLocation(models.Model):
             'calendar_method': (aladhan_client.UMM_AL_QURA_CALENDAR
                                 if self.method == 'umm_al_qura' else None),
         }
+
+    def _api_fetch_days(self, days):
+        """Download the times of `days` from Aladhan, offsets applied.
+
+        :return: {date: {'times': {prayer key: local decimal hours},
+                         'hijri': (day, month, year)}}
+        :raise AladhanError: when the API cannot be used
+        """
+        self.ensure_one()
+        params = self._api_params()
         result = {}
+        for year, month in sorted({(day.year, day.month) for day in days}):
+            month_data = aladhan_client.fetch_month(year=year, month=month, **params)
+            for day in days:
+                if day not in month_data:
+                    continue
+                times = dict(month_data[day]['times'])
+                hijri = month_data[day]['hijri']
+                # Umm Al-Qura: Isha 120 minutes after Maghrib in Ramadan. The API
+                # already does it (checked on real data); applied here only if not.
+                if (self.method == 'umm_al_qura'
+                        and hijri[1] == aladhan_client.RAMADAN_MONTH
+                        and times['isha'] - times['maghrib'] < 2.0):
+                    times['isha'] = times['maghrib'] + 2.0
+                for key in PRAYER_KEYS:
+                    times[key] = round_to_minute(times[key] + self['%s_offset' % key] / 60.0)
+                result[day] = {'times': times, 'hijri': hijri}
+        return result
+
+    def _fetch_api_times(self, days):
+        """Like `_api_fetch_days`, but logs and records the error instead of raising."""
+        self.ensure_one()
         try:
-            for year, month in sorted({(day.year, day.month) for day in days}):
-                month_data = aladhan_client.fetch_month(year=year, month=month, **params)
-                for day in days:
-                    if day not in month_data:
-                        continue
-                    times = dict(month_data[day]['times'])
-                    # Umm Al-Qura: Isha 120 minutes after Maghrib in Ramadan
-                    # (applied here only if the API did not already do it).
-                    if (self.method == 'umm_al_qura'
-                            and month_data[day]['hijri_month'] == aladhan_client.RAMADAN_MONTH
-                            and times['isha'] - times['maghrib'] < 2.0):
-                        times['isha'] = times['maghrib'] + 2.0
-                    for key in PRAYER_KEYS:
-                        times[key] = round_to_minute(times[key] + self['%s_offset' % key] / 60.0)
-                    result[day] = times
+            result = self._api_fetch_days(days)
         except aladhan_client.AladhanError as error:
             _logger.warning("Prayer location %s (%s): Aladhan API error, built-in calculation "
                             "used instead: %s", self.id, self.name, error)
@@ -366,6 +423,37 @@ class PrayerLocation(models.Model):
             'domain': [('location_id', 'in', self.ids)],
             'context': {'search_default_upcoming': 1},
         }
+
+    def action_test_api_connection(self):
+        """Fetch today's times from Aladhan and show them (nothing is saved)."""
+        self.ensure_one()
+        _ = self.env._
+        today = self._local_today()
+        try:
+            day = self._api_fetch_days([today]).get(today)
+            if not day:
+                raise aladhan_client.AladhanError(_("today is missing from the answer"))
+        except aladhan_client.AladhanError as error:
+            notification = {
+                'type': 'danger',
+                'title': _("Aladhan API: connection failed"),
+                'message': _("%(error)s. The built-in calculation is used until the API "
+                             "can be reached.", error=str(error).rstrip('.')),
+                'sticky': True,
+            }
+        else:
+            names = self._get_prayer_names()
+            times = " · ".join(
+                "%s %02d:%02d" % (names[key], *divmod(round(day['times'][key] * 60), 60))
+                for key in PRAYER_KEYS)
+            hijri = self._format_hijri(*day['hijri'])
+            notification = {
+                'type': 'success',
+                'title': _("Aladhan API: connection OK"),
+                'message': "%s%s: %s" % (today.strftime('%d/%m/%Y'), hijri and " — %s" % hijri or "", times),
+                'sticky': False,
+            }
+        return {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': notification}
 
     @api.model
     def _cron_generate_timetables(self, days=30, keep_days=90):
@@ -434,4 +522,5 @@ class PrayerLocation(models.Model):
                     'sound_url': sound and sounds[sound.id] or False,
                 })
         result['location'] = {'id': location.id, 'name': location.name, 'tz': location.tz}
+        result['hijri_date'] = location._get_hijri_label(today)
         return result

@@ -22,6 +22,9 @@
                                     <i class="fa fa-map-marker me-1"/>
                                     <t t-esc="state.location.name"/>
                                 </div>
+                                <div t-if="state.hijriDate" class="small text-muted o_prayer_hijri_date">
+                                    <i class="fa fa-moon-o me-1"/><t t-esc="state.hijriDate"/>
+                                </div>
                                 <div t-if="next" class="small text-muted">
                                     <t t-esc="next.name"/> · <span class="o_prayer_countdown" t-esc="countdown"/>
                                 </div>

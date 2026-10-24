@@ -6,14 +6,27 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 16:04+0000\n"
-"PO-Revision-Date: 2026-10-24 16:04+0000\n"
+"POT-Creation-Date: 2026-10-24 18:29+0000\n"
+"PO-Revision-Date: 2026-10-24 18:29+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
 "Plural-Forms: \n"
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "%(day)s %(month)s %(year)s AH"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid ""
+"%(error)s. The built-in calculation is used until the API can be reached."
+msgstr ""
 
 #. module: prayer_times_azan
 #. odoo-javascript
@@ -66,6 +79,18 @@ msgstr ""
 #. module: prayer_times_azan
 #: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__time_source__aladhan
 msgid "Aladhan API (internet)"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Aladhan API: connection OK"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Aladhan API: connection failed"
 msgstr ""
 
 #. module: prayer_times_azan
@@ -271,6 +296,18 @@ msgstr ""
 #. module: prayer_times_azan
 #. odoo-python
 #: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Dhu al-Hijjah"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Dhu al-Qadah"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
 #: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__today_dhuhr
 #: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__dhuhr
 #: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
@@ -362,6 +399,26 @@ msgid "High Latitude Rule"
 msgstr ""
 
 #. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__hijri_date
+msgid "Hijri Date"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__hijri_day
+msgid "Hijri Day"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__hijri_month
+msgid "Hijri Month"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__hijri_year
+msgid "Hijri Year"
+msgstr ""
+
+#. module: prayer_times_azan
 #: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_azan_sound__id
 #: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__id
 #: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_timetable__id
@@ -407,6 +464,18 @@ msgstr ""
 #. odoo-javascript
 #: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
 msgid "It is now time for %s prayer."
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Jumada al-Akhirah"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Jumada al-Ula"
 msgstr ""
 
 #. module: prayer_times_azan
@@ -541,6 +610,12 @@ msgid "Month"
 msgstr ""
 
 #. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Muharram"
+msgstr ""
+
+#. module: prayer_times_azan
 #: model:ir.model.fields.selection,name:prayer_times_azan.selection__prayer_location__method__mwl
 msgid "Muslim World League"
 msgstr ""
@@ -660,6 +735,30 @@ msgid "Qatar"
 msgstr ""
 
 #. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Rabi al-Awwal"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Rabi al-Thani"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Rajab"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Ramadan"
+msgstr ""
+
+#. module: prayer_times_azan
 #: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__ramadan_mode
 msgid "Ramadan (Isha +30 min)"
 msgstr ""
@@ -672,6 +771,12 @@ msgstr ""
 #. module: prayer_times_azan
 #: model:prayer.location,name:prayer_times_azan.prayer_location_riyadh
 msgid "Riyadh"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Safar"
 msgstr ""
 
 #. module: prayer_times_azan
@@ -702,6 +807,18 @@ msgstr ""
 msgid ""
 "Set either an Isha angle between 0 and 30 degrees or Isha minutes after "
 "Maghrib."
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Shaban"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "Shawwal"
 msgstr ""
 
 #. module: prayer_times_azan
@@ -773,6 +890,11 @@ msgstr ""
 #. odoo-javascript
 #: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
 msgid "Test"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid "Test Connection"
 msgstr ""
 
 #. module: prayer_times_azan
@@ -933,4 +1055,10 @@ msgstr ""
 #. module: prayer_times_azan
 #: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
 msgid "e.g. Riyadh - Head Office"
+msgstr ""
+
+#. module: prayer_times_azan
+#. odoo-python
+#: code:addons/prayer_times_azan/models/prayer_location.py:0
+msgid "today is missing from the answer"
 msgstr ""

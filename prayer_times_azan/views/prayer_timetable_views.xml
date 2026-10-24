@@ -6,6 +6,7 @@
         <field name="arch" type="xml">
             <list string="Prayer Timetable" create="0" edit="0" delete="0">
                 <field name="date"/>
+                <field name="hijri_date" optional="show"/>
                 <field name="location_id"/>
                 <field name="fajr" widget="float_time"/>
                 <field name="sunrise" widget="float_time"/>
