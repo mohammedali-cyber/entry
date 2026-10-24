@@ -1,6 +1,6 @@
 import base64
 import calendar
-from datetime import timedelta
+from datetime import date, timedelta
 from unittest.mock import patch
 
 import requests
@@ -8,7 +8,7 @@ import requests
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import TransactionCase, new_test_user, tagged
 
-from ..models import aladhan_client
+from ..models import aladhan_client, prayer_location
 
 # Minimal MPEG audio frame header, enough for the constraint (extension based).
 FAKE_MP3 = base64.b64encode(b'ID3\x03\x00\x00\x00\x00\x00\x00' + b'\xff\xfb\x90\x00' * 64)
@@ -246,3 +246,48 @@ class TestAladhanApi(TransactionCase):
 
     def test_parse_time(self):
         self.assertAlmostEqual(aladhan_client._parse_time('04:29 (+03)'), 4 + 29 / 60)
+
+
+@tagged('post_install', '-at_install')
+class TestRamadanDetection(TransactionCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.location = cls.env['prayer.location'].create({
+            'name': 'Riyadh Calc', 'latitude': 24.7136, 'longitude': 46.6753,
+            'tz': 'Asia/Riyadh', 'time_source': 'calculation', 'method': 'umm_al_qura',
+        })
+
+    def _isha_after_maghrib(self, day):
+        times = self.location._compute_local_times(day)
+        return round((times['isha'] - times['maghrib']) * 60)
+
+    def test_automatic_with_hijridate(self):
+        if prayer_location.Gregorian is None:
+            self.skipTest("hijridate is not installed")
+        from hijridate import Hijri
+        ramadan_day = Hijri(1448, 9, 10).to_gregorian()
+        shawwal_day = Hijri(1448, 10, 10).to_gregorian()
+        self.assertTrue(self.location.ramadan_auto)
+        self.assertEqual(self._isha_after_maghrib(ramadan_day), 120)
+        self.assertEqual(self._isha_after_maghrib(shawwal_day), 90)
+        # The manual switch is ignored when the calendar is available.
+        self.location.ramadan_mode = True
+        self.assertEqual(self._isha_after_maghrib(shawwal_day), 90)
+
+    def test_only_umm_al_qura(self):
+        if prayer_location.Gregorian is None:
+            self.skipTest("hijridate is not installed")
+        from hijridate import Hijri
+        self.location.method = 'gulf'  # also Isha 90 min, no Ramadan rule
+        self.assertEqual(self._isha_after_maghrib(Hijri(1448, 9, 10).to_gregorian()), 90)
+
+    def test_manual_without_hijridate(self):
+        day = date(2027, 2, 18)
+        with patch.object(prayer_location, 'Gregorian', None):
+            self.location.invalidate_recordset(['ramadan_auto'])
+            self.assertFalse(self.location.ramadan_auto)
+            self.assertEqual(self._isha_after_maghrib(day), 90)
+            self.location.ramadan_mode = True
+            self.assertEqual(self._isha_after_maghrib(day), 120)

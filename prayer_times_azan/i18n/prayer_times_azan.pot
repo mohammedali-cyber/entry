@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 13:04+0000\n"
-"PO-Revision-Date: 2026-10-06 13:04+0000\n"
+"POT-Creation-Date: 2026-10-24 16:04+0000\n"
+"PO-Revision-Date: 2026-10-24 16:04+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -19,6 +19,13 @@ msgstr ""
 #. odoo-javascript
 #: code:addons/prayer_times_azan/static/src/js/prayer_azan_service.js:0
 msgid "%(prayer)s azan in %(minutes)s minutes."
+msgstr ""
+
+#. module: prayer_times_azan
+#: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
+msgid ""
+"<i class=\"fa fa-moon-o me-1\"/>Ramadan is detected automatically (Umm Al-"
+"Qura calendar)."
 msgstr ""
 
 #. module: prayer_times_azan
@@ -116,6 +123,11 @@ msgid "Audio Url"
 msgstr ""
 
 #. module: prayer_times_azan
+#: model:ir.model.fields,field_description:prayer_times_azan.field_prayer_location__ramadan_auto
+msgid "Automatic Ramadan Detection"
+msgstr ""
+
+#. module: prayer_times_azan
 #. odoo-javascript
 #: code:addons/prayer_times_azan/static/src/xml/prayer_templates.xml:0
 #: model_terms:ir.ui.view,arch_db:prayer_times_azan.prayer_location_view_form
@@ -190,9 +202,10 @@ msgstr ""
 #. module: prayer_times_azan
 #: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__ramadan_mode
 msgid ""
-"Built-in calculation with Umm Al-Qura only: Isha is 120 minutes after "
-"Maghrib instead of 90. Enable it at the start of Ramadan and disable it "
-"after. With the Aladhan API, Ramadan is detected automatically."
+"Built-in calculation with Umm Al-Qura only, when the 'hijridate' Python "
+"library is not installed on the server: Isha is 120 minutes after Maghrib "
+"instead of 90. Enable it at the start of Ramadan and disable it after. With "
+"the library or with the Aladhan API, Ramadan is detected automatically."
 msgstr ""
 
 #. module: prayer_times_azan
@@ -766,6 +779,12 @@ msgstr ""
 #. odoo-javascript
 #: code:addons/prayer_times_azan/static/src/xml/prayer_templates.xml:0
 msgid "Test azan"
+msgstr ""
+
+#. module: prayer_times_azan
+#: model:ir.model.fields,help:prayer_times_azan.field_prayer_location__ramadan_auto
+msgid ""
+"The 'hijridate' library (Umm Al-Qura calendar) is installed on the server."
 msgstr ""
 
 #. module: prayer_times_azan

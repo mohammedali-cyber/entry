@@ -39,7 +39,8 @@ Shows the daily prayer times inside the Odoo backend and plays an azan
 
 ## Dependencies
 
-`web`, `bus` (both standard). No Python package beyond Odoo's requirements.
+`web`, `bus` (both standard). Optional Python package: `hijridate` (automatic
+Ramadan detection with the built-in calculation); the module works without it.
 
 ## Models
 
@@ -76,8 +77,12 @@ The calculation engine is `models/prayer_calc.py` (pure Python, unit tested).
   about one minute. Events missed by more than 3 minutes (e.g. a sleeping PC) are skipped.
 - Calculated times can differ by 1–2 minutes from an official calendar (for example
   the Umm Al-Qura calendar or the local mosque). Use the minute adjustments to match it.
-- With the built-in calculation, Ramadan mode is a manual switch (no automatic Hijri
-  date detection). With the Aladhan API it is automatic.
+- Ramadan (Umm Al-Qura Isha +30 min) with the built-in calculation is automatic when
+  the optional Python library `hijridate` (Umm Al-Qura calendar, MIT, dates 1924–2077)
+  is installed on the Odoo server (`pip install hijridate`); without it, a manual
+  "Ramadan" switch is shown on the location. After installing the library, press
+  **Update Timetable** on each location so future lines are recomputed.
+  With the Aladhan API, Ramadan is always automatic.
 - The Custom calculation method is only available with the built-in calculation.
 - timesprayer.com was considered as a source but offers no public API; Aladhan is used instead.
 

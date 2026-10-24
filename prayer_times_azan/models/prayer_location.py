@@ -13,6 +13,15 @@ from .prayer_calc import PRAYER_KEYS, PrayerTimesCalculator, round_to_minute
 
 _logger = logging.getLogger(__name__)
 
+try:
+    # Optional (pip install hijridate): Umm Al-Qura Hijri calendar, used to
+    # detect Ramadan automatically with the built-in calculation.
+    from hijridate import Gregorian
+except ImportError:
+    Gregorian = None
+
+RAMADAN_MONTH = 9
+
 AZAN_PRAYERS = ('fajr', 'dhuhr', 'asr', 'maghrib', 'isha')
 
 # Fields that change the computed times: editing one regenerates the timetable.
@@ -85,9 +94,13 @@ class PrayerLocation(models.Model):
              "below the horizon (latitudes above ~48°).")
     ramadan_mode = fields.Boolean(
         string='Ramadan (Isha +30 min)',
-        help="Built-in calculation with Umm Al-Qura only: Isha is 120 minutes after Maghrib "
+        help="Built-in calculation with Umm Al-Qura only, when the 'hijridate' Python "
+             "library is not installed on the server: Isha is 120 minutes after Maghrib "
              "instead of 90. Enable it at the start of Ramadan and disable it after. "
-             "With the Aladhan API, Ramadan is detected automatically.")
+             "With the library or with the Aladhan API, Ramadan is detected automatically.")
+    ramadan_auto = fields.Boolean(
+        string='Automatic Ramadan Detection', compute='_compute_ramadan_auto',
+        help="The 'hijridate' library (Umm Al-Qura calendar) is installed on the server.")
 
     fajr_offset = fields.Integer(string='Fajr Adjustment')
     sunrise_offset = fields.Integer(string='Sunrise Adjustment')
@@ -151,6 +164,9 @@ class PrayerLocation(models.Model):
                     raise ValidationError(self.env._(
                         "Time adjustments must be between -120 and 120 minutes."))
 
+    def _compute_ramadan_auto(self):
+        self.ramadan_auto = Gregorian is not None
+
     def _compute_today_times(self):
         for location in self:
             today = location._local_today()
@@ -166,7 +182,23 @@ class PrayerLocation(models.Model):
     # ------------------------------------------------------------------------
     # Calculation helpers
     # ------------------------------------------------------------------------
-    def _get_calculator(self):
+    def _is_ramadan(self, day):
+        """Umm Al-Qura Ramadan for `day` (Isha +30 min).
+
+        Uses the Umm Al-Qura Hijri calendar when the 'hijridate' library is
+        installed (and the date is in its range), otherwise the manual switch.
+        """
+        self.ensure_one()
+        if self.method != 'umm_al_qura':
+            return False
+        if Gregorian is not None and day:
+            try:
+                return Gregorian.fromdate(day).to_hijri().month == RAMADAN_MONTH
+            except (OverflowError, ValueError):
+                pass
+        return self.ramadan_mode
+
+    def _get_calculator(self, day=None):
         self.ensure_one()
         return PrayerTimesCalculator(
             self.latitude, self.longitude,
@@ -176,7 +208,7 @@ class PrayerLocation(models.Model):
             isha_minutes=self.isha_minutes,
             asr_factor=2 if self.asr_method == 'hanafi' else 1,
             high_lat_rule=self.high_lat_rule,
-            ramadan=self.ramadan_mode,
+            ramadan=self._is_ramadan(day),
             offsets={key: self['%s_offset' % key] for key in PRAYER_KEYS},
         )
 
@@ -203,7 +235,7 @@ class PrayerLocation(models.Model):
             ], limit=1)
             if line:
                 return {key: line[key] for key in PRAYER_KEYS}
-        times = self._get_calculator().compute(day, self._utc_offset_hours(day))
+        times = self._get_calculator(day).compute(day, self._utc_offset_hours(day))
         return {key: round_to_minute(value) for key, value in times.items()}
 
     def _compute_utc_datetimes(self, day):
@@ -267,7 +299,7 @@ class PrayerLocation(models.Model):
                 if day in api_times:
                     times, source = api_times[day], 'aladhan'
                 else:
-                    times = location._get_calculator().compute(day, location._utc_offset_hours(day))
+                    times = location._get_calculator(day).compute(day, location._utc_offset_hours(day))
                     times = {key: round_to_minute(value) for key, value in times.items()}
                     source = 'calculation'
                 vals = {'location_id': location.id, 'date': day, 'source': source}
